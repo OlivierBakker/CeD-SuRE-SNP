@@ -85,6 +85,8 @@ if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
   BASENAME=$(basename ${FORWARD} | sed -e 's/_forw.[fF]\(ast\|AST\)\?[qQ].*//')
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
+
 fi
 
 # Check required subdirectories exist
@@ -115,7 +117,6 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] PLATFORM_UNIT=${PLATFORM_UNIT}"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Final header=${READ_GROUP}"
 
 # TODO: Maybe use samtools view instead of sort for faster speeds, since the BAM is sorted later on in the pipeline anyway, or remove the later sorting step
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting BWA"
 
 BWA_CMD="${BWA} mem \
 -t ${NCORES} \
@@ -127,9 +128,13 @@ ${REVERSE}
 | $SAMTOOLS sort \
 --threads 1 \
 -O BAM \
--o ${OUTDIR}/${PREFIX}.bam"
+-o ${OUTDIR}/${BASENAME}.bam"
+
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting BWA"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] BWA command = ${BWA_CMD}"
+echo "=========================================================================="
 
 eval $BWA_CMD
 
+echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
