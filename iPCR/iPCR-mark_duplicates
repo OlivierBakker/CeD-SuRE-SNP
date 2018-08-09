@@ -62,7 +62,7 @@ done
 shift $(( OPTIND - 1 ))
 
 # Tools
-PICARD="java -XX:ParallelGCThreads=${NCORE} -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
+PICARD="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
 
 starttime=$(date +%s)
 
