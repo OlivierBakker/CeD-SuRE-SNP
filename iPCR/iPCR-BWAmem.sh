@@ -16,6 +16,7 @@ OUTDIR="./"
 
 # Settings
 NCORES=1
+LOG=false
 
 # Tools
 BWA=bwa
