@@ -96,8 +96,10 @@ if [ ! -d ${OUTDIR} ]; then mkdir -p ${OUTDIR}; echo "[INFO - $(date '+%Y-%m-%d 
 # Write stdout to stdout or a log file
 if [ ${LOG} == "true" ]; then 
   LOG="${OUTDIR}/${BASENAME}.log"
-  exec 1>>${LOG}
+  exec >${LOG}
+  exec 2>&1
 fi
+
 
 # Read group information
 # For more details see: https://gatkforums.broadinstitute.org/gatk/discussion/6472/read-groups

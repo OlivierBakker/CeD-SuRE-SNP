@@ -182,7 +182,8 @@ OUTDIR="`cd \"$OUTDIR\" 2>/dev/null && pwd || echo \"$OUTDIR\"`"
 # Write stdout to stdout or a log file
 if [ ${LOG} == "true" ]; then 
   LOG="${OUTDIR}/${BASENAME}.log"
-  exec 1>>${LOG}
+  exec >${LOG}
+  exec 2>&1
 fi
 
 ### Logging ###

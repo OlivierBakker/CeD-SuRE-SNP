@@ -72,7 +72,7 @@ starttime=$(date +%s)
 if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)"; usage; exit 1; fi
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
-  BASENAME=$(basename ${INPUT_BAM} | sed -e 's/_forw.[fF]\(ast\|AST\)\?[qQ].*//')
+  BASENAME=$(basename ${INPUT_BAM} | sed -e 's/.bam.*//')
   echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
 
 fi
@@ -83,7 +83,8 @@ if [ ! -d ${OUTDIR} ]; then mkdir -p ${OUTDIR}; echo "[INFO - $(date '+%Y-%m-%d 
 # Write stdout to stdout or a log file
 if [ ${LOG} == "true" ]; then 
   LOG="${OUTDIR}/${BASENAME}.log"
-  exec 1>>${LOG}
+  exec >${LOG}
+  exec 2>&1
 fi
 
 ### Start extraction ###

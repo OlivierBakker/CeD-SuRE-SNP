@@ -89,13 +89,14 @@ PICARD_CMD="${PICARD} \
 MarkDuplicates \
 I=${INPUT_BAM} \
 O=${OUTDIR}/$BASENAME.dedup.bam \
-M=${OUTDIR}/$BASENAME.dupmetrics"
+M=${OUTDIR}/$BASENAME.dupmetrics \
+READ_NAME_REGEX=null"
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting marking of duplicates"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Picard command = ${PICARD_CMD}"
 echo "=========================================================================="
 
-eval $PICARD_CMD >> ${LOG}
+eval $PICARD_CMD
 
 echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
