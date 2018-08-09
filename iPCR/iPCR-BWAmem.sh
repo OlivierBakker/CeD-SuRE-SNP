@@ -123,10 +123,11 @@ BWA_CMD="${BWA} mem \
 -R ${READ_GROUP} \
 ${REFERENCE} \
 ${FORWARD} \
-${REVERSE}"
-#| $SAMTOOLS sort \
-#-@${NCORES} \
-#-o ${OUTDIR}/${PREFIX}.bam
+${REVERSE}
+| $SAMTOOLS sort \
+--threads 1 \
+-O BAM \
+-o ${OUTDIR}/${PREFIX}.bam"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] BWA command = ${BWA_CMD}"
 
 eval $BWA_CMD
