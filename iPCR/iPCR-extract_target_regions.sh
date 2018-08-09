@@ -100,7 +100,7 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting extraction of target region
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMTOOLS command = ${SAM_CMD}"
 echo "=========================================================================="
 
-eval SAM_CMD
+eval $SAM_CMD
 
 echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
