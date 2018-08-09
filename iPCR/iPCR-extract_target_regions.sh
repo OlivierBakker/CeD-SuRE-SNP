@@ -72,7 +72,7 @@ starttime=$(date +%s)
 if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)"; usage; exit 1; fi
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
-  BASENAME=$(basename ${FORWARD} | sed -e 's/_forw.[fF]\(ast\|AST\)\?[qQ].*//')
+  BASENAME=$(basename ${REGIONS} | sed -e 's/_forw.[fF]\(ast\|AST\)\?[qQ].*//')
   echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
 
 fi
