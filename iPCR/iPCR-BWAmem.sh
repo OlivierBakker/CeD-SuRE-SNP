@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # forward reads
 # reverse reads
 # reference + index
