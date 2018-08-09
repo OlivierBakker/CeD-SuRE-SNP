@@ -1,14 +1,7 @@
 #!/bin/bash
 
-# forward reads
-# reverse reads
-# reference + index
-# outdir
-# prefix for output
-
-
 # Version info
-SCRIPTNAME=iPCR-BWAmem.sh
+SCRIPTNAME=iPCR-extract_target_regions.sh
 VERSION=0.0.1
 
 # Output
@@ -19,7 +12,6 @@ NCORES=1
 LOG=false
 
 # Tools
-BWA=bwa
 SAMTOOLS=samtools
 
 # PARSE OPTIONS
@@ -28,10 +20,9 @@ USAGE=
 usage() {
   echo >&2 "usage: ${SCRIPTNAME} [options]"
   echo >&2 "OPTIONS:"
+  echo >&2 "  -i: bamfile[required]"
+  echo >&2 "  -r: target regions [required]"
   echo >&2 "  -o: directory for generated output files  [./]"
-  echo >&2 "  -i: BWA index [required]"
-  echo >&2 "  -f: Forward reads [required]"
-  echo >&2 "  -r: Reverse reads [required]"
   echo >&2 "  -l: write messages to logfile (OUTDIR/BASENAME.log) instead of stdout"
   echo >&2 "  -b: sets basename used for all output files [default: based on input filename]"
   echo >&2 "  -n: number of cores used where possible [default: $NCORES]"
@@ -41,22 +32,19 @@ usage() {
   exit 1;
 }
 
-while getopts "h?f:o:r:i:l:b:n:c" opt; do
+while getopts "h?o:r:i:l:b:n:c" opt; do
   case $opt in
+  	i)
+	  INPUT_BAM=$OPTARG;
+	  ;;
+	r)
+      REGIONS=$OPTARG;
+      ;;
     l)
       LOG="true";
       ;;
     n)
       NCORES=$OPTARG;
-      ;;
-    f)
-      FORWARD=$OPTARG;
-      ;;
-    r)
-      REVERSE=$OPTARG;
-      ;;
-    i)
-      REFERENCE=$OPTARG;
       ;;
     o)
       OUTDIR=$OPTARG;
@@ -78,7 +66,6 @@ while getopts "h?f:o:r:i:l:b:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Log the starttime
 starttime=$(date +%s)
 
 # Check all required options are set
@@ -99,43 +86,21 @@ if [ ${LOG} == "true" ]; then
   exec 1>>${LOG}
 fi
 
-# Read group information
-# For more details see: https://gatkforums.broadinstitute.org/gatk/discussion/6472/read-groups
-SAMPLE_ID="TEST1"
-PLATFORM="ILLUMINA"
-DNA_PREP_LIB="NA?"
-READ_GROUP_ID="abababa001lane1"
-PLATFORM_UNIT="AAAA.001.CCCC"
-
-# Final readgroup for this sample
-READ_GROUP="'@RG\tID:${READ_GROUP_ID}\tPU:${PLATFORM_UNIT}\tSM:${SAMPLE_ID}\tPL:${PLATFORM}\tLB:${DNA_PREP_LIB}'"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Read group id's:"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMPLE_ID=${SAMPLE_ID}"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] PLATFORM=${PLATFORM}"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] DNA_PREP_LIB=${DNA_PREP_LIB}"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] PLATFORM_UNIT=${PLATFORM_UNIT}"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Final header=${READ_GROUP}"
-
-# TODO: Maybe use samtools view instead of sort for faster speeds, since the BAM is sorted later on in the pipeline anyway, or remove the later sorting step
+### Start extraction ###
 
 # Construct the command
-BWA_CMD="${BWA} mem \
--t ${NCORES} \
--M \
--R ${READ_GROUP} \
-${REFERENCE} \
-${FORWARD} \
-${REVERSE}
-| $SAMTOOLS sort \
---threads 1 \
+SAM_CMD="samtools view \
+${INPUT_BAM} \
+-h \
 -O BAM \
--o ${OUTDIR}/${BASENAME}.bam"
+-L ${REGIONS} \
+> ${OUTDIR}/${BASENAME}.bam"
 
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting BWA"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] BWA command = ${BWA_CMD}"
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting extraction of target regions"
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMTOOLS command = ${SAM_CMD}"
 echo "=========================================================================="
 
-eval $BWA_CMD
+eval SAM_CMD
 
-echo "==========================================================================" 
+echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
