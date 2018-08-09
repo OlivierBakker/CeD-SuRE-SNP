@@ -81,7 +81,7 @@ if [ ! -d ${OUTDIR} ]; then mkdir -p ${OUTDIR}; echo "[INFO - $(date '+%Y-%m-%d 
 # Write stdout to stdout or a log file
 if [ ${LOG} == "true" ]; then 
   LOG="${OUTDIR}/${BASENAME}.log"
-  exec 1>>${LOG}
+  exec 1>${LOG}
 fi
 
 PICARD_CMD="${PICARD} \
@@ -94,7 +94,7 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting marking of duplicates"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Picard command = ${PICARD_CMD}"
 echo "=========================================================================="
 
-eval $PICARD_CMD
+eval $PICARD_CMD >> ${LOG}
 
 echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
