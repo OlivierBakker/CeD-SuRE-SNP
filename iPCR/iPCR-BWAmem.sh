@@ -117,7 +117,7 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Final header=${READ_GROUP}"
 # TODO: Maybe use samtools view instead of sort for faster speeds, since the BAM is sorted later on in the pipeline anyway, or remove the later sorting step
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting BWA"
 
-BWA_CMD = "${BWA} mem \
+BWA_CMD="${BWA} mem \
 -t ${NCORES} \
 -M \
 -R ${READ_GROUP} \
