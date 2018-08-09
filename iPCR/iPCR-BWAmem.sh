@@ -106,7 +106,7 @@ READ_GROUP_ID="abababa001lane1"
 PLATFORM_UNIT="AAAA.001.CCCC"
 
 # Final readgroup for this sample
-READ_GROUP="@RG\tID:${READ_GROUP_ID}\tPU:${PLATFORM_UNIT}\tSM:${SAMPLE_ID}\tPL:${PLATFORM}\tLB:${DNA_PREP_LIB}"
+READ_GROUP="'@RG\tID:${READ_GROUP_ID}\tPU:${PLATFORM_UNIT}\tSM:${SAMPLE_ID}\tPL:${PLATFORM}\tLB:${DNA_PREP_LIB}'"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Read group id's:"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMPLE_ID=${SAMPLE_ID}"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] PLATFORM=${PLATFORM}"
