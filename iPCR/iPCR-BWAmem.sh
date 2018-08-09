@@ -99,15 +99,14 @@ fi
 
 # Read group information
 # For more details see: https://gatkforums.broadinstitute.org/gatk/discussion/6472/read-groups
-SAMPLE_ID="$(basename $FORWARD)"
+SAMPLE_ID="TEST1"
 PLATFORM="ILLUMINA"
 DNA_PREP_LIB="NA?"
-READ_GROUP_ID="flowcell + lane name and number"
-PLATFORM_UNIT="{FLOWCELL_BARCODE}.{LANE}.{SAMPLE_BARCODE}"
+READ_GROUP_ID="abababa001lane1"
+PLATFORM_UNIT="AAAA.001.CCCC"
 
 # Final readgroup for this sample
 READ_GROUP="@RG\tID:${READ_GROUP_ID}\tPU:${PLATFORM_UNIT}\tSM:${SAMPLE_ID}\tPL:${PLATFORM}\tLB:${DNA_PREP_LIB}"
-
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Read group id's:"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMPLE_ID=${SAMPLE_ID}"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] PLATFORM=${PLATFORM}"
@@ -118,16 +117,18 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Final header=${READ_GROUP}"
 # TODO: Maybe use samtools view instead of sort for faster speeds, since the BAM is sorted later on in the pipeline anyway, or remove the later sorting step
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting BWA"
 
-$BWA mem \
--t $NCORES \
+BWA_CMD = "${BWA} mem \
+-t ${NCORES} \
 -M \
--R $READ_GROUP \
-$REFERENCE \
-$FORWARD \
-$REVERSE 
+-R ${READ_GROUP} \
+${REFERENCE} \
+${FORWARD} \
+${REVERSE}"
 #| $SAMTOOLS sort \
 #-@${NCORES} \
 #-o ${OUTDIR}/${PREFIX}.bam
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] BWA command = ${BWA_CMD}"
 
+eval $BWA_CMD
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
