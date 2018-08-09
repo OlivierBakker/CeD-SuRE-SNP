@@ -8,11 +8,7 @@ VERSION=0.0.1
 OUTDIR="./"
 
 # Settings
-NCORES=1
 LOG=false
-
-# Tools
-PICARD="java -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
 
 # PARSE OPTIONS
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -24,8 +20,8 @@ usage() {
   echo >&2 "  -o: directory for generated output files  [./]"
   echo >&2 "  -l: write messages to logfile (OUTDIR/BASENAME.log) instead of stdout"
   echo >&2 "  -b: sets basename used for all output files [default: based on input filename]"
-  echo >&2 "  -n: number of cores used where possible [default: $NCORES]"
   echo >&2 "  -c: do not clean up intermediate files [default: $CLEAN]"
+  echo >&2 "  -n: number of cores used where possible [default: $NCORES]"
   echo >&2 "  -h: print this message"
   echo >&2 ""
   exit 1;
@@ -38,6 +34,9 @@ while getopts "h?o:r:i:l:b:n:c" opt; do
 	    ;;
     l)
       LOG="true";
+      ;;
+    n)
+      NCORES=$OPTARG;
       ;;
     n)
       NCORES=$OPTARG;
@@ -61,6 +60,9 @@ while getopts "h?o:r:i:l:b:n:c" opt; do
   esac
 done
 shift $(( OPTIND - 1 ))
+
+# Tools
+PICARD="java -XX:ParallelGCThreads=${NCORE} -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
 
 starttime=$(date +%s)
 
