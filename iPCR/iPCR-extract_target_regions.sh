@@ -94,7 +94,7 @@ ${INPUT_BAM} \
 -h \
 -O BAM \
 -L ${REGIONS} \
-> ${OUTDIR}/${BASENAME}.bam"
+> ${OUTDIR}/${BASENAME}.targets.bam"
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting extraction of target regions"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMTOOLS command = ${SAM_CMD}"
