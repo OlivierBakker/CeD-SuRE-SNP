@@ -29,7 +29,7 @@ usage() {
   exit 1;
 }
 
-while getopts "h?o:r:d:i:l:b:c" opt; do
+while getopts "h?o:r:d:i:l:b:u:c" opt; do
   case $opt in
   	i)
 	    INPUT_BAM=$OPTARG;
