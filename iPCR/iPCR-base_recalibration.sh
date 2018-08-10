@@ -9,6 +9,7 @@ OUTDIR="./"
 
 # Settings
 LOG=false
+NCORES=1
 
 # PARSE OPTIONS
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -95,6 +96,7 @@ GATK_CMD="${GATK} \
 -R ${REF_SEQ} \
 -I ${INPUT_BAM} \
 -knownSites ${DBSNP} \
+-nct ${NCORES} \
 -o ${OUTDIR}/${BASENAME}.table"
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting base recalibration"
@@ -107,9 +109,10 @@ echo "==========================================================================
 
 GATK_CMD="${GATK} \
 -T PrintReads \
--R ${REF_SEQ}\
+-R ${REF_SEQ} \
 -I ${INPUT_BAM} \
 -BQSR ${OUTDIR}/${BASENAME}.table \
+-nct ${NCORES} \
 -o ${OUTDIR}/${BASENAME}.recal.bam"
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Generating recalibrated BAM"
