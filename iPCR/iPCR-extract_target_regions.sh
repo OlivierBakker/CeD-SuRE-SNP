@@ -108,6 +108,7 @@ echo "==========================================================================
 
 # Construct the command
 PICARD_CMD="${PICARD} \
+BuildBamIndex \
 I=${OUTDIR}/${BASENAME}.targets.bam \
 O=${OUTDIR}/${BASENAME}.targets.bam.bai"
 
