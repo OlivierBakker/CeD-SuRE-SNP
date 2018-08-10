@@ -10,6 +10,9 @@ OUTDIR="./"
 # Settings
 LOG=false
 
+# Tools
+PICARD="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
+
 # PARSE OPTIONS
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 USAGE=
@@ -61,8 +64,6 @@ while getopts "h?o:r:i:l:b:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Tools
-PICARD="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
 
 starttime=$(date +%s)
 
@@ -89,7 +90,8 @@ PICARD_CMD="${PICARD} \
 MarkDuplicates \
 I=${INPUT_BAM} \
 O=${OUTDIR}/$BASENAME.dedup.bam \
-M=${OUTDIR}/$BASENAME.dupmetrics"
+M=${OUTDIR}/$BASENAME.dupmetrics \
+create_index=true"
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting marking of duplicates"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Picard command = ${PICARD_CMD}"

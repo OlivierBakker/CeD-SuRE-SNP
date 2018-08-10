@@ -13,6 +13,7 @@ LOG=false
 
 # Tools
 SAMTOOLS=samtools
+PICARD="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
 
 # PARSE OPTIONS
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -90,7 +91,7 @@ fi
 ### Start extraction ###
 
 # Construct the command
-SAM_CMD="samtools view \
+SAM_CMD="${SAMTOOLS} view \
 ${INPUT_BAM} \
 -h \
 -O BAM \
@@ -102,6 +103,19 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMTOOLS command = ${SAM_CMD}"
 echo "=========================================================================="
 
 eval $SAM_CMD
+
+echo "=========================================================================="
+
+# Construct the command
+PICARD_CMD="${PICARD} \
+I=${OUTDIR}/${BASENAME}.targets.bam \
+O=${OUTDIR}/${BASENAME}.targets.bam.bai"
+
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting indexing of BAM file"
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Picard command = ${PICARD_CMD}"
+echo "=========================================================================="
+
+eval $PICARD_CMD
 
 echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
