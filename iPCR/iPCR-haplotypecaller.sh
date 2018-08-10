@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version info
-SCRIPTNAME=iPCR-base_recalibration.sh
+SCRIPTNAME=iPCR-haplotypecaller.sh
 VERSION=0.0.1
 
 # Output
@@ -76,7 +76,6 @@ if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
   BASENAME=$(basename ${INPUT_BAM} | sed -e 's/\..*bam.*//')
-  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
 fi
 
 # Check required subdirectories exist
@@ -91,14 +90,15 @@ fi
 
 GATK_CMD="${GATK} \
 -T HaplotypeCaller \
--R ${REF_SEQ} \
--I ${INPUT_BAM} \
+--reference_sequence ${REF_SEQ} \
+--input_file ${INPUT_BAM} \
 --emitRefConfidence GVCF \
 --dbsnp ${DBSNP} \
--L ${INTERVALS} \
--o ${OUTDIR}/${BASENAME}.raw.snps.indels.g.vcf"
+--intervals ${INTERVALS} \
+--out ${OUTDIR}/${BASENAME}.raw.snps.indels.g.vcf"
 
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting base recalibration"
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting genotype calling"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] GATK command = ${GATK_CMD}"
 echo "=========================================================================="
 

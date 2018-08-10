@@ -72,8 +72,6 @@ if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
   BASENAME=$(basename ${INPUT_BAM} | sed -e 's/\..*bam.*//')
-  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
-
 fi
 
 # Check required subdirectories exist
@@ -93,6 +91,7 @@ O=${OUTDIR}/$BASENAME.dedup.bam \
 M=${OUTDIR}/$BASENAME.dupmetrics \
 create_index=true"
 
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting marking of duplicates"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Picard command = ${PICARD_CMD}"
 echo "=========================================================================="

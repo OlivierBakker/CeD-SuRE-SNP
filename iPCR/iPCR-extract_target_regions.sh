@@ -74,8 +74,6 @@ if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
   BASENAME=$(basename ${INPUT_BAM} | sed -e 's/.bam.*//')
-  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
-
 fi
 
 # Check required subdirectories exist
@@ -98,6 +96,7 @@ ${INPUT_BAM} \
 -L ${REGIONS} \
 > ${OUTDIR}/${BASENAME}.targets.bam"
 
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting extraction of target regions"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] SAMTOOLS command = ${SAM_CMD}"
 echo "=========================================================================="

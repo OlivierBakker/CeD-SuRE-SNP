@@ -86,8 +86,6 @@ if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
   BASENAME=$(basename ${FORWARD} | sed -e 's/_forw.[fF]\(ast\|AST\)\?[qQ].*//')
-  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
-
 fi
 
 # Check required subdirectories exist
@@ -133,6 +131,7 @@ ${REVERSE}
 -O BAM \
 -o ${OUTDIR}/${BASENAME}.bam"
 
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Using basename: ${BASENAME}"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting BWA"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] BWA command = ${BWA_CMD}"
 echo "=========================================================================="
