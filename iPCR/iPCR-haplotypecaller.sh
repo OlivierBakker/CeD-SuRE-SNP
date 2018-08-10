@@ -67,7 +67,7 @@ done
 shift $(( OPTIND - 1 ))
 
 # Tools
-GATK="java -Xmx4g -jar \${EBROOTGATK}/GenomeAnalysisTK.jar"
+GATK="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTGATK}/GenomeAnalysisTK.jar"
 
 starttime=$(date +%s)
 
