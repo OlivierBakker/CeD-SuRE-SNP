@@ -92,8 +92,7 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting base recalibration"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] GATK command = ${GATK_CMD}"
 echo "=========================================================================="
 
-echo $GATK_CMD
-#eval $GATK_CMD
+eval $GATK_CMD
 
 echo "=========================================================================="
 
