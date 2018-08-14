@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+}
+
+group 'SuRE-SNP'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin:'application'
+mainClassName = "nl.umcg.suresnp.pipeline.MergeBamWithBarcodes"
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+run {
+    maxHeapSize="8g"
+    if (project.hasProperty("appArgs")) {
+        args Eval.me(appArgs)
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': "$mainClassName",
+        )
+    }
+}
+
+task fatJar(type: Jar) {
+    manifest.from jar.manifest
+    classifier = 'all'
+    from {
+        configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+dependencies {
+
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+    compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile group: 'commons-io', name: 'commons-io', version: '2.4'
+    compile group: 'org.utgenome.thirdparty', name: 'picard', version: '1.102.0'
+    compile group: 'com.github.samtools', name: 'htsjdk', version: '2.16.0'
+    compile group: 'log4j', name: 'log4j', version: '1.2.17'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.testng', name: 'testng', version: '6.4'
+}
