@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Version info
-SCRIPTNAME=iPCR-consolidate_gvcfs.sh
+SCRIPTNAME=iPCR-genotype_gvcfs.sh
 VERSION=0.0.1
 
 # Output
@@ -83,7 +83,7 @@ fi
 
 
 GATK_CMD="${GATK} \
--T CombineGVCFs \
+-T GenotypeGVCFs \
 -R ${REF_SEQ} \
 $(find ${INPUT_FOLDER} -name "*.g.vcf" | awk '{printf " --variants " $1}') \
 -o ${OUTDIR}/${BASENAME}.merged.raw.snps.indels.g.vcf"
@@ -92,6 +92,7 @@ echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting base recalibration"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] GATK command = ${GATK_CMD}"
 echo "=========================================================================="
 
+echo $GATK_CMD
 #eval $GATK_CMD
 
 echo "=========================================================================="
