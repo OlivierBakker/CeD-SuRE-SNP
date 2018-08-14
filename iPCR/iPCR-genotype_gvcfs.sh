@@ -18,6 +18,7 @@ usage() {
   echo >&2 "OPTIONS:"
   echo >&2 "  -i: folder with GVCF files [required]"
   echo >&2 "  -r: reference sequence fasta [required]"
+  echo >&2 "  -d: dbsnp VCF [required]"
   echo >&2 "  -o: directory for generated output files  [./]"
   echo >&2 "  -l: write messages to logfile (OUTDIR/BASENAME.log) instead of stdout"
   echo >&2 "  -b: sets basename used for all output files [default: based on input filename]"
@@ -27,13 +28,16 @@ usage() {
   exit 1;
 }
 
-while getopts "h?o:r:i:l:b:c" opt; do
+while getopts "h?o:r:i:l:b:c:d" opt; do
   case $opt in
   	i)
 	    INPUT_FOLDER=$OPTARG;
 	    ;;
     r)
       REF_SEQ=$OPTARG;
+      ;;
+    d)
+      DBSNP=$OPTARG;
       ;;
     l)
       LOG="true";
@@ -85,10 +89,11 @@ fi
 GATK_CMD="${GATK} \
 -T GenotypeGVCFs \
 -R ${REF_SEQ} \
+--dbsnp ${DBSNP} \
 $(find ${INPUT_FOLDER} -name "*.g.vcf" | awk '{printf " --variant " $1}') \
 -o ${OUTDIR}/${BASENAME}.merged.raw.snps.indels.g.vcf"
 
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting base recalibration"
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting joint genotyping of GVCFs"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] GATK command = ${GATK_CMD}"
 echo "=========================================================================="
 
