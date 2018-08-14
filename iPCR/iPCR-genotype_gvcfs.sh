@@ -28,7 +28,7 @@ usage() {
   exit 1;
 }
 
-while getopts "h?o:r:i:l:b:c:d" opt; do
+while getopts "h?o:d:r:i:l:b:c" opt; do
   case $opt in
   	i)
 	    INPUT_FOLDER=$OPTARG;
