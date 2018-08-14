@@ -85,7 +85,7 @@ fi
 GATK_CMD="${GATK} \
 -T GenotypeGVCFs \
 -R ${REF_SEQ} \
-$(find ${INPUT_FOLDER} -name "*.g.vcf" | awk '{printf " --variants " $1}') \
+$(find ${INPUT_FOLDER} -name "*.g.vcf" | awk '{printf " --variant " $1}') \
 -o ${OUTDIR}/${BASENAME}.merged.raw.snps.indels.g.vcf"
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Starting base recalibration"
