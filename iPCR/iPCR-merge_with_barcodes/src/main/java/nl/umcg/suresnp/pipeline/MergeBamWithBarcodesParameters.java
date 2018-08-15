@@ -16,7 +16,7 @@ public class MergeBamWithBarcodesParameters {
                 .longOpt("input-bam")
                 .hasArg(true)
                 .required()
-                .desc("Input bamfile")
+                .desc("Input bamfile SORTED ON QUERY NAME!!!!!")
                 .argName("path/to/file")
                 .build();
 
@@ -36,13 +36,20 @@ public class MergeBamWithBarcodesParameters {
         option = Option.builder("o")
                 .longOpt("output")
                 .hasArg(true)
-                .required()
                 .desc("Output prefix")
                 .argName("path/to/output")
                 .build();
 
 
         OPTIONS.addOption(option);
+
+        option = Option.builder("s")
+                .longOpt("stdout")
+                .desc("Pipe output to stdout. Will omit logging")
+                .build();
+
+        OPTIONS.addOption(option);
+
 
     }
 
