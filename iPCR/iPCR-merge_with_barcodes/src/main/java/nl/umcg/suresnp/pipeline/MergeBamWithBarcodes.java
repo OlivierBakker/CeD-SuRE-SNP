@@ -7,9 +7,6 @@ import nl.umcg.suresnp.pipeline.io.IPCROutputFileWriter;
 import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
 import nl.umcg.suresnp.pipeline.io.IPCRStdoutWriter;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -23,13 +20,9 @@ public class MergeBamWithBarcodes {
 
     private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
 
-    public static void main(String[] args) {
+    public static void run(CommandLine cmd) {
 
         try {
-            // Parse commandline arguments
-            CommandLineParser parser = new DefaultParser();
-            CommandLine cmd = parser.parse(MergeBamWithBarcodesParameters.getOptions(), args);
-
             // Define the input files
             File inputBamFile = new File(cmd.getOptionValue("i").trim());
             File inputBarcodeFile = new File(cmd.getOptionValue("b").trim());
@@ -43,7 +36,7 @@ public class MergeBamWithBarcodes {
             } else {
                 if (!cmd.hasOption("o")) {
                     LOGGER.error("-o not specified");
-                    MergeBamWithBarcodesParameters.printHelp();
+                    IPCRToolsParameters.printHelp();
                     exit(1);
                 }
                 outputWriter = new IPCROutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
@@ -55,7 +48,11 @@ public class MergeBamWithBarcodes {
             // Open the SAM reader
             SamReader samReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(inputBamFile);
 
-            // Check if the BAM is sorted on read name
+            // Check if the BAM is sorted on read name, if not close the program
+            // The logic requires the BAM to be sorted on read name, for efficiency's sake.
+            // Given no sorting on read name, to get the mate the BAM needs to be searched.
+            // To search for a mate is very slow, in testing slower then first sorting, then
+            // merging. It might be that this is not the case for larger BAMs
             if (samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.queryname) {
                 LOGGER.error("BAM file not sorted on read name, sort it first");
                 samReader.close();
@@ -123,14 +120,11 @@ public class MergeBamWithBarcodes {
             samReader.close();
             outputWriter.close();
 
-        } catch (ParseException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
-
 
     private static Map<String, String> readBarcodeInfoFile(File inputBarcodes) throws IOException {
         // Open a new CSV reader

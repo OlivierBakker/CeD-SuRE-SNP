@@ -5,7 +5,6 @@ import htsjdk.samtools.SAMRecord;
 public class IPCRRecord {
 
     private String barcode;
-    private int duplicateCount;
     private String referenceSequence;
     private int startOne;
     private int endOne;
@@ -18,6 +17,8 @@ public class IPCRRecord {
     private String cigarTwo;
     private String sequenceOne;
     private String sequenceTwo;
+    private int duplicateCount;
+
 
     public IPCRRecord(String barcode, SAMRecord cachedSamRecord, SAMRecord mate) {
         SAMRecord first;
@@ -35,6 +36,7 @@ public class IPCRRecord {
         }
 
         this.barcode = barcode;
+        this.referenceSequence = first.getReferenceName();
         this.startOne = first.getAlignmentStart();
         this.endOne = first.getAlignmentEnd();
         this.startTwo = second.getAlignmentStart();
@@ -48,9 +50,8 @@ public class IPCRRecord {
         this.sequenceTwo = second.getReadString();
     }
 
-    public IPCRRecord(String barcode, int duplicateCount, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo) {
+    public IPCRRecord(String barcode, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo, int duplicateCount) {
         this.barcode = barcode;
-        this.duplicateCount = duplicateCount;
         this.referenceSequence = referenceSequence;
         this.startOne = startOne;
         this.endOne = endOne;
@@ -63,6 +64,7 @@ public class IPCRRecord {
         this.cigarTwo = cigarTwo;
         this.sequenceOne = sequenceOne;
         this.sequenceTwo = sequenceTwo;
+        this.duplicateCount = duplicateCount;
     }
 
     public String getBarcode() {
@@ -71,14 +73,6 @@ public class IPCRRecord {
 
     public void setBarcode(String barcode) {
         this.barcode = barcode;
-    }
-
-    public int getDuplicateCount() {
-        return duplicateCount;
-    }
-
-    public void setDuplicateCount(int duplicateCount) {
-        this.duplicateCount = duplicateCount;
     }
 
     public String getReferenceSequence() {
@@ -177,6 +171,14 @@ public class IPCRRecord {
         this.sequenceTwo = sequenceTwo;
     }
 
+    public int getDuplicateCount() {
+        return duplicateCount;
+    }
+
+    public void setDuplicateCount(int duplicateCount) {
+        this.duplicateCount = duplicateCount;
+    }
+
     public String getOutputString(String sep){
 
         StringBuilder sb = new StringBuilder();
@@ -204,7 +206,11 @@ public class IPCRRecord {
                 .append(sep)
                 .append(sequenceOne)
                 .append(sep)
-                .append(startTwo);
+                .append(sequenceTwo);
+
+        if (duplicateCount != 0) {
+            sb.append(sep).append(duplicateCount);
+        }
 
         return sb.toString();
 
