@@ -12,6 +12,17 @@ public class IPCRToolsParameters {
         OPTIONS = new Options();
         Option option;
 
+        option = Option.builder("T")
+                .longOpt("tool")
+                .hasArg(true)
+                .required()
+                .desc("The tool to apply:\n"
+                        + "- MergeWithBarcodes")
+                .argName("path/to/file")
+                .build();
+
+        OPTIONS.addOption(option);
+
         option = Option.builder("i")
                 .longOpt("input-bam")
                 .hasArg(true)
