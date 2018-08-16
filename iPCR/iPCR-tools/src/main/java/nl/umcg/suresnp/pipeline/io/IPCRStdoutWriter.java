@@ -14,7 +14,7 @@ public class IPCRStdoutWriter implements IPCROutputWriter {
     @Override
     public void writeIPCRRecord(IPCRRecord record) throws IOException {
 
-        System.out.print(record.getOutputString("\t"));
+        System.out.print(record.getOutputString(" "));
         System.out.print("\n");
     }
 

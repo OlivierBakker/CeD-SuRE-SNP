@@ -23,7 +23,7 @@ public class IPCROutputFileWriter implements IPCROutputWriter {
     }
 
     public void writeIPCRRecord(IPCRRecord record) throws IOException {
-        writer.write(record.getOutputString("\t"));
+        writer.write(record.getOutputString(" "));
         writer.newLine();
     }
 

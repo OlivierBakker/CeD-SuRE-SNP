@@ -14,9 +14,14 @@ public class CSVReader {
         this.separator = separator;
     }
 
-    public String[] readNext() throws IOException {
+    public String[] readNext(boolean trim) throws IOException {
         try {
-            return reader.readLine().split(separator);
+            if (trim) {
+                return reader.readLine().trim().split(separator);
+
+            } else {
+                return reader.readLine().split(separator);
+            }
         } catch (NullPointerException e) {
             return null;
         }

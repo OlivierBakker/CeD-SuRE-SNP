@@ -16,8 +16,9 @@ public class IPCRToolsParameters {
                 .longOpt("tool")
                 .hasArg(true)
                 .required()
-                .desc("The tool to apply:\n"
-                        + "- MergeWithBarcodes")
+                .desc("The tool to apply:\n" +
+                        "- MergeWithBarcodes" +
+                        "- AddAlleleInfo")
                 .argName("path/to/file")
                 .build();
 
@@ -26,7 +27,6 @@ public class IPCRToolsParameters {
         option = Option.builder("i")
                 .longOpt("input-bam")
                 .hasArg(true)
-                .required()
                 .desc("Input bamfile SORTED ON QUERY NAME!!!!!")
                 .argName("path/to/file")
                 .build();
@@ -36,11 +36,9 @@ public class IPCRToolsParameters {
         option = Option.builder("b")
                 .longOpt("barcode-info")
                 .hasArg(true)
-                .required()
                 .desc("The file containing read names and barcodes")
                 .argName("path/to/file")
                 .build();
-
 
         OPTIONS.addOption(option);
 
@@ -61,6 +59,21 @@ public class IPCRToolsParameters {
 
         OPTIONS.addOption(option);
 
+        option = Option.builder("g")
+                .longOpt("input-genotype")
+                .hasArg(true)
+                .desc("Currently only supports VCF")
+                .build();
+
+        OPTIONS.addOption(option);
+
+        option = Option.builder("p")
+                .longOpt("input-ipcr-file")
+                .hasArg(true)
+                .desc("Input from MergeBamWithBarcodes")
+                .build();
+
+        OPTIONS.addOption(option);
 
     }
 

@@ -24,6 +24,9 @@ public class IPCRTools {
                 case "MergeBamWithBarcodes":
                     MergeBamWithBarcodes.run(cmd);
                     break;
+                case "AddAlleleInfo":
+                    AddAlleleInfo.run(cmd);
+                    break;
                 default:
                     IPCRToolsParameters.printHelp();
                     exit(1);

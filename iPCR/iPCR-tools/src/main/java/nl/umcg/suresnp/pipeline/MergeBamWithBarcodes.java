@@ -134,7 +134,7 @@ public class MergeBamWithBarcodes {
         String[] line;
         long i = 0;
         long proper = 0;
-        while ((line = reader.readNext()) != null) {
+        while ((line = reader.readNext(false)) != null) {
             // Logging
             if (i > 0) {
                 if (i % 1000000 == 0) {
