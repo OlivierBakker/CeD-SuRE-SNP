@@ -1,79 +1,82 @@
 package nl.umcg.suresnp.pipeline;
 
 
-import nl.umcg.suresnp.pipeline.io.CSVReader;
-import nl.umcg.suresnp.pipeline.io.IPCROutputFileWriter;
-import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
-import nl.umcg.suresnp.pipeline.io.IPCRStdoutWriter;
+import nl.umcg.suresnp.pipeline.io.*;
 import org.apache.commons.cli.CommandLine;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.molgenis.genotype.RandomAccessGenotypeData;
 import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
 import org.molgenis.genotype.variant.GeneticVariant;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.lang.System.exit;
 
 public class AddAlleleInfo {
 
     private static final Logger LOGGER = Logger.getLogger(AddAlleleInfo.class);
 
-    public static void run(CommandLine cmd, IPCROutputWriter outputWriter) {
+    public static void run(CommandLine cmd, IPCROutputWriter outputWriter) throws IOException, IPCRParseException {
 
-        try {
-            String inputIPCRFile = cmd.getOptionValue("p").trim();
-            String inputGenotype = cmd.getOptionValue("g").trim();
+        String inputIPCRFile = cmd.getOptionValue("p").trim();
+        String inputGenotype = cmd.getOptionValue("g").trim();
 
-            RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF,
-                    inputGenotype);
+        // Read genotype data
+        RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF,
+                inputGenotype);
 
-            List<AnnotatedIPCRRecord> ipcrRecords = readAndCollapseIPCRFile(inputIPCRFile);
+        // Read iPCR data
+        List<AnnotatedIPCRRecord> ipcrRecords = readIPCRFileCollapsed(inputIPCRFile);
 
-            int totalValidAlleles = 0;
-            int totalInvalidAlleles = 0;
-            int totalUndeterminedAlleles = 0;
+        // Collect statistics
+        int totalValidAlleles = 0;
+        int totalInvalidAlleles = 0;
+        int totalUndeterminedAlleles = 0;
 
-            for (AnnotatedIPCRRecord record : ipcrRecords) {
-                Iterable<GeneticVariant> variantsInRange = genotypeData.getVariantsByRange(record.getReferenceSequence(), record.getStartOne(), record.getEndTwo());
+        // Loop over all unique barcode fragment associations
+        for (AnnotatedIPCRRecord record : ipcrRecords) {
+            // Extract all variants overlapping sequenced regions
+            Iterable<GeneticVariant> variantsInRange = genotypeData.getVariantsByRange(record.getReferenceSequence(), record.getStartOne(), record.getEndTwo());
 
-                for (GeneticVariant variant : variantsInRange) {
-                    if (variant.isBiallelic()) {
-                        if (record.positionInMappedRegion(variant.getStartPos(), variant.getStartPos() + variant.getAlternativeAlleles().getAllelesAsString().get(0).length())) {
-                            record.addGeneticVariant(variant);
-                        }
+            // Loop over all overlapping variants
+            for (GeneticVariant variant : variantsInRange) {
+                // Only evaluate bi-allelic variants
+                if (variant.isBiallelic()) {
+                    if (record.positionInMappedRegion(variant.getStartPos(), variant.getStartPos() + variant.getAlternativeAlleles().getAllelesAsString().get(0).length())) {
+                        record.addGeneticVariant(variant);
                     }
                 }
-
-                outputWriter.writeIPCRRecord(record);
-                totalValidAlleles += record.getValidVariantAlleles();
-                totalInvalidAlleles += record.getInvalidVariantAlleles();
-                totalUndeterminedAlleles += record.getUndeterminedVariantAlleles();
             }
 
-            outputWriter.close();
-            genotypeData.close();
-            LOGGER.info("Total valid alleles: " + totalValidAlleles);
-            LOGGER.info("Total invalid alleles: " + totalInvalidAlleles);
-            LOGGER.info("Total undetermined alleles: " + totalUndeterminedAlleles);
-            LOGGER.info("Done");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NumberFormatException e) {
-            LOGGER.error("Unable to parse the iPCR file, has it been properly formatted?");
+            outputWriter.writeIPCRRecord(record);
+            totalValidAlleles += record.getValidVariantAlleles();
+            totalInvalidAlleles += record.getInvalidVariantAlleles();
+            totalUndeterminedAlleles += record.getUndeterminedVariantAlleles();
         }
+
+        // Close file streams
+        outputWriter.close();
+        genotypeData.close();
+
+        // Log statistics
+        LOGGER.info("Total valid alleles: " + totalValidAlleles);
+        LOGGER.info("Total invalid alleles: " + totalInvalidAlleles);
+        LOGGER.info("Total undetermined alleles: " + totalUndeterminedAlleles);
+        LOGGER.info("Done");
 
     }
 
-    private static List<AnnotatedIPCRRecord> readAndCollapseIPCRFile(String path) throws IOException {
+    private static List<AnnotatedIPCRRecord> readIPCRFileCollapsed(String path) throws IOException, IPCRParseException {
+        // Read a IPCR file generated by MergeBamWithBarcodes | sort -k 1,1 | uniq -c
+        // and collapse the records so that barcodes appearing multiple times are collapsed on the record with the
+        // highest duplicate count.
+
         // May seem excessive, but allows for easy change to zipped files if needed
         CSVReader reader = new CSVReader(new BufferedReader(new InputStreamReader(new FileInputStream(new File(path)))), " ");
 
         // To save time no support for a header, since we can safely define the format ourselves
-        // Altough it could be easily added if needed
+        // Although it could be easily added if needed
+        // Column order:
         // barcode, chromosome, s1, e1, s2, e2, orientation, mapq1, mapq2, cigar1, cigar2, seq1, seq2, count
         int[] collumnPositions = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0};
         String[] line;
@@ -83,31 +86,34 @@ public class AddAlleleInfo {
 
         while ((line = reader.readNext(true)) != null) {
             // Logging
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Read " + i / 1000000 + " million records");
-                }
-            }
+            if (i > 0){if(i % 1000000 == 0){LOGGER.info("Read " + i / 1000000 + " million records");}}
 
             if (line.length != 14) {
-                LOGGER.warn("iPCR line of invalid length, has the separator been properly set?");
+                LOGGER.warn("Skipping line" + i + " since it is of invalid length, has the separator been properly set?");
                 continue;
             } else {
-                AnnotatedIPCRRecord record = new AnnotatedIPCRRecord(line[collumnPositions[0]],
-                        line[collumnPositions[1]],
-                        Integer.parseInt(line[collumnPositions[2]]),
-                        Integer.parseInt(line[collumnPositions[3]]),
-                        Integer.parseInt(line[collumnPositions[4]]),
-                        Integer.parseInt(line[collumnPositions[5]]),
-                        line[collumnPositions[6]].charAt(0),
-                        Integer.parseInt(line[collumnPositions[7]]),
-                        Integer.parseInt(line[collumnPositions[8]]),
-                        line[collumnPositions[9]],
-                        line[collumnPositions[10]],
-                        line[collumnPositions[11]],
-                        line[collumnPositions[12]],
-                        Integer.parseInt(line[collumnPositions[13]]));
+                // Parse the iPCR record
+                AnnotatedIPCRRecord record;
+                try {
+                     record = new AnnotatedIPCRRecord(line[collumnPositions[0]],
+                            line[collumnPositions[1]],
+                            Integer.parseInt(line[collumnPositions[2]]),
+                            Integer.parseInt(line[collumnPositions[3]]),
+                            Integer.parseInt(line[collumnPositions[4]]),
+                            Integer.parseInt(line[collumnPositions[5]]),
+                            line[collumnPositions[6]].charAt(0),
+                            Integer.parseInt(line[collumnPositions[7]]),
+                            Integer.parseInt(line[collumnPositions[8]]),
+                            line[collumnPositions[9]],
+                            line[collumnPositions[10]],
+                            line[collumnPositions[11]],
+                            line[collumnPositions[12]],
+                            Integer.parseInt(line[collumnPositions[13]]));
+                } catch (NumberFormatException e) {
+                    throw new IPCRParseException(e.getMessage(), i);
+                }
 
+                // Collapse the records on barcode, keeping only the one with the highest duplicate count
                 if (i > 0) {
                     if (ipcrRecords.get(previousRecord).getBarcode().equals(record.getBarcode())) {
                         if (ipcrRecords.get(previousRecord).getDuplicateCount() < record.getDuplicateCount()) {
@@ -115,7 +121,7 @@ public class AddAlleleInfo {
                         }
                     } else {
                         ipcrRecords.add(record);
-                        previousRecord ++;
+                        previousRecord++;
                     }
 
                 } else {

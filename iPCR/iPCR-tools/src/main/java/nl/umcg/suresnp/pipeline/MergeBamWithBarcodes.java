@@ -48,12 +48,8 @@ public class MergeBamWithBarcodes {
             int i = 0;
             // Loop over all records in SAM file
             while (samRecordIterator.hasNext()) {
-                // Logging
-                if (i > 0) {
-                    if (i % 1000000 == 0) {
-                        LOGGER.info("Processed " + i / 1000000 + " million SAM records");
-                    }
-                }
+                // Logging progress
+                if (i > 0){if (i % 1000000 == 0){LOGGER.info("Processed " + i / 1000000 + " million SAM records");}}
                 i++;
 
                 // Retrieve the current record
@@ -116,12 +112,8 @@ public class MergeBamWithBarcodes {
         long i = 0;
         long proper = 0;
         while ((line = reader.readNext(false)) != null) {
-            // Logging
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Read " + i / 1000000 + " million records");
-                }
-            }
+            // Logging progress
+            if (i > 0){if(i % 1000000 == 0){LOGGER.info("Read " + i / 1000000 + " million records");}}
             i++;
 
             if (line.length != 11) {
