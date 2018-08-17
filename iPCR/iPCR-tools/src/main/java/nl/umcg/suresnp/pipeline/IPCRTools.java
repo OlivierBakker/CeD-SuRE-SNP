@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline;
 
 import nl.umcg.suresnp.pipeline.io.IPCROutputFileWriter;
 import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
+import nl.umcg.suresnp.pipeline.io.IPCRParseException;
 import nl.umcg.suresnp.pipeline.io.IPCRStdoutWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -25,6 +26,18 @@ public class IPCRTools {
             // Parse commandline arguments
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(IPCRToolsParameters.getOptions(), args);
+
+            // Print help and exit
+            if (cmd.hasOption("h")) {
+                IPCRToolsParameters.printHelp();
+                exit(0);
+            }
+
+            if (!cmd.hasOption("T")) {
+                LOGGER.error("Missing required option -T");
+                IPCRToolsParameters.printHelp();
+                exit(1);
+            }
 
             // Define the output writer, either stdout or to file
             IPCROutputWriter outputWriter;
@@ -59,6 +72,8 @@ public class IPCRTools {
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (IPCRParseException e) {
             e.printStackTrace();
         }
 

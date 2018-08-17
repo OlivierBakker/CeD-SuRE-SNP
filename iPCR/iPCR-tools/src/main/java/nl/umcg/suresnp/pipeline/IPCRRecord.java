@@ -2,7 +2,7 @@ package nl.umcg.suresnp.pipeline;
 
 import htsjdk.samtools.SAMRecord;
 
-public class IPCRRecord {
+public class IPCRRecord implements Comparable {
 
     private String barcode;
     private String referenceSequence;
@@ -214,5 +214,11 @@ public class IPCRRecord {
 
         return sb.toString();
 
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        IPCRRecord other = (IPCRRecord) o;
+        return (barcode.compareTo(other.getBarcode()));
     }
 }
