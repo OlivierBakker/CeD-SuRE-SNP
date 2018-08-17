@@ -47,6 +47,11 @@ public class AddAlleleInfo {
                 outputWriter = new IPCROutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
             }
 
+
+            int totalValidAlleles = 0;
+            int totalInvalidAlleles = 0;
+            int totalUndeterminedAlleles = 0;
+
             for (AnnotatedIPCRRecord record : ipcrRecords) {
                 Iterable<GeneticVariant> variantsInRange = genotypeData.getVariantsByRange(record.getReferenceSequence(), record.getStartOne(), record.getEndTwo());
 
@@ -59,11 +64,16 @@ public class AddAlleleInfo {
                 }
 
                 outputWriter.writeIPCRRecord(record);
+                totalValidAlleles += record.getValidVariantAlleles();
+                totalInvalidAlleles += record.getInvalidVariantAlleles();
+                totalUndeterminedAlleles += record.getUndeterminedVariantAlleles();
             }
 
             outputWriter.close();
             genotypeData.close();
-            LOGGER.info(ipcrRecords.get(0).getOutputString("\t"));
+            LOGGER.info("Total valid alleles: " + totalValidAlleles);
+            LOGGER.info("Total invalid alleles: " + totalInvalidAlleles);
+            LOGGER.info("Total undetermined alleles: " + totalUndeterminedAlleles);
             LOGGER.info("Done");
 
         } catch (IOException e) {

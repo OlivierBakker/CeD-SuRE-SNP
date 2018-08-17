@@ -16,6 +16,7 @@ public class IPCRTools {
     public static void main(String[] args) {
         try {
 
+            // TODO: proper javadoc and readme
             // Parse commandline arguments
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(IPCRToolsParameters.getOptions(), args);
