@@ -1,13 +1,9 @@
 package nl.umcg.suresnp.pipeline;
 
-
 import htsjdk.samtools.*;
 import nl.umcg.suresnp.pipeline.io.CSVReader;
-import nl.umcg.suresnp.pipeline.io.IPCROutputFileWriter;
 import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
-import nl.umcg.suresnp.pipeline.io.IPCRStdoutWriter;
 import org.apache.commons.cli.CommandLine;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -20,27 +16,12 @@ public class MergeBamWithBarcodes {
 
     private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
 
-    public static void run(CommandLine cmd) {
+    public static void run(CommandLine cmd, IPCROutputWriter outputWriter) {
 
         try {
             // Define the input files
             File inputBamFile = new File(cmd.getOptionValue("i").trim());
             File inputBarcodeFile = new File(cmd.getOptionValue("b").trim());
-
-            // Define the output writer, either stdout or to file
-            IPCROutputWriter outputWriter;
-            if (cmd.hasOption("s")) {
-                outputWriter = new IPCRStdoutWriter();
-                // When writing to stdout do not use log4j unless there is an error
-                Logger.getRootLogger().setLevel(Level.ERROR);
-            } else {
-                if (!cmd.hasOption("o")) {
-                    LOGGER.error("-o not specified");
-                    IPCRToolsParameters.printHelp();
-                    exit(1);
-                }
-                outputWriter = new IPCROutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
-            }
 
             // Read and parse the barcode file
             Map<String, String> readBarcodePairs = readBarcodeInfoFile(inputBarcodeFile);
@@ -73,7 +54,7 @@ public class MergeBamWithBarcodes {
                         LOGGER.info("Processed " + i / 1000000 + " million SAM records");
                     }
                 }
-                i ++;
+                i++;
 
                 // Retrieve the current record
                 SAMRecord record = samRecordIterator.next();

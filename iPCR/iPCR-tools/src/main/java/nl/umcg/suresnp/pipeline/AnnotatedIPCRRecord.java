@@ -1,7 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
 import htsjdk.samtools.SAMRecord;
-import org.apache.log4j.Logger;
 import org.molgenis.genotype.variant.GeneticVariant;
 
 import java.util.ArrayList;
@@ -9,7 +8,6 @@ import java.util.List;
 
 public class AnnotatedIPCRRecord extends IPCRRecord {
 
-    private static final Logger LOGGER = Logger.getLogger(AnnotatedIPCRRecord.class);
     private List<GeneticVariant> overlappingVariants;
     private int invalidVariantAlleles;
     private int undeterminedVariantAlleles;
@@ -26,52 +24,6 @@ public class AnnotatedIPCRRecord extends IPCRRecord {
         this.overlappingVariants = new ArrayList<>();
         this.invalidVariantAlleles = 0;
         this.undeterminedVariantAlleles = 0;
-    }
-
-
-    public boolean posistionInMappedRegion(int begin, int end) {
-        if (begin > this.getStartOne() && begin < this.getEndOne() && end > this.getStartOne() && end < this.getEndOne()) {
-            return true;
-        }
-
-        if (begin > this.getStartTwo() && begin < this.getEndTwo() && end > this.getStartTwo() && end < this.getEndTwo()) {
-            return true;
-        }
-
-        return false;
-    }
-
-    public void addGeneticVariant(GeneticVariant variant) {
-        VariantType variantType = checkGeneticVariantAlleles(variant);
-        switch (variantType) {
-            case INVALID:
-                invalidVariantAlleles++;
-                break;
-            case UNDETERMINED:
-                undeterminedVariantAlleles++;
-                break;
-            case SNP:
-            case INSERTION:
-            case DELETION:
-            default:
-                overlappingVariants.add(variant);
-        }
-    }
-
-    public String getBaseAt(int begin, int end) {
-
-        try {
-            if (begin > this.getStartOne() && begin < this.getEndOne()) {
-                return getSequenceOne().substring(begin - getStartOne(), (end - getStartOne()));
-            }
-
-            if (begin > this.getStartTwo() && begin < this.getEndTwo()) {
-                return getSequenceTwo().substring(begin - getStartTwo(), (end - getStartTwo()));
-            }
-        } catch (StringIndexOutOfBoundsException e) {
-            return null;
-        }
-        return null;
     }
 
     @Override
@@ -149,6 +101,63 @@ public class AnnotatedIPCRRecord extends IPCRRecord {
         return sb.toString();
     }
 
+    public int getInvalidVariantAlleles() {
+        return invalidVariantAlleles;
+    }
+
+    public int getUndeterminedVariantAlleles() {
+        return undeterminedVariantAlleles;
+    }
+
+    public int getValidVariantAlleles() {
+        return overlappingVariants.size();
+    }
+
+    public void addGeneticVariant(GeneticVariant variant) {
+        VariantType variantType = checkGeneticVariantAlleles(variant);
+        switch (variantType) {
+            case INVALID:
+                invalidVariantAlleles++;
+                break;
+            case UNDETERMINED:
+                undeterminedVariantAlleles++;
+                break;
+            case SNP:
+            case INSERTION:
+            case DELETION:
+            default:
+                overlappingVariants.add(variant);
+        }
+    }
+
+    public boolean positionInMappedRegion(int begin, int end) {
+        if (begin > this.getStartOne() && begin < this.getEndOne() && end > this.getStartOne() && end < this.getEndOne()) {
+            return true;
+        }
+
+        if (begin > this.getStartTwo() && begin < this.getEndTwo() && end > this.getStartTwo() && end < this.getEndTwo()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private String getBaseAt(int begin, int end) {
+
+        try {
+            if (begin > this.getStartOne() && begin < this.getEndOne()) {
+                return getSequenceOne().substring(begin - getStartOne(), (end - getStartOne()));
+            }
+
+            if (begin > this.getStartTwo() && begin < this.getEndTwo()) {
+                return getSequenceTwo().substring(begin - getStartTwo(), (end - getStartTwo()));
+            }
+        } catch (StringIndexOutOfBoundsException e) {
+            return null;
+        }
+        return null;
+    }
+
     private VariantType checkGeneticVariantAlleles(GeneticVariant variant) {
 
         // Determine the length of ref and alt alleles, used for determining insert vs deletion.
@@ -187,17 +196,5 @@ public class AnnotatedIPCRRecord extends IPCRRecord {
         }
 
         return returnType;
-    }
-
-    public int getInvalidVariantAlleles() {
-        return invalidVariantAlleles;
-    }
-
-    public int getUndeterminedVariantAlleles() {
-        return undeterminedVariantAlleles;
-    }
-
-    public int getValidVariantAlleles() {
-        return overlappingVariants.size();
     }
 }

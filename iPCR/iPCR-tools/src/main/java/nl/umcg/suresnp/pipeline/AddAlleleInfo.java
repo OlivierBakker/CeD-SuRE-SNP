@@ -21,7 +21,7 @@ public class AddAlleleInfo {
 
     private static final Logger LOGGER = Logger.getLogger(AddAlleleInfo.class);
 
-    public static void run(CommandLine cmd) {
+    public static void run(CommandLine cmd, IPCROutputWriter outputWriter) {
 
         try {
             String inputIPCRFile = cmd.getOptionValue("p").trim();
@@ -32,22 +32,6 @@ public class AddAlleleInfo {
 
             List<AnnotatedIPCRRecord> ipcrRecords = readAndCollapseIPCRFile(inputIPCRFile);
 
-            // Define the output writer, either stdout or to file
-            IPCROutputWriter outputWriter;
-            if (cmd.hasOption("s")) {
-                outputWriter = new IPCRStdoutWriter();
-                // When writing to stdout do not use log4j unless there is an error
-                Logger.getRootLogger().setLevel(Level.ERROR);
-            } else {
-                if (!cmd.hasOption("o")) {
-                    LOGGER.error("-o not specified");
-                    IPCRToolsParameters.printHelp();
-                    exit(1);
-                }
-                outputWriter = new IPCROutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
-            }
-
-
             int totalValidAlleles = 0;
             int totalInvalidAlleles = 0;
             int totalUndeterminedAlleles = 0;
@@ -57,7 +41,7 @@ public class AddAlleleInfo {
 
                 for (GeneticVariant variant : variantsInRange) {
                     if (variant.isBiallelic()) {
-                        if (record.posistionInMappedRegion(variant.getStartPos(), variant.getStartPos() + variant.getAlternativeAlleles().getAllelesAsString().get(0).length())) {
+                        if (record.positionInMappedRegion(variant.getStartPos(), variant.getStartPos() + variant.getAlternativeAlleles().getAllelesAsString().get(0).length())) {
                             record.addGeneticVariant(variant);
                         }
                     }
