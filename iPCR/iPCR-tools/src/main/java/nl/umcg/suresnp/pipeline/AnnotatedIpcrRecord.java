@@ -42,6 +42,7 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
         StringBuilder varIds = new StringBuilder();
         StringBuilder rsIds = new StringBuilder();
         StringBuilder alleles = new StringBuilder();
+        StringBuilder varTypes = new StringBuilder();
 
         int i = 0;
         for (GeneticVariant variant : overlappingVariants) {
@@ -55,21 +56,25 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
 
             String varId = variant.getSequenceName() + ":" + variant.getStartPos() + ":" + variant.getRefAllele().toString() + ":" + String.join("|", variant.getAlternativeAlleles().getAllelesAsString());
             String rsId = variant.getPrimaryVariantId();
+            String varType = "null";
 
             switch (variantType) {
                 case SNP:
+                    varType = "SNP";
                     break;
                 case INSERTION:
                     // Insertion, determine if its the inserted or reference allele
                     if (!allele.equals(variant.getAlternativeAlleles().getAllelesAsString().get(0))) {
                         allele = allele.substring(0, 1);
                     }
+                    varType = "INS";
                     break;
                 case DELETION:
                     // Deletion
                     if (!allele.equals(variant.getRefAllele().toString())) {
                         allele = allele.substring(0, 1);
                     }
+                    varType = "DEL";
                     break;
                 case INVALID:
                     // These should have been filtered out already, but it doesn't hurt to check
@@ -83,10 +88,12 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
                 varIds.append(varId);
                 rsIds.append(rsId);
                 alleles.append(allele);
+                varTypes.append(varType);
             } else {
                 varIds.append(",").append(varId);
                 rsIds.append(",").append(rsId);
                 alleles.append(",").append(allele);
+                varTypes.append(",").append(varType);
             }
             i++;
         }
@@ -96,7 +103,9 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
                 .append(sep)
                 .append(rsIds)
                 .append(sep)
-                .append(alleles);
+                .append(alleles)
+                .append(sep)
+                .append(varTypes);
 
         return sb.toString();
     }
@@ -111,6 +120,10 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
 
     public int getValidVariantAlleles() {
         return overlappingVariants.size();
+    }
+
+    public List<GeneticVariant> getOverlappingVariants() {
+        return overlappingVariants;
     }
 
     public void addGeneticVariant(GeneticVariant variant) {
@@ -142,7 +155,7 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
         return false;
     }
 
-    private String getBaseAt(int begin, int end) {
+    public String getBaseAt(int begin, int end) {
 
         try {
             if (begin > this.getStartOne() && begin < this.getEndOne()) {
@@ -158,7 +171,7 @@ public class AnnotatedIpcrRecord extends IpcrRecord {
         return null;
     }
 
-    private VariantType checkGeneticVariantAlleles(GeneticVariant variant) {
+    public VariantType checkGeneticVariantAlleles(GeneticVariant variant) {
 
         // Determine the length of ref and alt alleles, used for determining insert vs deletion.
         // This works only for bi-allelic variants, if multi allelic the first is taken.

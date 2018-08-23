@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.lang.System.exit;
+import static nl.umcg.suresnp.pipeline.io.IpcrFileReader.getPerc;
 
 public class MergeBamWithBarcodes {
 
@@ -101,8 +102,8 @@ public class MergeBamWithBarcodes {
 
             // Log some info
             LOGGER.info("Processed a total of " + i + " reads");
-            LOGGER.info(filterFailCount + " reads failed filtering. Either unmapped, secondary alignment or improper pair");
-            LOGGER.info(noBarcodeCount + " reads where in the BAM but could not be associated to a barcode");
+            LOGGER.info(filterFailCount + " (" + getPerc(filterFailCount, i) + "%) reads failed filtering. Either unmapped, secondary alignment or improper pair");
+            LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a barcode");
 
             // Close all the streams
             samRecordIterator.close();
@@ -121,7 +122,7 @@ public class MergeBamWithBarcodes {
         Map<String, String> readBarcodePairs = new HashMap<>();
 
         String[] line;
-        long i = 0;
+        int i = 0;
         int barcodeLengthPassCount = 0;
         int invalidLineLengthCount = 0;
 
@@ -146,12 +147,14 @@ public class MergeBamWithBarcodes {
         reader.close();
 
         // Log some info
-        LOGGER.info("Processed " + i + " records");
-        LOGGER.info("Read " + barcodeLengthPassCount + " valid barcode read pairs");
-        LOGGER.info("Read " + readBarcodePairs.size() + " unique barcode read pairs");
-        LOGGER.info(i - invalidLineLengthCount - barcodeLengthPassCount + " barcodes where invalid due to barcode lengths != 20");
-        LOGGER.info(invalidLineLengthCount + " lines in the input had the incorrect length. This can happen with cutadapt");
+        int bcLengthFilterCount = (i - invalidLineLengthCount) - barcodeLengthPassCount;
+        LOGGER.info("Processed " + i + " barcode records");
+        LOGGER.info("Read " + barcodeLengthPassCount + " (" + getPerc(barcodeLengthPassCount, i) +"%) valid barcode read pairs");
+        LOGGER.info("Read " + readBarcodePairs.size() + " (" + getPerc(readBarcodePairs.size(), i) +"%) unique barcode read pairs");
+        LOGGER.info(bcLengthFilterCount + " (" + getPerc(bcLengthFilterCount, i) +"%) barcodes where invalid due to barcode lengths != 20");
+        LOGGER.info(invalidLineLengthCount + " (" + getPerc(invalidLineLengthCount, i) +"%) lines in the input had the incorrect length. This can happen with cutadapt");
 
         return readBarcodePairs;
     }
+
 }

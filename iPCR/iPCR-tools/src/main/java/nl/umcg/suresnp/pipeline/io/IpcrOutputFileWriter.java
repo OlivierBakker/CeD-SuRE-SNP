@@ -7,8 +7,8 @@ import java.util.zip.GZIPOutputStream;
 
 public class IpcrOutputFileWriter implements IpcrOutputWriter {
 
-    private OutputStream outputStream;
-    private BufferedWriter writer;
+    protected OutputStream outputStream;
+    protected BufferedWriter writer;
 
     public IpcrOutputFileWriter(File outputPrefix, boolean isZipped) throws IOException {
 
@@ -21,11 +21,13 @@ public class IpcrOutputFileWriter implements IpcrOutputWriter {
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
+    @Override
     public void writeIPCRRecord(IpcrRecord record) throws IOException {
-        writer.write(record.getOutputString(" "));
+        writer.write(record.getSimpleOutputString(" "));
         writer.newLine();
     }
 
+    @Override
     public void close() throws IOException {
         writer.flush();
         writer.close();

@@ -11,6 +11,8 @@ import org.molgenis.genotype.variant.GeneticVariant;
 import java.io.*;
 import java.util.List;
 
+import static nl.umcg.suresnp.pipeline.io.IpcrFileReader.getPerc;
+
 public class AddAlleleInfo {
 
     private static final Logger LOGGER = Logger.getLogger(AddAlleleInfo.class);
@@ -19,6 +21,8 @@ public class AddAlleleInfo {
 
         String inputIPCRFile = cmd.getOptionValue("p").trim();
         String inputGenotype = cmd.getOptionValue("g").trim();
+
+        VariantOutputFileWriter variantOutputFileWriter = new VariantOutputFileWriter(new File(cmd.getOptionValue("o").trim() + ".variantFile"), false);
 
         // Read genotype data
         RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF,
@@ -31,23 +35,30 @@ public class AddAlleleInfo {
         int totalValidAlleles = 0;
         int totalInvalidAlleles = 0;
         int totalUndeterminedAlleles = 0;
+        int totalIpcrRecords = 0;
+        int totalVariantsInIpcrRecords = 0;
+        int totalOverlappingVariants = 0;
 
         // Loop over all unique (collapsed) barcode fragment associations
         for (AnnotatedIpcrRecord record : ipcrRecords) {
             // Extract all variants overlapping sequenced regions
             Iterable<GeneticVariant> variantsInRange = genotypeData.getVariantsByRange(record.getReferenceSequence(), record.getStartOne(), record.getEndTwo());
 
+            totalIpcrRecords ++;
             // Loop over all overlapping variants
             for (GeneticVariant variant : variantsInRange) {
+                totalVariantsInIpcrRecords ++;
                 // Only evaluate bi-allelic variants
                 if (variant.isBiallelic()) {
                     if (record.positionInMappedRegion(variant.getStartPos(), variant.getStartPos() + variant.getAlternativeAlleles().getAllelesAsString().get(0).length())) {
+                        totalOverlappingVariants ++;
                         record.addGeneticVariant(variant);
                     }
                 }
             }
 
             outputWriter.writeIPCRRecord(record);
+            variantOutputFileWriter.writeIPCRRecord(record);
             totalValidAlleles += record.getValidVariantAlleles();
             totalInvalidAlleles += record.getInvalidVariantAlleles();
             totalUndeterminedAlleles += record.getUndeterminedVariantAlleles();
@@ -58,9 +69,14 @@ public class AddAlleleInfo {
         genotypeData.close();
 
         // Log statistics
-        LOGGER.info("Total valid alleles: " + totalValidAlleles);
-        LOGGER.info("Total invalid alleles: " + totalInvalidAlleles);
-        LOGGER.info("Total undetermined alleles: " + totalUndeterminedAlleles);
+        LOGGER.info("Note: allele counts not unique, can contain duplicates");
+        LOGGER.info("Total iPCR records processed: " + totalIpcrRecords);
+        LOGGER.info("Total alleles in range: " + totalVariantsInIpcrRecords);
+        LOGGER.info("Total alleles in sequence: " + totalOverlappingVariants + " (" + getPerc(totalOverlappingVariants, totalVariantsInIpcrRecords) + "%)");
+        LOGGER.info("Total valid alleles: " + totalValidAlleles + " (" + getPerc(totalValidAlleles, totalOverlappingVariants) + "%)");
+        LOGGER.info("Total invalid alleles: " + totalInvalidAlleles + " (" + getPerc(totalInvalidAlleles, totalOverlappingVariants) + "%)");
+        LOGGER.info("Total undetermined alleles: " + totalUndeterminedAlleles + " (" + getPerc(totalUndeterminedAlleles, totalOverlappingVariants) + "%)" );
+        LOGGER.info("Mean allele count in read: " + (float)totalValidAlleles / (float)totalIpcrRecords);
         LOGGER.info("Done");
 
     }

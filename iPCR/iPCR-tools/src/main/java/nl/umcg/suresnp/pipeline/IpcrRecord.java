@@ -216,6 +216,30 @@ public class IpcrRecord implements Comparable {
 
     }
 
+
+    public String getSimpleOutputString(String sep) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(barcode)
+                .append(sep)
+                .append(referenceSequence)
+                .append(sep)
+                .append(startOne)
+                .append(sep)
+                .append(endOne)
+                .append(sep)
+                .append(startTwo)
+                .append(sep)
+                .append(endTwo)
+                .append(sep)
+                .append(orientation);
+
+        if (duplicateCount != 0) {
+            sb.append(sep).append(duplicateCount);
+        }
+
+        return sb.toString();
+    }
+
     @Override
     public int compareTo(Object o) {
         IpcrRecord other = (IpcrRecord) o;

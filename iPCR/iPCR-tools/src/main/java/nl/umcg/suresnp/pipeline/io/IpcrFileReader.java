@@ -58,7 +58,6 @@ public class IpcrFileReader {
         return ipcrRecords;
     }
 
-
     private static AnnotatedIpcrRecord parseAnnotatedIPCRRecord(String [] line, int lineNumber) throws IpcrParseException {
         // To save time no support for a header, since we can safely define the format ourselves
         // Although it could be easily added if needed
@@ -88,6 +87,11 @@ public class IpcrFileReader {
         }
 
         return record;
+    }
+
+    public static int getPerc(int a, int b) {
+        float p = ((float)a / (float)b) *100;
+        return Math.round(p);
     }
 
 }

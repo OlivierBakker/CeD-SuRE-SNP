@@ -68,7 +68,8 @@ public class IpcrToolsParameters {
         option = Option.builder("p")
                 .longOpt("input-ipcr-file")
                 .hasArg(true)
-                .desc("Input from MergeBamWithBarcodes. Sorted on barcode and first column must be duplicate count. " +
+                .desc("Input from MergeBamWithBarcodes. Must be a '.full.ipcr' file. " +
+                        "Sorted on barcode and first column must be duplicate count. " +
                         "See docs for format spec")
                 .build();
         OPTIONS.addOption(option);
@@ -76,6 +77,13 @@ public class IpcrToolsParameters {
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("r")
+                .longOpt("reduced")
+                .desc("Print reduced output (without the sequences, cigars and variant info. " +
+                        "Variant info is written to a separate file. Can be used to save space when using a large library)")
                 .build();
         OPTIONS.addOption(option);
 

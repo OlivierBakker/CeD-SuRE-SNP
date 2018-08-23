@@ -1,9 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.IpcrOutputFileWriter;
-import nl.umcg.suresnp.pipeline.io.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.io.IpcrParseException;
-import nl.umcg.suresnp.pipeline.io.IpcrStdoutWriter;
+import nl.umcg.suresnp.pipeline.io.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -44,8 +41,13 @@ public class IpcrTools {
 
             if (cmd.hasOption("s")) {
                 // When writing to stdout do not use log4j unless there is an error
-                outputWriter = new IpcrStdoutWriter();
+                if (cmd.hasOption("r")) {
+                    outputWriter = new SimpleIpcrStdoutWriter();
+                } else {
+                    outputWriter = new IpcrStdoutWriter();
+                }
                 Logger.getRootLogger().setLevel(Level.ERROR);
+
             } else {
                 // When writing to a file check if the correct options are specified
                 if (!cmd.hasOption("o")) {
@@ -53,7 +55,19 @@ public class IpcrTools {
                     IpcrToolsParameters.printHelp();
                     exit(1);
                 }
-                outputWriter = new IpcrOutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
+
+                boolean zipped = false;
+                String extension = "";
+                if (cmd.hasOption("z")) {
+                    zipped = true;
+                    extension = ".gz";
+                }
+
+                if (cmd.hasOption("r")) {
+                    outputWriter = new SimpleIpcrOutputFileWriter(new File(cmd.getOptionValue("o").trim() + ".reduced.ipcr" + extension), zipped);
+                } else {
+                    outputWriter = new IpcrOutputFileWriter(new File(cmd.getOptionValue("o").trim() + ".full.ipcr" + extension), zipped);
+                }
             }
 
             // Select which tool to run
