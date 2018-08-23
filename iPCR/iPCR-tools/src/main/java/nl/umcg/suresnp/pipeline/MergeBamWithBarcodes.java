@@ -5,6 +5,7 @@ import nl.umcg.suresnp.pipeline.io.CSVReader;
 import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
+import org.apache.log4j.spi.NOPLogger;
 
 import java.io.*;
 import java.util.HashMap;
@@ -40,6 +41,11 @@ public class MergeBamWithBarcodes {
                 exit(1);
             }
 
+
+            // Init variables for logging some statistics
+            int filterFailCount = 0;
+            int noBarcodeCount = 0;
+
             // Define the iterator
             SAMRecordIterator samRecordIterator = samReader.iterator();
 
@@ -61,6 +67,7 @@ public class MergeBamWithBarcodes {
                     if (record.getFirstOfPairFlag()) {
                         // Discard unmapped reads, unproper pairs and secondary alignments
                         if (record.getReadUnmappedFlag() || record.getMateUnmappedFlag() || !record.getProperPairFlag() || record.isSecondaryAlignment()) {
+                            filterFailCount ++;
                             cachedSamRecord = null;
                             continue;
                         }
@@ -68,6 +75,7 @@ public class MergeBamWithBarcodes {
                         continue;
                     }
                 } else {
+                    noBarcodeCount ++;
                     cachedSamRecord = null;
                     continue;
                 }
@@ -92,6 +100,11 @@ public class MergeBamWithBarcodes {
                 }
             }
 
+            // Log some info
+            LOGGER.info("Processed a total of " + i + " reads");
+            LOGGER.info(filterFailCount + " reads failed filtering. Either unmapped, secondary alignment or improper pair");
+            LOGGER.info(noBarcodeCount + " reads where in the BAM but could not be associated to a barcode");
+
             // Close all the streams
             samRecordIterator.close();
             samReader.close();
@@ -110,17 +123,20 @@ public class MergeBamWithBarcodes {
 
         String[] line;
         long i = 0;
-        long proper = 0;
+        int barcodeLengthPassCount = 0;
+        int invalidLineLengthCount = 0;
+
         while ((line = reader.readNext(false)) != null) {
             // Logging progress
             if (i > 0){if(i % 1000000 == 0){LOGGER.info("Read " + i / 1000000 + " million records");}}
             i++;
 
             if (line.length != 11) {
+                invalidLineLengthCount ++;
                 continue;
             } else {
                 if (Integer.parseInt(line[2]) == 20) {
-                    proper++;
+                    barcodeLengthPassCount ++;
                     String readId = line[0].split("\\s")[0];
                     String barcode = line[4];
 
@@ -131,9 +147,11 @@ public class MergeBamWithBarcodes {
         reader.close();
 
         // Log some info
-        LOGGER.info("Read " + proper + " valid barcode read pairs");
+        LOGGER.info("Processed " + i + " records");
+        LOGGER.info("Read " + barcodeLengthPassCount + " valid barcode read pairs");
         LOGGER.info("Read " + readBarcodePairs.size() + " unique barcode read pairs");
-        LOGGER.info(i - proper + " where invalid");
+        LOGGER.info(i - invalidLineLengthCount - barcodeLengthPassCount + " barcodes where invalid due to barcode lengths != 20");
+        LOGGER.info(invalidLineLengthCount + " lines in the input had the incorrect length. This can happen with cutadapt");
 
         return readBarcodePairs;
     }
