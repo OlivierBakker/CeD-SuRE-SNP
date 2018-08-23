@@ -15,7 +15,7 @@ public class AddAlleleInfo {
 
     private static final Logger LOGGER = Logger.getLogger(AddAlleleInfo.class);
 
-    public static void run(CommandLine cmd, IPCROutputWriter outputWriter) throws IOException, IPCRParseException {
+    public static void run(CommandLine cmd, IpcrOutputWriter outputWriter) throws IOException, IpcrParseException {
 
         String inputIPCRFile = cmd.getOptionValue("p").trim();
         String inputGenotype = cmd.getOptionValue("g").trim();
@@ -25,7 +25,7 @@ public class AddAlleleInfo {
                 inputGenotype);
 
         // Read iPCR data
-        List<AnnotatedIPCRRecord> ipcrRecords = IPCRFileReader.readIPCRFileCollapsed(inputIPCRFile);
+        List<AnnotatedIpcrRecord> ipcrRecords = IpcrFileReader.readIPCRFileCollapsed(inputIPCRFile);
 
         // Collect statistics
         int totalValidAlleles = 0;
@@ -33,7 +33,7 @@ public class AddAlleleInfo {
         int totalUndeterminedAlleles = 0;
 
         // Loop over all unique (collapsed) barcode fragment associations
-        for (AnnotatedIPCRRecord record : ipcrRecords) {
+        for (AnnotatedIpcrRecord record : ipcrRecords) {
             // Extract all variants overlapping sequenced regions
             Iterable<GeneticVariant> variantsInRange = genotypeData.getVariantsByRange(record.getReferenceSequence(), record.getStartOne(), record.getEndTwo());
 

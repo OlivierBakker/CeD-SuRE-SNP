@@ -4,7 +4,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-public class IPCRToolsParameters {
+public class IpcrToolsParameters {
 
     private static final Options OPTIONS;
 

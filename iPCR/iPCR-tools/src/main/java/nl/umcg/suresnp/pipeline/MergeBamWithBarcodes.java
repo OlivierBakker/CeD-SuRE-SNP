@@ -1,11 +1,10 @@
 package nl.umcg.suresnp.pipeline;
 
 import htsjdk.samtools.*;
-import nl.umcg.suresnp.pipeline.io.CSVReader;
-import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
+import nl.umcg.suresnp.pipeline.io.CsvReader;
+import nl.umcg.suresnp.pipeline.io.IpcrOutputWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
-import org.apache.log4j.spi.NOPLogger;
 
 import java.io.*;
 import java.util.HashMap;
@@ -17,7 +16,7 @@ public class MergeBamWithBarcodes {
 
     private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
 
-    public static void run(CommandLine cmd, IPCROutputWriter outputWriter) {
+    public static void run(CommandLine cmd, IpcrOutputWriter outputWriter) {
 
         try {
             // Define the input files
@@ -91,7 +90,7 @@ public class MergeBamWithBarcodes {
                     SAMRecord mate = record;
                     // If the current record is the mate of the previous write to the outputWriter
                     if (mate.getReadName().equals(cachedSamRecord.getReadName())) {
-                        outputWriter.writeIPCRRecord(new IPCRRecord(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord, mate));
+                        outputWriter.writeIPCRRecord(new IpcrRecord(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord, mate));
                         cachedSamRecord = null;
                     } else {
                         LOGGER.warn("Altough flagged as valid read pair, the read id's do not match. This should not happen unless the flags in the BAM are wrong.");
@@ -118,7 +117,7 @@ public class MergeBamWithBarcodes {
 
     private static Map<String, String> readBarcodeInfoFile(File inputBarcodes) throws IOException {
         // Open a new CSV reader
-        CSVReader reader = new CSVReader(new BufferedReader(new InputStreamReader(new FileInputStream(inputBarcodes))), "\t");
+        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new FileInputStream(inputBarcodes))), "\t");
         Map<String, String> readBarcodePairs = new HashMap<>();
 
         String[] line;

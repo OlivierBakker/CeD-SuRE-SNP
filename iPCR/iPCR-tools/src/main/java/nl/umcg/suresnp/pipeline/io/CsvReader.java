@@ -3,13 +3,13 @@ package nl.umcg.suresnp.pipeline.io;
 import java.io.BufferedReader;
 import java.io.IOException;
 
-public class CSVReader {
+public class CsvReader {
 
     private BufferedReader reader;
     private String separator;
 
 
-    public CSVReader(BufferedReader reader, String separator) {
+    public CsvReader(BufferedReader reader, String separator) {
         this.reader = reader;
         this.separator = separator;
     }

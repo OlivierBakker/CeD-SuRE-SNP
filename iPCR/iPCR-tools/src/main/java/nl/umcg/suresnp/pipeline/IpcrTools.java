@@ -1,9 +1,9 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.IPCROutputFileWriter;
-import nl.umcg.suresnp.pipeline.io.IPCROutputWriter;
-import nl.umcg.suresnp.pipeline.io.IPCRParseException;
-import nl.umcg.suresnp.pipeline.io.IPCRStdoutWriter;
+import nl.umcg.suresnp.pipeline.io.IpcrOutputFileWriter;
+import nl.umcg.suresnp.pipeline.io.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.IpcrParseException;
+import nl.umcg.suresnp.pipeline.io.IpcrStdoutWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -15,9 +15,9 @@ import java.io.IOException;
 
 import static java.lang.System.exit;
 
-public class IPCRTools {
+public class IpcrTools {
 
-    private static Logger LOGGER = Logger.getLogger(IPCRTools.class);
+    private static Logger LOGGER = Logger.getLogger(IpcrTools.class);
 
     public static void main(String[] args) {
         try {
@@ -25,35 +25,35 @@ public class IPCRTools {
             // TODO: proper javadoc and readme
             // Parse commandline arguments
             CommandLineParser parser = new DefaultParser();
-            CommandLine cmd = parser.parse(IPCRToolsParameters.getOptions(), args);
+            CommandLine cmd = parser.parse(IpcrToolsParameters.getOptions(), args);
 
             // Print help and exit
             if (cmd.hasOption("h")) {
-                IPCRToolsParameters.printHelp();
+                IpcrToolsParameters.printHelp();
                 exit(0);
             }
 
             if (!cmd.hasOption("T")) {
                 LOGGER.error("Missing required option -T");
-                IPCRToolsParameters.printHelp();
+                IpcrToolsParameters.printHelp();
                 exit(1);
             }
 
             // Define the output writer, either stdout or to file
-            IPCROutputWriter outputWriter;
+            IpcrOutputWriter outputWriter;
 
             if (cmd.hasOption("s")) {
                 // When writing to stdout do not use log4j unless there is an error
-                outputWriter = new IPCRStdoutWriter();
+                outputWriter = new IpcrStdoutWriter();
                 Logger.getRootLogger().setLevel(Level.ERROR);
             } else {
                 // When writing to a file check if the correct options are specified
                 if (!cmd.hasOption("o")) {
                     LOGGER.error("-o not specified");
-                    IPCRToolsParameters.printHelp();
+                    IpcrToolsParameters.printHelp();
                     exit(1);
                 }
-                outputWriter = new IPCROutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
+                outputWriter = new IpcrOutputFileWriter(new File(cmd.getOptionValue("o").trim()), false);
             }
 
             // Select which tool to run
@@ -65,7 +65,7 @@ public class IPCRTools {
                     AddAlleleInfo.run(cmd, outputWriter);
                     break;
                 default:
-                    IPCRToolsParameters.printHelp();
+                    IpcrToolsParameters.printHelp();
                     exit(1);
             }
 
@@ -73,7 +73,7 @@ public class IPCRTools {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (IPCRParseException e) {
+        } catch (IpcrParseException e) {
             e.printStackTrace();
         }
 

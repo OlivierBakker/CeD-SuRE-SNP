@@ -2,7 +2,7 @@ package nl.umcg.suresnp.pipeline.io;
 
 import java.text.ParseException;
 
-public class IPCRParseException extends ParseException {
+public class IpcrParseException extends ParseException {
     /**
      * Constructs a ParseException with the specified detail message and
      * offset.
@@ -11,7 +11,7 @@ public class IPCRParseException extends ParseException {
      * @param s           the detail message
      * @param errorOffset the position where the error is found while parsing.
      */
-    public IPCRParseException(String s, int errorOffset) {
+    public IpcrParseException(String s, int errorOffset) {
         super(s, errorOffset);
     }
 }

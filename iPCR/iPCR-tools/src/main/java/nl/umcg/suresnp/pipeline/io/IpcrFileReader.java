@@ -1,24 +1,24 @@
 package nl.umcg.suresnp.pipeline.io;
 
-import nl.umcg.suresnp.pipeline.AnnotatedIPCRRecord;
+import nl.umcg.suresnp.pipeline.AnnotatedIpcrRecord;
 import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IPCRFileReader {
+public class IpcrFileReader {
 
-    private static final Logger LOGGER = Logger.getLogger(IPCRFileReader.class);
+    private static final Logger LOGGER = Logger.getLogger(IpcrFileReader.class);
 
-    public static List<AnnotatedIPCRRecord> readIPCRFileCollapsed(String path) throws IOException, IPCRParseException {
+    public static List<AnnotatedIpcrRecord> readIPCRFileCollapsed(String path) throws IOException, IpcrParseException {
 
         LOGGER.warn("Current implementation assumes file is sorted on barcode");
 
         // May seem excessive, but allows for easy change to zipped files if needed
-        CSVReader reader = new CSVReader(new BufferedReader(new InputStreamReader(new FileInputStream(new File(path)))), " ");
+        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new FileInputStream(new File(path)))), " ");
 
-        List<AnnotatedIPCRRecord> ipcrRecords = new ArrayList<>();
+        List<AnnotatedIpcrRecord> ipcrRecords = new ArrayList<>();
         String[] line;
         int curRecord = 0;
         int prevRecord = 0;
@@ -32,7 +32,7 @@ public class IPCRFileReader {
                 continue;
             } else {
 
-                AnnotatedIPCRRecord record = parseAnnotatedIPCRRecord(line, curRecord);
+                AnnotatedIpcrRecord record = parseAnnotatedIPCRRecord(line, curRecord);
 
                 // Collapse the records on barcode, keeping only the one with the highest duplicate count
                 if (curRecord > 0) {
@@ -59,7 +59,7 @@ public class IPCRFileReader {
     }
 
 
-    private static AnnotatedIPCRRecord parseAnnotatedIPCRRecord(String [] line, int lineNumber) throws IPCRParseException {
+    private static AnnotatedIpcrRecord parseAnnotatedIPCRRecord(String [] line, int lineNumber) throws IpcrParseException {
         // To save time no support for a header, since we can safely define the format ourselves
         // Although it could be easily added if needed
         // Column order:
@@ -67,9 +67,9 @@ public class IPCRFileReader {
         int[] ipcrColumnOrder = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0};
 
         // Parse the iPCR record
-        AnnotatedIPCRRecord record;
+        AnnotatedIpcrRecord record;
         try {
-            record = new AnnotatedIPCRRecord(line[ipcrColumnOrder[0]],
+            record = new AnnotatedIpcrRecord(line[ipcrColumnOrder[0]],
                     line[ipcrColumnOrder[1]],
                     Integer.parseInt(line[ipcrColumnOrder[2]]),
                     Integer.parseInt(line[ipcrColumnOrder[3]]),
@@ -84,7 +84,7 @@ public class IPCRFileReader {
                     line[ipcrColumnOrder[12]],
                     Integer.parseInt(line[ipcrColumnOrder[13]]));
         } catch (NumberFormatException e) {
-            throw new IPCRParseException(e.getMessage(), lineNumber);
+            throw new IpcrParseException(e.getMessage(), lineNumber);
         }
 
         return record;

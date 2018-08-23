@@ -6,20 +6,20 @@ import org.molgenis.genotype.variant.GeneticVariant;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AnnotatedIPCRRecord extends IPCRRecord {
+public class AnnotatedIpcrRecord extends IpcrRecord {
 
     private List<GeneticVariant> overlappingVariants;
     private int invalidVariantAlleles;
     private int undeterminedVariantAlleles;
 
-    public AnnotatedIPCRRecord(String barcode, SAMRecord cachedSamRecord, SAMRecord mate) {
+    public AnnotatedIpcrRecord(String barcode, SAMRecord cachedSamRecord, SAMRecord mate) {
         super(barcode, cachedSamRecord, mate);
         this.overlappingVariants = new ArrayList<>();
         this.invalidVariantAlleles = 0;
         this.undeterminedVariantAlleles = 0;
     }
 
-    public AnnotatedIPCRRecord(String barcode, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo, int duplicateCount) {
+    public AnnotatedIpcrRecord(String barcode, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo, int duplicateCount) {
         super(barcode, referenceSequence, startOne, endOne, startTwo, endTwo, orientation, mapqOne, mapqTwo, cigarOne, cigarTwo, sequenceOne, sequenceTwo, duplicateCount);
         this.overlappingVariants = new ArrayList<>();
         this.invalidVariantAlleles = 0;

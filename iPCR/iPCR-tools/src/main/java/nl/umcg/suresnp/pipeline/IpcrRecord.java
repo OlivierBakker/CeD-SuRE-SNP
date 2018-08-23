@@ -2,7 +2,7 @@ package nl.umcg.suresnp.pipeline;
 
 import htsjdk.samtools.SAMRecord;
 
-public class IPCRRecord implements Comparable {
+public class IpcrRecord implements Comparable {
 
     private String barcode;
     private String referenceSequence;
@@ -20,7 +20,7 @@ public class IPCRRecord implements Comparable {
     private int duplicateCount;
 
 
-    public IPCRRecord(String barcode, SAMRecord cachedSamRecord, SAMRecord mate) {
+    public IpcrRecord(String barcode, SAMRecord cachedSamRecord, SAMRecord mate) {
         SAMRecord first;
         SAMRecord second;
         char strand;
@@ -50,7 +50,7 @@ public class IPCRRecord implements Comparable {
         this.sequenceTwo = second.getReadString();
     }
 
-    public IPCRRecord(String barcode, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo, int duplicateCount) {
+    public IpcrRecord(String barcode, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo, int duplicateCount) {
         this.barcode = barcode;
         this.referenceSequence = referenceSequence;
         this.startOne = startOne;
@@ -218,7 +218,7 @@ public class IPCRRecord implements Comparable {
 
     @Override
     public int compareTo(Object o) {
-        IPCRRecord other = (IPCRRecord) o;
+        IpcrRecord other = (IpcrRecord) o;
         return (barcode.compareTo(other.getBarcode()));
     }
 }
