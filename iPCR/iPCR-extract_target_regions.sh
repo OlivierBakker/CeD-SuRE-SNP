@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#-------------------------------------------------------------------------------#
+#                            Script global Settings                             #
+#-------------------------------------------------------------------------------#
 # Version info
 SCRIPTNAME=iPCR-extract_target_regions.sh
 VERSION=0.0.1
@@ -15,7 +18,15 @@ LOG=false
 SAMTOOLS=samtools
 PICARD="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTPICARD}/picard.jar"
 
-# PARSE OPTIONS
+# If any command fails, fail the entire script
+set -e
+
+# Log the starttime
+starttime=$(date +%s)
+
+#-------------------------------------------------------------------------------#
+#                                 Parse options                                 #
+#-------------------------------------------------------------------------------#
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 USAGE=
 usage() {
@@ -67,8 +78,9 @@ while getopts "h?o:r:i:l:b:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-starttime=$(date +%s)
-
+#-------------------------------------------------------------------------------#
+#                              IO definitions                                   #
+#-------------------------------------------------------------------------------#
 # Check all required options are set
 if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)"; usage; exit 1; fi
 if [ -z ${BASENAME+x} ]; then
@@ -86,9 +98,16 @@ if [ ${LOG} == "true" ]; then
   exec 2>&1
 fi
 
-### Start extraction ###
+# Check if script has been run succesfully previously
+if [ -f "${OUTDIR}/${BASENAME}.done" ]; then
+  echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Overwriting previous results"
+  rm "${OUTDIR}/${BASENAME}.done"
+fi
 
-# Construct the command
+#-------------------------------------------------------------------------------#
+#                              Main program loop                                #
+#-------------------------------------------------------------------------------#
+# Extract the target regions
 SAM_CMD="${SAMTOOLS} view \
 ${INPUT_BAM} \
 -h \
@@ -105,7 +124,6 @@ eval $SAM_CMD
 
 echo "=========================================================================="
 
-# Construct the command
 PICARD_CMD="${PICARD} \
 BuildBamIndex \
 I=${OUTDIR}/${BASENAME}.targets.bam \
@@ -119,3 +137,14 @@ eval $PICARD_CMD
 
 echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
+
+# Log the TMP or intermediate files not critical for the output to the done file
+# These can then be cleaned later or right away if -c is specified
+echo "" > ${OUTDIR}/${BASENAME}.done
+
+if [ ${CLEAN} == "true" ]; then
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Cleaning intermediate files"
+  # Could loop over the .done file, but for safety's sake ill did it like this, to avoid any mishaps
+fi
+
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Done"

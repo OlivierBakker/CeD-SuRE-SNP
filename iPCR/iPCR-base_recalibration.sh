@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#-------------------------------------------------------------------------------#
+#                            Script global Settings                             #
+#-------------------------------------------------------------------------------#
 # Version info
 SCRIPTNAME=iPCR-base_recalibration.sh
 VERSION=0.0.1
@@ -11,7 +14,18 @@ OUTDIR="./"
 LOG=false
 NCORES=1
 
-# PARSE OPTIONS
+# Tools
+GATK="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTGATK}/GenomeAnalysisTK.jar"
+
+# If any command fails, fail the entire script
+set -e
+
+# Log the starttime
+starttime=$(date +%s)
+
+#-------------------------------------------------------------------------------#
+#                                 Parse options                                 #
+#-------------------------------------------------------------------------------#
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 USAGE=
 usage() {
@@ -67,12 +81,10 @@ while getopts "h?o:r:d:i:l:b:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Tools
-GATK="java -XX:ParallelGCThreads=1 -Xmx4g -jar \${EBROOTGATK}/GenomeAnalysisTK.jar"
-
-starttime=$(date +%s)
-
-#Check all required options are set
+#-------------------------------------------------------------------------------#
+#                              IO definitions                                   #
+#-------------------------------------------------------------------------------#
+# Check all required options are set
 if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)"; usage; exit 1; fi
 if [ -z ${BASENAME+x} ]; then
   # Create BASENAME based on 1st input fastq filename remove ".fastq.*" (or ".fq.*") from filename
@@ -91,6 +103,16 @@ if [ ${LOG} == "true" ]; then
   exec 2>&1
 fi
 
+# Check if script has been run succesfully previously
+if [ -f "${OUTDIR}/${BASENAME}.done" ]; then
+  echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Overwriting previous results"
+  rm "${OUTDIR}/${BASENAME}.done"
+fi
+
+#-------------------------------------------------------------------------------#
+#                              Main program loop                                #
+#-------------------------------------------------------------------------------#
+# Run base recalibrator
 GATK_CMD="${GATK} \
 -T BaseRecalibrator \
 -R ${REF_SEQ} \
@@ -122,7 +144,15 @@ echo "==========================================================================
 eval $GATK_CMD
 
 echo "=========================================================================="
-
-
-
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
+
+# Log the TMP or intermediate files not critical for the output to the done file
+# These can then be cleaned later or right away if -c is specified
+echo "" > ${OUTDIR}/${BASENAME}.done
+
+if [ ${CLEAN} == "true" ]; then
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Cleaning intermediate files"
+  # Could loop over the .done file, but for safety's sake ill did it like this, to avoid any mishaps
+fi
+
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Done"

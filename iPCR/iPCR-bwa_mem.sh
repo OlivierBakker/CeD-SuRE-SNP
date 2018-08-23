@@ -1,12 +1,8 @@
 #!/bin/bash
 
-# forward reads
-# reverse reads
-# reference + index
-# outdir
-# prefix for output
-
-
+#-------------------------------------------------------------------------------#
+#                            Script global Settings                             #
+#-------------------------------------------------------------------------------#
 # Version info
 SCRIPTNAME=iPCR-BWAmem.sh
 VERSION=0.0.1
@@ -23,7 +19,15 @@ BWA=bwa
 SAMTOOLS=samtools
 STATS_SCRIPT="iPCR-bwa_mem_stats.sh"
 
-# PARSE OPTIONS
+# If any command fails, fail the entire script
+set -e
+
+# Log the starttime
+starttime=$(date +%s)
+
+#-------------------------------------------------------------------------------#
+#                                 Parse options                                 #
+#-------------------------------------------------------------------------------#
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 USAGE=
 usage() {
@@ -83,9 +87,9 @@ while getopts "h?f:o:r:i:l:b:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Log the starttime
-starttime=$(date +%s)
-
+#-------------------------------------------------------------------------------#
+#                              IO definitions                                   #
+#-------------------------------------------------------------------------------#
 # Check all required options are set
 if [ -z ${OUTDIR+x} ]; then echo "option -o not set (directory for output files)"; usage; exit 1; fi
 if [ -z ${BASENAME+x} ]; then
@@ -103,7 +107,15 @@ if [ ${LOG} == "true" ]; then
   exec 2>&1
 fi
 
+# Check if script has been run succesfully previously
+if [ -f "${OUTDIR}/${BASENAME}.done" ]; then
+  echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Overwriting previous results"
+  rm "${OUTDIR}/${BASENAME}.done"
+fi
 
+#-------------------------------------------------------------------------------#
+#                              Main program loop                                #
+#-------------------------------------------------------------------------------#
 # Read group information
 # For more details see: https://gatkforums.broadinstitute.org/gatk/discussion/6472/read-groups
 SAMPLE_ID="TEST1"
@@ -145,24 +157,32 @@ eval $BWA_CMD
 
 if [ ! -z ${TARGETS} ]
 then
-
-
-STATS_CMD="${STATS_SCRIPT} \
+  STATS_CMD="${STATS_SCRIPT} \
 -i ${OUTDIR}/${BASENAME}.bam \
 -o ${OUTDIR} \
 -b ${BASENAME} \
 -t ${TARGETS}"
 
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Calclating statistics"
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] STATS command = ${STATS_CMD}"
-echo "=========================================================================="
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Calclating statistics"
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] STATS command = ${STATS_CMD}"
+  echo "=========================================================================="
 
-eval $STATS_CMD
-
+  eval $STATS_CMD
+  
 else
   echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Not calculating amplification statistics, no targets file provided."
 fi
 
-
-echo "==========================================================================" 
+echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
+
+# Log the TMP or intermediate files not critical for the output to the done file
+# These can then be cleaned later or right away if -c is specified
+echo "" > ${OUTDIR}/${BASENAME}.done
+
+if [ ${CLEAN} == "true" ]; then
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Cleaning intermediate files"
+  # Could loop over the .done file, but for safety's sake ill did it like this, to avoid any mishaps
+fi
+
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Done"

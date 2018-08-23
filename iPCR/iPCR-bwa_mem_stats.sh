@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#-------------------------------------------------------------------------------#
+#                            Script global Settings                             #
+#-------------------------------------------------------------------------------#
 # Version info
 SCRIPTNAME=iPCR-bwa_mem_stats.sh
 VERSION=0.0.1
@@ -15,7 +18,15 @@ LOG=false
 PICARD="java -jar ${EBROOTPICARD}/picard.jar"
 SAMTOOLS=samtools
 
-# PARSE OPTIONS
+# If any command fails, fail the entire script
+set -e
+
+# Log the starttime
+starttime=$(date +%s)
+
+#-------------------------------------------------------------------------------#
+#                                 Parse options                                 #
+#-------------------------------------------------------------------------------#
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 USAGE=
 usage() {
@@ -67,9 +78,9 @@ while getopts "h?f:o:r:i:l:b:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Log the starttime
-starttime=$(date +%s)
-
+#-------------------------------------------------------------------------------#
+#                              IO definitions                                   #
+#-------------------------------------------------------------------------------#
 # Check all required options are set
 if [ -z ${OUTDIR+x} ]; then echo "[ERROR - $(date '+%Y-%m-%d %H:%M:%S')] option -o not set (directory for output files)"; usage; exit 1; fi
 if [ -z ${INPUT_BAM+x} ]; then "[ERROR - $(date '+%Y-%m-%d %H:%M:%S')] option -i not set"; usage; exit 1; fi
@@ -87,6 +98,16 @@ if [ ${LOG} == "true" ]; then
   exec 2>&1
 fi
 
+# Check if script has been run succesfully previously
+if [ -f "${OUTDIR}/${BASENAME}.done" ]; then
+  echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Overwriting previous results"
+  rm "${OUTDIR}/${BASENAME}.done"
+fi
+
+#-------------------------------------------------------------------------------#
+#                              Main program loop                                #
+#-------------------------------------------------------------------------------#
+# Generate the Q score distribution
 PICARD_CMD="${PICARD} QualityScoreDistribution \
 I=${INPUT_BAM} \
 O=${OUTDIR}/${BASENAME}.qualscores \
@@ -100,7 +121,6 @@ echo "==========================================================================
 eval $PICARD_CMD
 
 echo "==========================================================================" 
-
 
 if [ ! -z ${TARGETS} ]
 then
@@ -126,5 +146,16 @@ else
   echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Amplification statistics not calculated, no targets file provided."
 fi
 
-echo "==========================================================================" 
-echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
+echo "=========================================================================="
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
+
+# Log the TMP or intermediate files not critical for the output to the done file
+# These can then be cleaned later or right away if -c is specified
+echo "" > ${OUTDIR}/${BASENAME}.done
+
+if [ ${CLEAN} == "true" ]; then
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Cleaning intermediate files"
+  # Could loop over the .done file, but for safety's sake ill did it like this, to avoid any mishaps
+fi
+
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Done"

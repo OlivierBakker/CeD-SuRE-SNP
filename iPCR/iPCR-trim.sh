@@ -36,7 +36,9 @@
 # TODO
 #   - parameterize filter criteria (min MAPQ score, BC length, etc)
 
-# Parameter settings
+#-------------------------------------------------------------------------------#
+#                            Script global Settings                             #
+#-------------------------------------------------------------------------------#
 SCRIPTNAME=iPCR-trim.sh
 VERSION=0.0.2
 
@@ -51,7 +53,15 @@ RESTRICT_SITE=""
 CLEAN=true;
 LOG="false"
 
-# PARSE OPTIONS
+# If any command fails, fail the entire script
+set -e
+
+# Log the starttime
+starttime=$(date +%s)
+
+#-------------------------------------------------------------------------------#
+#                                 Parse options                                 #
+#-------------------------------------------------------------------------------#
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 USAGE=
 usage() {
@@ -107,6 +117,9 @@ while getopts "h?f:o:r:d:lb:n:c" opt; do
 done
 shift $(( OPTIND - 1 ))
 
+#-------------------------------------------------------------------------------#
+#                              IO definitions                                   #
+#-------------------------------------------------------------------------------#
 # The remaining CLI arguments should be a pair of filenames which are the forward and reverse reads fastq files.
 # Check we have exactly 2 remaining arguments
 if [ ! $# -eq 2 ]; then
@@ -186,7 +199,15 @@ if [ ${LOG} == "true" ]; then
   exec 2>&1
 fi
 
-### Logging ###
+# Check if script has been run succesfully previously
+if [ -f "${OUTDIR}/${BASENAME}.done" ]; then
+  echo "[WARN - $(date '+%Y-%m-%d %H:%M:%S')] Overwriting previous results"
+  rm "${OUTDIR}/${BASENAME}.done"
+fi
+
+#-------------------------------------------------------------------------------#
+#                              Main program loop                                #
+#-------------------------------------------------------------------------------#
 # Print values of variables and CLI args for log
 # Print header for log
 LINE="[INFO - $(date '+%Y-%m-%d %H:%M:%S')] running "${SCRIPTNAME}" (version: "$VERSION")"
@@ -336,4 +357,15 @@ rm -f *fastq.tmp
 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] finished filtered read on length"
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] finished processing ${BASENAME} files"
+echo "=========================================================================="
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] script ran for $(( ($(date +%s) - ${starttime}) / 60)) minutes"
+
+# Log the TMP or intermediate files not critical for the output to the done file
+# These can then be cleaned later or right away if -c is specified
+echo "" > ${OUTDIR}/${BASENAME}.done
+
+if [ ${CLEAN} == "true" ]; then
+  echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Cleaning intermediate files"
+  # Could loop over the .done file, but for safety's sake ill did it like this, to avoid any mishaps
+fi
+echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Done"
