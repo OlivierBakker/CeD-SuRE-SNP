@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.apache.ant:ant-apache-bcel:1.8.4">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant-apache-bcel/1.8.4/3448066ed8bc3d1a8d7e4bf1163d477dab40a0f7/ant-apache-bcel-1.8.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant-apache-bcel/1.8.4/3cea5824cf67cbdf513d2456c7dfa2be6e6ac327/ant-apache-bcel-1.8.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

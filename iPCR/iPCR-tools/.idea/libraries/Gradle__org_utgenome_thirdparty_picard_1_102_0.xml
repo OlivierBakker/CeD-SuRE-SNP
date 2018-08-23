@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.utgenome.thirdparty:picard:1.102.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.utgenome.thirdparty/picard/1.102.0/3e4c6053db3b985904934ac6745a2a0b2d1d7249/picard-1.102.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.utgenome.thirdparty/picard/1.102.0/3d7a8bd24458413d868f0f20df5ea549f7da428d/picard-1.102.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

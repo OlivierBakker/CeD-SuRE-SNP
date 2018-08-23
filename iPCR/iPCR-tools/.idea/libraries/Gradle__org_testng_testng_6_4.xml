@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.testng:testng:6.4">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.testng/testng/6.4/780e5804ff5e2bcfa262c02ca9401456f682bbc5/testng-6.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.testng/testng/6.4/ea3723f91d96f9a876749d86406ff5cf2fb948b7/testng-6.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
