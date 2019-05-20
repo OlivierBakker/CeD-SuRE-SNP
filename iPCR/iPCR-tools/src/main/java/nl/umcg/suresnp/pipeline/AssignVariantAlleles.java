@@ -2,7 +2,10 @@ package nl.umcg.suresnp.pipeline;
 
 
 import nl.umcg.suresnp.pipeline.io.*;
-import org.apache.commons.cli.CommandLine;
+import nl.umcg.suresnp.pipeline.io.icpr.IpcrFileReader;
+import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AnnotatedIpcrRecord;
 import org.apache.log4j.Logger;
 import org.molgenis.genotype.RandomAccessGenotypeData;
 import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
@@ -11,18 +14,18 @@ import org.molgenis.genotype.variant.GeneticVariant;
 import java.io.*;
 import java.util.List;
 
-import static nl.umcg.suresnp.pipeline.io.IpcrFileReader.getPerc;
+import static nl.umcg.suresnp.pipeline.io.icpr.IpcrFileReader.getPerc;
 
-public class AddAlleleInfo {
+public class AssignVariantAlleles {
 
-    private static final Logger LOGGER = Logger.getLogger(AddAlleleInfo.class);
+    private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
 
-    public static void run(CommandLine cmd, IpcrOutputWriter outputWriter) throws IOException, IpcrParseException {
+    public static void run(IpcrToolsParameters params, IpcrOutputWriter outputWriter) throws IOException, IpcrParseException {
 
-        String inputIPCRFile = cmd.getOptionValue("p").trim();
-        String inputGenotype = cmd.getOptionValue("g").trim();
+        String inputIPCRFile = params.getBarcodeFile();
+        String inputGenotype = params.getInputVcf();
 
-        VariantOutputFileWriter variantOutputFileWriter = new VariantOutputFileWriter(new File(cmd.getOptionValue("o").trim() + ".variantFile"), false);
+        VariantOutputFileWriter variantOutputFileWriter = new VariantOutputFileWriter(new File(params.getOutputPrefix() + ".variantFile"), false);
 
         // Read genotype data
         RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF,

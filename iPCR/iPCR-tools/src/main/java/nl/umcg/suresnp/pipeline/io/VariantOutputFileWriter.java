@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.io;
 
-import nl.umcg.suresnp.pipeline.AnnotatedIpcrRecord;
-import nl.umcg.suresnp.pipeline.VariantType;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AnnotatedIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.VariantType;
 import org.molgenis.genotype.variant.GeneticVariant;
 
 import java.io.*;

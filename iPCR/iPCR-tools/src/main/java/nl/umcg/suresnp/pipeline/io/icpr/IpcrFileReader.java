@@ -1,6 +1,7 @@
-package nl.umcg.suresnp.pipeline.io;
+package nl.umcg.suresnp.pipeline.io.icpr;
 
-import nl.umcg.suresnp.pipeline.AnnotatedIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AnnotatedIpcrRecord;
+import nl.umcg.suresnp.pipeline.io.CsvReader;
 import org.apache.log4j.Logger;
 
 import java.io.*;

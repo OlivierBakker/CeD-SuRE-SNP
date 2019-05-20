@@ -1,4 +1,4 @@
-package nl.umcg.suresnp.pipeline;
+package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 import htsjdk.samtools.SAMRecord;
 import org.molgenis.genotype.variant.GeneticVariant;

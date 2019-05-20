@@ -18,6 +18,7 @@ containsElement () {
   return 1
 }
 
+# TODO: Do not use this conveluted steps stuff, if I add something, just make a new script
 # Pipeline script for the per sample portion of the SuRE-SNP pipeline
 STEPS=("A1" "A2" "A3" "A4" "A5" "A6" "A7" "B1")
 SAMPLE="Sample001"

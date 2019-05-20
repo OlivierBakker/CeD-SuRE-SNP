@@ -1,4 +1,4 @@
-package nl.umcg.suresnp.pipeline.io;
+package nl.umcg.suresnp.pipeline.io.icpr;
 
 import java.text.ParseException;
 
