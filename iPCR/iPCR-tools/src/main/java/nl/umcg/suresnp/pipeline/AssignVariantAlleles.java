@@ -79,31 +79,34 @@ public class AssignVariantAlleles {
                         LOGGER.info("Processed " + i / 1000000 + " million SAM records");
                     }
                 }
-
                 // Retrieve the current record
                 SAMRecord record = curSamRecordIterator.next();
                 IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant);
                 if (curIpcrRecord != null) {
-                    String curBarcode = barcodes.get(record.getReadName());
-                    if (curBarcode == null) {
-                        discaredOutputWriter.writeRecord(curIpcrRecord, "BarcodeNotAvail");
+                    // Check if the read is a artifcial haplotype
+                    if (!record.getReadName().matches("^HC[0-9]*")) {
+                        // Get the barcode for the read
+                        String curBarcode = barcodes.get(record.getReadName());
+                        if (curBarcode == null) {
+                            discaredOutputWriter.writeRecord(curIpcrRecord, "BarcodeNotAvail");
+                        } else {
+                            curIpcrRecord.setBarcode(curBarcode);
+                            ipcrOutputWriter.writeRecord(curIpcrRecord);
+                        }
                     } else {
-                        curIpcrRecord.setBarcode(curBarcode);
-                        ipcrOutputWriter.writeRecord(curIpcrRecord);
+                        discaredOutputWriter.writeRecord(curIpcrRecord, "ArtificialHaplotype");
                     }
-
                 }
-
                 i++;
             }
-
-
             curSamRecordIterator.close();
         }
 
         // Close file streams
         ipcrOutputWriter.close();
         barcodeFileReader.close();
+        discaredOutputWriter.close();
+
         genotypeData.close();
 
         // Log statistics
