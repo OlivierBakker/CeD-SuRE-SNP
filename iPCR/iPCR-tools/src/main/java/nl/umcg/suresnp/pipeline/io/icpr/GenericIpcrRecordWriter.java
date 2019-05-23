@@ -56,6 +56,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
             writer.write(record.getReadAllele());
         }
         writer.write(sep);
+        writer.write(record.getRecord().getCigarString());
 
         writer.newLine();
     }

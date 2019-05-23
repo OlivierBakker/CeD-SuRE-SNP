@@ -199,7 +199,7 @@ public class AssignVariantAlleles {
                     readAllele = tmpReadAllele1;
                     break;
                 } else if (tmpReadAllele2.equals(alternativeAllele)) {
-                    readAllele = tmpReadAllele1;
+                    readAllele = tmpReadAllele2;
                     break;
                 } else {
                     readAllele = tmpReadAllele1;

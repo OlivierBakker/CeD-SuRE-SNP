@@ -71,6 +71,9 @@ public class DiscaredIpcrRecordWriter implements IpcrOutputWriter{
         } else {
             writer.write(record.getAlternativeAllele());
         }
+
+        writer.write(sep);
+        writer.write(record.getRecord().getCigarString());
         writer.newLine();
 
     }
