@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.AnnotatedIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AnnotatedIpcrRecordWithMate;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import org.apache.log4j.Logger;
 
@@ -12,14 +12,14 @@ public class IpcrFileReader {
 
     private static final Logger LOGGER = Logger.getLogger(IpcrFileReader.class);
 
-    public static List<AnnotatedIpcrRecord> readIPCRFileCollapsed(String path) throws IOException, IpcrParseException {
+    public static List<AnnotatedIpcrRecordWithMate> readIPCRFileCollapsed(String path) throws IOException, IpcrParseException {
 
         LOGGER.warn("Current implementation assumes file is sorted on barcode");
 
         // May seem excessive, but allows for easy change to zipped files if needed
         CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new FileInputStream(new File(path)))), " ");
 
-        List<AnnotatedIpcrRecord> ipcrRecords = new ArrayList<>();
+        List<AnnotatedIpcrRecordWithMate> ipcrRecords = new ArrayList<>();
         String[] line;
         int curRecord = 0;
         int prevRecord = 0;
@@ -33,7 +33,7 @@ public class IpcrFileReader {
                 continue;
             } else {
 
-                AnnotatedIpcrRecord record = parseAnnotatedIPCRRecord(line, curRecord);
+                AnnotatedIpcrRecordWithMate record = parseAnnotatedIPCRRecord(line, curRecord);
 
                 // Collapse the records on barcode, keeping only the one with the highest duplicate count
                 if (curRecord > 0) {
@@ -59,7 +59,7 @@ public class IpcrFileReader {
         return ipcrRecords;
     }
 
-    private static AnnotatedIpcrRecord parseAnnotatedIPCRRecord(String [] line, int lineNumber) throws IpcrParseException {
+    private static AnnotatedIpcrRecordWithMate parseAnnotatedIPCRRecord(String [] line, int lineNumber) throws IpcrParseException {
         // To save time no support for a header, since we can safely define the format ourselves
         // Although it could be easily added if needed
         // Column order:
@@ -67,9 +67,9 @@ public class IpcrFileReader {
         int[] ipcrColumnOrder = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0};
 
         // Parse the iPCR record
-        AnnotatedIpcrRecord record;
+        AnnotatedIpcrRecordWithMate record;
         try {
-            record = new AnnotatedIpcrRecord(line[ipcrColumnOrder[0]],
+            record = new AnnotatedIpcrRecordWithMate(line[ipcrColumnOrder[0]],
                     line[ipcrColumnOrder[1]],
                     Integer.parseInt(line[ipcrColumnOrder[2]]),
                     Integer.parseInt(line[ipcrColumnOrder[3]]),

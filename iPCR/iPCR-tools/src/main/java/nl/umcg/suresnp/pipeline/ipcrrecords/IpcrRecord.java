@@ -1,70 +1,26 @@
 package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 import htsjdk.samtools.SAMRecord;
+import org.molgenis.genotype.variant.GeneticVariant;
 
-public class IpcrRecord implements Comparable {
+public class IpcrRecord {
 
     private String barcode;
-    private String referenceSequence;
-    private int startOne;
-    private int endOne;
-    private int startTwo;
-    private int endTwo;
-    private char orientation;
-    private int mapqOne;
-    private int mapqTwo;
-    private String cigarOne;
-    private String cigarTwo;
-    private String sequenceOne;
-    private String sequenceTwo;
-    private int duplicateCount;
+    private String readAllele;
+    private String alternativeAllele;
+    private int variantStartInRead;
+    private GeneticVariant geneticVariant;
+    private SAMRecord record;
+    private VariantType variantType;
 
-
-    public IpcrRecord(String barcode, SAMRecord cachedSamRecord, SAMRecord mate) {
-        SAMRecord first;
-        SAMRecord second;
-        char strand;
-
-        if (cachedSamRecord.getReadNegativeStrandFlag()) {
-            first = mate;
-            second = cachedSamRecord;
-            strand = '-';
-        } else {
-            first = cachedSamRecord;
-            second = mate;
-            strand = '+';
-        }
-
+    public IpcrRecord(String barcode, String readAllele, String alternativeAllele, int variantStartInRead, GeneticVariant geneticVariant, SAMRecord record, VariantType variantType) {
         this.barcode = barcode;
-        this.referenceSequence = first.getReferenceName();
-        this.startOne = first.getAlignmentStart();
-        this.endOne = first.getAlignmentEnd();
-        this.startTwo = second.getAlignmentStart();
-        this.endTwo = second.getAlignmentEnd();
-        this.orientation = strand;
-        this.mapqOne = first.getMappingQuality();
-        this.mapqTwo = second.getMappingQuality();
-        this.cigarOne = first.getCigarString();
-        this.cigarTwo = second.getCigarString();
-        this.sequenceOne = first.getReadString();
-        this.sequenceTwo = second.getReadString();
-    }
-
-    public IpcrRecord(String barcode, String referenceSequence, int startOne, int endOne, int startTwo, int endTwo, char orientation, int mapqOne, int mapqTwo, String cigarOne, String cigarTwo, String sequenceOne, String sequenceTwo, int duplicateCount) {
-        this.barcode = barcode;
-        this.referenceSequence = referenceSequence;
-        this.startOne = startOne;
-        this.endOne = endOne;
-        this.startTwo = startTwo;
-        this.endTwo = endTwo;
-        this.orientation = orientation;
-        this.mapqOne = mapqOne;
-        this.mapqTwo = mapqTwo;
-        this.cigarOne = cigarOne;
-        this.cigarTwo = cigarTwo;
-        this.sequenceOne = sequenceOne;
-        this.sequenceTwo = sequenceTwo;
-        this.duplicateCount = duplicateCount;
+        this.readAllele = readAllele;
+        this.alternativeAllele = alternativeAllele;
+        this.variantStartInRead = variantStartInRead;
+        this.geneticVariant = geneticVariant;
+        this.record = record;
+        this.variantType = variantType;
     }
 
     public String getBarcode() {
@@ -75,174 +31,52 @@ public class IpcrRecord implements Comparable {
         this.barcode = barcode;
     }
 
-    public String getReferenceSequence() {
-        return referenceSequence;
+    public String getReadAllele() {
+        return readAllele;
     }
 
-    public void setReferenceSequence(String referenceSequence) {
-        this.referenceSequence = referenceSequence;
+    public void setReadAllele(String readAllele) {
+        this.readAllele = readAllele;
     }
 
-    public int getStartOne() {
-        return startOne;
+    public String getAlternativeAllele() {
+        return alternativeAllele;
     }
 
-    public void setStartOne(int startOne) {
-        this.startOne = startOne;
+    public void setAlternativeAllele(String alternativeAllele) {
+        this.alternativeAllele = alternativeAllele;
     }
 
-    public int getEndOne() {
-        return endOne;
+    public int getVariantStartInRead() {
+        return variantStartInRead;
     }
 
-    public void setEndOne(int endOne) {
-        this.endOne = endOne;
+    public void setVariantStartInRead(int variantStartInRead) {
+        this.variantStartInRead = variantStartInRead;
     }
 
-    public int getStartTwo() {
-        return startTwo;
+    public GeneticVariant getGeneticVariant() {
+        return geneticVariant;
     }
 
-    public void setStartTwo(int startTwo) {
-        this.startTwo = startTwo;
+    public void setGeneticVariant(GeneticVariant geneticVariant) {
+        this.geneticVariant = geneticVariant;
     }
 
-    public int getEndTwo() {
-        return endTwo;
+    public SAMRecord getRecord() {
+        return record;
     }
 
-    public void setEndTwo(int endTwo) {
-        this.endTwo = endTwo;
+    public void setRecord(SAMRecord record) {
+        this.record = record;
     }
 
-    public char getOrientation() {
-        return orientation;
+    public VariantType getVariantType() {
+        return variantType;
     }
 
-    public void setOrientation(char orientation) {
-        this.orientation = orientation;
+    public void setVariantType(VariantType variantType) {
+        this.variantType = variantType;
     }
 
-    public int getMapqOne() {
-        return mapqOne;
-    }
-
-    public void setMapqOne(int mapqOne) {
-        this.mapqOne = mapqOne;
-    }
-
-    public int getMapqTwo() {
-        return mapqTwo;
-    }
-
-    public void setMapqTwo(int mapqTwo) {
-        this.mapqTwo = mapqTwo;
-    }
-
-    public String getCigarOne() {
-        return cigarOne;
-    }
-
-    public void setCigarOne(String cigarOne) {
-        this.cigarOne = cigarOne;
-    }
-
-    public String getCigarTwo() {
-        return cigarTwo;
-    }
-
-    public void setCigarTwo(String cigarTwo) {
-        this.cigarTwo = cigarTwo;
-    }
-
-    public String getSequenceOne() {
-        return sequenceOne;
-    }
-
-    public void setSequenceOne(String sequenceOne) {
-        this.sequenceOne = sequenceOne;
-    }
-
-    public String getSequenceTwo() {
-        return sequenceTwo;
-    }
-
-    public void setSequenceTwo(String sequenceTwo) {
-        this.sequenceTwo = sequenceTwo;
-    }
-
-    public int getDuplicateCount() {
-        return duplicateCount;
-    }
-
-    public void setDuplicateCount(int duplicateCount) {
-        this.duplicateCount = duplicateCount;
-    }
-
-    public String getOutputString(String sep){
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(barcode)
-                .append(sep)
-                .append(referenceSequence)
-                .append(sep)
-                .append(startOne)
-                .append(sep)
-                .append(endOne)
-                .append(sep)
-                .append(startTwo)
-                .append(sep)
-                .append(endTwo)
-                .append(sep)
-                .append(orientation)
-                .append(sep)
-                .append(mapqOne)
-                .append(sep)
-                .append(mapqTwo)
-                .append(sep)
-                .append(cigarOne)
-                .append(sep)
-                .append(cigarTwo)
-                .append(sep)
-                .append(sequenceOne)
-                .append(sep)
-                .append(sequenceTwo);
-
-        if (duplicateCount != 0) {
-            sb.append(sep).append(duplicateCount);
-        }
-
-        return sb.toString();
-
-    }
-
-
-    public String getSimpleOutputString(String sep) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(barcode)
-                .append(sep)
-                .append(referenceSequence)
-                .append(sep)
-                .append(startOne)
-                .append(sep)
-                .append(endOne)
-                .append(sep)
-                .append(startTwo)
-                .append(sep)
-                .append(endTwo)
-                .append(sep)
-                .append(orientation);
-
-        if (duplicateCount != 0) {
-            sb.append(sep).append(duplicateCount);
-        }
-
-        return sb.toString();
-    }
-
-    @Override
-    public int compareTo(Object o) {
-        IpcrRecord other = (IpcrRecord) o;
-        return (barcode.compareTo(other.getBarcode()));
-    }
 }

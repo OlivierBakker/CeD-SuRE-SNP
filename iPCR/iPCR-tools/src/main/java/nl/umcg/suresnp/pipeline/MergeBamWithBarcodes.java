@@ -3,7 +3,7 @@ package nl.umcg.suresnp.pipeline;
 import htsjdk.samtools.*;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecordWithMate;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
@@ -19,9 +19,11 @@ public class MergeBamWithBarcodes {
     private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
 
     @Deprecated
-    public static void run(CommandLine cmd, IpcrOutputWriter outputWriter) {
+    public static void run(IpcrToolsParameters params, IpcrOutputWriter outputWriter) {
 
         try {
+
+            CommandLine cmd = params.getCmd();
             // Define the input files
             File inputBamFile = new File(cmd.getOptionValue("i").trim());
             File inputBarcodeFile = new File(cmd.getOptionValue("b").trim());
@@ -93,7 +95,7 @@ public class MergeBamWithBarcodes {
                     SAMRecord mate = record;
                     // If the current record is the mate of the previous write to the outputWriter
                     if (mate.getReadName().equals(cachedSamRecord.getReadName())) {
-                        outputWriter.writeIPCRRecord(new IpcrRecord(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord, mate));
+                       // outputWriter.writeRecord(new IpcrRecordWithMate(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord, mate));
                         cachedSamRecord = null;
                     } else {
                         LOGGER.warn("Altough flagged as valid read pair, the read id's do not match. This should not happen unless the flags in the BAM are wrong.");

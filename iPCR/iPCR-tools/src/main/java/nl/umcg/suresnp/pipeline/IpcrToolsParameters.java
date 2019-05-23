@@ -1,6 +1,8 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.*;
+import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordStdoutWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -20,16 +22,25 @@ public class IpcrToolsParameters {
 
     // IO arguments
     private String inputBam;
-    private String barcodeFile;
+    private String inputBarcodes;
+    private String inputVcf;
+
     private String outputPrefix;
     private String outputSuffix;
-    private String inputVcf;
+
     private boolean isStdoutput;
     private boolean isReduced;
     private IpcrOutputWriter outputWriter;
 
-
+    // General arguments
     private String toolType;
+
+
+    // Tool specific arguments
+    private int barcodeLength;
+    private int adapterMaxMismatch;
+
+
     private static final Options OPTIONS;
 
     static {
@@ -55,8 +66,15 @@ public class IpcrToolsParameters {
         option = Option.builder("i")
                 .longOpt("input-bam")
                 .hasArg(true)
-                .desc("Input bamfile SORTED ON QUERY NAME!!!!!")
+                .desc("Input bamfile")
                 .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("g")
+                .longOpt("input-genotype")
+                .hasArg(true)
+                .desc("Currently only supports VCF")
                 .build();
         OPTIONS.addOption(option);
 
@@ -79,13 +97,6 @@ public class IpcrToolsParameters {
         option = Option.builder("s")
                 .longOpt("stdout")
                 .desc("Pipe output to stdout instead of to a file. Will omit logging of warnings, info and debug.")
-                .build();
-        OPTIONS.addOption(option);
-
-        option = Option.builder("g")
-                .longOpt("input-genotype")
-                .hasArg(true)
-                .desc("Currently only supports VCF")
                 .build();
         OPTIONS.addOption(option);
 
@@ -123,20 +134,21 @@ public class IpcrToolsParameters {
 
 
         // Input files
-        inputBam = cmd.getOptionValue("p").trim();
+        inputBam = cmd.getOptionValue("i").trim();
         inputVcf = cmd.getOptionValue("g").trim();
-
+        inputBarcodes = cmd.getOptionValue('b').trim();
 
         // Define the output writer, either stdout or to file
-        outputPrefix = cmd.getOptionValue("o").trim();
+        if (cmd.hasOption('o')) {
+            outputPrefix = cmd.getOptionValue("o").trim();
+        } else {
+            outputPrefix = "ipcrtools";
+        }
 
         if (cmd.hasOption("s")) {
             // When writing to stdout do not use log4j unless there is an error
-            if (cmd.hasOption("r")) {
-                outputWriter = new SimpleIpcrStdoutWriter();
-            } else {
-                outputWriter = new IpcrStdoutWriter();
-            }
+            outputWriter = new GenericIpcrRecordStdoutWriter();
+
             Logger.getRootLogger().setLevel(Level.ERROR);
 
         } else {
@@ -154,34 +166,47 @@ public class IpcrToolsParameters {
                 outputSuffix = ".gz";
             }
 
-            if (cmd.hasOption("r")) {
-                outputWriter = new SimpleIpcrOutputFileWriter(new File( outputPrefix+ ".reduced.ipcr" + outputSuffix), zipped);
-            } else {
-                outputWriter = new IpcrOutputFileWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
-            }
+            outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
         }
 
         // Select which tool to run
         switch (cmd.getOptionValue("T").trim()) {
             case "MergeBamWithBarcodes":
-                toolType="MergeBamWithBarcodes";
+                toolType = "MergeBamWithBarcodes";
                 break;
             case "AssignVariantAlleles":
-                toolType="AssignVariantAlleles";
+                toolType = "AssignVariantAlleles";
                 break;
             default:
+                LOGGER.error("Invalid tooltype provided");
                 IpcrToolsParameters.printHelp();
                 exit(1);
         }
 
+        // Hardcoded arguments for testing
+        barcodeLength = 20;
+        adapterMaxMismatch = 3;
+
+    }
+
+    public int getAdapterMaxMismatch() {
+        return adapterMaxMismatch;
+    }
+
+    public int getBarcodeLength() {
+        return barcodeLength;
     }
 
     public String getInputBam() {
         return inputBam;
     }
 
-    public String getBarcodeFile() {
-        return barcodeFile;
+    public CommandLine getCmd() {
+        return cmd;
+    }
+
+    public String getInputBarcodes() {
+        return inputBarcodes;
     }
 
     public String getOutputPrefix() {
