@@ -1,6 +1,5 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.UnrecognizedOptionException;
@@ -17,22 +16,24 @@ public class IpcrTools {
 
             // TODO: proper javadoc and readme
             // Parse commandline arguments
-            IpcrToolsParameters params = new IpcrToolsParameters(args);
-            IpcrOutputWriter outputWriter = params.getOutputWriter();
+            IpcrToolParameters params = new IpcrToolParameters(args);
 
             // Select which tool to run
             switch (params.getToolType()) {
-                case "MergeBamWithBarcodes":
-                    MergeBamWithBarcodes.run(params, outputWriter);
-                    break;
                 case "AssignVariantAlleles":
-                    AssignVariantAlleles curTool = new AssignVariantAlleles(params);
-                    curTool.run(params);
+                    AssignVariantAllelesParameters varParams = new AssignVariantAllelesParameters(args);
+                    AssignVariantAlleles assignVariantAlleles = new AssignVariantAlleles(varParams);
+                    assignVariantAlleles.run();
+                    break;
+                case "GenerateBarcodeComplexityCurve":
+                    GenerateBarcodeComplexityCurveParameters barcodeCurveParams = new GenerateBarcodeComplexityCurveParameters(args);
+                    GenerateBarcodeComplexityCurve generateBarcodeComplexityCurve = new GenerateBarcodeComplexityCurve(barcodeCurveParams);
+                    generateBarcodeComplexityCurve.run();
                     break;
             }
 
         } catch (UnrecognizedOptionException e) {
-            IpcrToolsParameters.printHelp();
+            IpcrToolParameters.printHelp();
             e.printStackTrace();
         } catch (ParseException e) {
             e.printStackTrace();

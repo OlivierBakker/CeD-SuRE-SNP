@@ -3,7 +3,6 @@ package nl.umcg.suresnp.pipeline;
 import htsjdk.samtools.*;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecordWithMate;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
@@ -19,7 +18,7 @@ public class MergeBamWithBarcodes {
     private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
 
     @Deprecated
-    public static void run(IpcrToolsParameters params, IpcrOutputWriter outputWriter) {
+    public static void run(GenerateBarcodeComplexityCurveParameters params, IpcrOutputWriter outputWriter) {
 
         try {
 

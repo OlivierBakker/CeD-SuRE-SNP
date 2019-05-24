@@ -31,24 +31,25 @@ public class AssignVariantAlleles {
     private IpcrOutputWriter ipcrOutputWriter;
     private DiscaredIpcrRecordWriter discaredOutputWriter;
     private BarcodeFileReader barcodeFileReader;
+    private AssignVariantAllelesParameters params;
 
-    public AssignVariantAlleles(IpcrToolsParameters params) throws IOException {
+    public AssignVariantAlleles(AssignVariantAllelesParameters params) throws IOException {
 
         this.barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
         //this.ipcrOutputWriter = new GenericIpcrRecordWriter(new File(params.getOutputPrefix() + ".ipcr"), false);
         this.ipcrOutputWriter = params.getOutputWriter();
         this.discaredOutputWriter = new DiscaredIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
+        this.params = params;
     }
 
-    public void run(IpcrToolsParameters params) throws IOException, IpcrParseException {
+    public void run() throws IOException, IpcrParseException {
 
-        String inputGenotype = params.getInputVcf();
 
         // Read barcode data
         List<InfoRecordFilter> filters = new ArrayList<>();
         filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
         filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
-       // Map<String, InfoRecord> barcodes = barcodeFileReader.readBarcodeFile(new GenericFile(params.getInputBarcodes()), filters);
+        // Map<String, InfoRecord> barcodes = barcodeFileReader.readBarcodeFile(new GenericFile(params.getInputBarcodes()), filters);
         Map<String, String> barcodes = barcodeFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
 
         // Create genotype data iterator
@@ -145,6 +146,7 @@ public class AssignVariantAlleles {
                     readAllele = tmpReadAllele1;
                     altReadAllele = alternativeAllele;
                     break;
+
                 } else if (tmpReadAllele1.equals(alternativeAllele)) {
                     readAllele = tmpReadAllele1;
                     altReadAllele = referenceAllele;
@@ -159,7 +161,6 @@ public class AssignVariantAlleles {
             case INSERTION:
                 tmpReadAllele1 = Character.toString(read.charAt(variantPosInRead));
                 int insertEnd = variantPosInRead + alternativeAllele.length();
-
                 // If the variant is at the end of the read and the read does not fully cover the insertion, discard the read
                 // This is done to avoid false positive reference assignments
                 if (insertEnd > read.length()) {
@@ -225,6 +226,7 @@ public class AssignVariantAlleles {
             return outputRecord;
         }
     }
+
 
     private static VariantType determineVariantType(GeneticVariant variant) {
 
