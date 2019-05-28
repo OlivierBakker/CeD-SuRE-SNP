@@ -22,6 +22,7 @@ public class AssignVariantAllelesParameters {
     private String inputBam;
     private String inputBarcodes;
     private String inputVcf;
+    private String secondaryInputBam;
 
     private String outputPrefix;
     private String outputSuffix;
@@ -64,7 +65,18 @@ public class AssignVariantAllelesParameters {
         option = Option.builder("i")
                 .longOpt("input-bam")
                 .hasArg(true)
-                .desc("Input bamfile")
+                .desc("Input bamfile, for the SuRE-SNP pipeline use the GATK --bamout file")
+                .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
+
+        option = Option.builder("j")
+                .longOpt("secondary-input-bam")
+                .hasArg(true)
+                .desc("Secondary input bamfile, Used to assign reads when not in primary bam file." +
+                        "Primary bamfile has higher priority, so in case of a duplicate, the primary is used." +
+                        "This is used for assigning reads from homzoygous reference samples which are not in the --bamout file")
                 .argName("path/to/file")
                 .build();
         OPTIONS.addOption(option);
@@ -117,11 +129,11 @@ public class AssignVariantAllelesParameters {
     public AssignVariantAllelesParameters(String[] args) throws ParseException, IOException {
 
         CommandLineParser parser = new DefaultParser();
-        cmd = parser.parse(GenerateBarcodeComplexityCurveParameters.getOptions(), args);
+        cmd = parser.parse(AssignVariantAllelesParameters.getOptions(), args);
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            GenerateBarcodeComplexityCurveParameters.printHelp();
+            AssignVariantAllelesParameters.printHelp();
             exit(0);
         }
 
@@ -130,6 +142,10 @@ public class AssignVariantAllelesParameters {
         inputVcf = cmd.getOptionValue("g").trim();
         inputBarcodes = cmd.getOptionValue('b').trim();
         toolType = "AssignVariantAlleles";
+
+        if (cmd.hasOption("j")) {
+            secondaryInputBam = cmd.getOptionValue("j").trim();
+        }
 
         // Define the output writer, either stdout or to file
         if (cmd.hasOption('o')) {
@@ -167,6 +183,14 @@ public class AssignVariantAllelesParameters {
         barcodeLength = 20;
         adapterMaxMismatch = 3;
 
+    }
+
+    public boolean hasSecondaryInputBam() {
+        return secondaryInputBam != null;
+    }
+
+    public String getSecondaryInputBam() {
+        return secondaryInputBam;
     }
 
     public int getAdapterMaxMismatch() {

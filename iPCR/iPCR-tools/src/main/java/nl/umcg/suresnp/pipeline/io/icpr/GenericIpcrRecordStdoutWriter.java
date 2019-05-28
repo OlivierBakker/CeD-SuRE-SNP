@@ -25,7 +25,7 @@ public class GenericIpcrRecordStdoutWriter implements IpcrOutputWriter {
     }
 
     @Override
-    public void close() throws IOException {
+    public void flushAndClose() throws IOException {
 
     }
 }

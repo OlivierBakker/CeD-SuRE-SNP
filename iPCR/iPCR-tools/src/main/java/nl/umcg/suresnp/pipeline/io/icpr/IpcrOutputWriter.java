@@ -9,5 +9,5 @@ public interface IpcrOutputWriter {
 
     void writeRecord(IpcrRecord record) throws IOException;
     void writeRecord(IpcrRecord record, String reason) throws IOException;
-    void close() throws IOException;
+    void flushAndClose() throws IOException;
 }

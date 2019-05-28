@@ -19,9 +19,7 @@ import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
 import org.molgenis.genotype.variant.GeneticVariant;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.ipcrrecords.VariantType.INSERTION;
 
@@ -32,6 +30,7 @@ public class AssignVariantAlleles {
     private DiscaredIpcrRecordWriter discaredOutputWriter;
     private BarcodeFileReader barcodeFileReader;
     private AssignVariantAllelesParameters params;
+    private Map <String, String> barcodeReadMap;
 
     public AssignVariantAlleles(AssignVariantAllelesParameters params) throws IOException {
 
@@ -45,18 +44,27 @@ public class AssignVariantAlleles {
     public void run() throws IOException, IpcrParseException {
 
 
+        LOGGER.warn("Currently assigns any read in BAM file if possible, does not do filtering so make sure you filter" +
+                "your BAM beforehand if needed.");
+
         // Read barcode data
         List<InfoRecordFilter> filters = new ArrayList<>();
         filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
         filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
-        // Map<String, InfoRecord> barcodes = barcodeFileReader.readBarcodeFile(new GenericFile(params.getInputBarcodes()), filters);
-        Map<String, String> barcodes = barcodeFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
+
+        barcodeReadMap = barcodeFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
+        barcodeFileReader.close();
 
         // Create genotype data iterator
         RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF, params.getInputVcf());
 
-        // Create SAM reader
-        SamReader samReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(params.getInputBam()));
+        // Create SAM readers
+        SamReader primarySamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(params.getInputBam()));
+
+        SamReader secondarySamReader = null;
+        if (params.hasSecondaryInputBam()) {
+            secondarySamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(params.getSecondaryInputBam()));
+        }
 
         int i = 0;
         for (GeneticVariant curVariant : genotypeData) {
@@ -70,10 +78,11 @@ public class AssignVariantAlleles {
             VariantType variantType = determineVariantType(curVariant);
 
             // Get the sam records overlapping the variant
-            SAMRecordIterator curSamRecordIterator = samReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+            SAMRecordIterator primarySamRecordIterator = primarySamReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+            Set<String> primaryReadNameCache = new HashSet<>();
 
             // Loop over all the records
-            while (curSamRecordIterator.hasNext()) {
+            while (primarySamRecordIterator.hasNext()) {
                 // Logging progress
                 if (i > 0) {
                     if (i % 1000000 == 0) {
@@ -81,38 +90,71 @@ public class AssignVariantAlleles {
                     }
                 }
                 // Retrieve the current record
-                SAMRecord record = curSamRecordIterator.next();
+                SAMRecord record = primarySamRecordIterator.next();
+                primaryReadNameCache.add(record.getReadName());
+
                 IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant);
-                if (curIpcrRecord != null) {
-                    // Check if the read is a artifcial haplotype
-                    if (!record.getReadName().matches("^HC[0-9]*")) {
-                        // Get the barcode for the read
-                        String curBarcode = barcodes.get(record.getReadName());
-                        if (curBarcode == null) {
-                            discaredOutputWriter.writeRecord(curIpcrRecord, "BarcodeNotAvail");
-                        } else {
-                            curIpcrRecord.setBarcode(curBarcode);
-                            ipcrOutputWriter.writeRecord(curIpcrRecord);
-                        }
-                    } else {
-                        discaredOutputWriter.writeRecord(curIpcrRecord, "ArtificialHaplotype");
-                    }
-                }
+                evaluateIpcrRecord(curIpcrRecord);
+
                 i++;
             }
-            curSamRecordIterator.close();
+            primarySamRecordIterator.close();
+
+            if (params.hasSecondaryInputBam() && secondarySamReader != null) {
+
+                SAMRecordIterator secondarySamRecordIterator = secondarySamReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+                while (secondarySamRecordIterator.hasNext()) {
+                    SAMRecord record = primarySamRecordIterator.next();
+
+                        if (primaryReadNameCache.contains(record.getReadName())) {
+                            discaredOutputWriter.writeRecord(new IpcrRecord(null,
+                                    null,
+                                    null,
+                                    0,
+                                    curVariant,
+                                    record,
+                                    variantType), "ReadInPrimaryBam");
+                        } else {
+                            IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant);
+                            evaluateIpcrRecord(curIpcrRecord);
+                        }
+                }
+                secondarySamRecordIterator.close();
+            }
         }
 
         // Close file streams
-        ipcrOutputWriter.close();
-        barcodeFileReader.close();
-        discaredOutputWriter.close();
+        ipcrOutputWriter.flushAndClose();
+        discaredOutputWriter.flushAndClose();
 
         genotypeData.close();
 
         // Log statistics
         LOGGER.info("Done");
     }
+
+    private boolean evaluateIpcrRecord(IpcrRecord curIpcrRecord) throws IOException {
+
+        if (curIpcrRecord != null) {
+            // Check if the read is a artifical haplotype
+            if (!curIpcrRecord.getRecord().getReadName().matches("^HC[0-9]*")) {
+                // Get the barcode for the read
+                String curBarcode = barcodeReadMap.get(curIpcrRecord.getRecord().getReadName());
+                if (curBarcode == null) {
+                    discaredOutputWriter.writeRecord(curIpcrRecord, "BarcodeNotAvail");
+                } else {
+                    curIpcrRecord.setBarcode(curBarcode);
+                    ipcrOutputWriter.writeRecord(curIpcrRecord);
+                    return true;
+                }
+            } else {
+                discaredOutputWriter.writeRecord(curIpcrRecord, "ArtificialHaplotype");
+            }
+        }
+
+        return false;
+    }
+
 
     private IpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant) throws IOException {
         // TODO: implement option maxDistToReadEnd, to only assign reads where the base is x bases in

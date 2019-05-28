@@ -33,7 +33,7 @@ public class MergeBamWithBarcodes {
             // Open the SAM reader
             SamReader samReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(inputBamFile);
 
-            // Check if the BAM is sorted on read name, if not close the program
+            // Check if the BAM is sorted on read name, if not flushAndClose the program
             // The logic requires the BAM to be sorted on read name, for efficiency's sake.
             // Given no sorting on read name, to get the mate the BAM needs to be searched.
             // To search for a mate is very slow, in testing slower then first sorting, then
@@ -111,7 +111,7 @@ public class MergeBamWithBarcodes {
             // Close all the streams
             samRecordIterator.close();
             samReader.close();
-            outputWriter.close();
+            outputWriter.flushAndClose();
 
         } catch (IOException e) {
             e.printStackTrace();

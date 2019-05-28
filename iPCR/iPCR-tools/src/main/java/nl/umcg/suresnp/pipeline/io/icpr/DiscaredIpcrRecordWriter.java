@@ -79,7 +79,7 @@ public class DiscaredIpcrRecordWriter implements IpcrOutputWriter{
     }
 
     @Override
-    public void close() throws IOException {
+    public void flushAndClose() throws IOException {
         writer.flush();
         writer.close();
         outputStream.close();
