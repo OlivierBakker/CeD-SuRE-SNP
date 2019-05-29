@@ -34,10 +34,10 @@ public class AssignVariantAllelesParameters {
     // General arguments
     private String toolType;
 
-
     // Tool specific arguments
     private int barcodeLength;
     private int adapterMaxMismatch;
+    private String sampleGenotypeId;
 
 
     private static final Options OPTIONS;
@@ -87,6 +87,16 @@ public class AssignVariantAllelesParameters {
                 .desc("Currently only supports VCF")
                 .build();
         OPTIONS.addOption(option);
+
+        option = Option.builder("v")
+                .longOpt("use-sample-genotype")
+                .hasArg(true)
+                .desc("The sample identifier to use to check the read alleles. If the call is HOM_REF only alleles " +
+                        "that match the reference will be assigned. If the call is HOM_ALT only reads matching the " +
+                        "alt allele will be assigned. Mismatching reads will be written to <prefix>.discarded.reads.txt")
+                .build();
+        OPTIONS.addOption(option);
+
 
         option = Option.builder("b")
                 .longOpt("barcode-info")
@@ -183,6 +193,15 @@ public class AssignVariantAllelesParameters {
         barcodeLength = 20;
         adapterMaxMismatch = 3;
 
+        if (cmd.hasOption("v")) {
+            sampleGenotypeId = cmd.getOptionValue('v').trim();
+        }
+
+    }
+
+
+    public String getSampleGenotypeId() {
+        return sampleGenotypeId;
     }
 
     public boolean hasSecondaryInputBam() {

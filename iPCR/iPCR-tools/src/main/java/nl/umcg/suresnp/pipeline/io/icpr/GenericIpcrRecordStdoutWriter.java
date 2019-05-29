@@ -25,6 +25,16 @@ public class GenericIpcrRecordStdoutWriter implements IpcrOutputWriter {
     }
 
     @Override
+    public void writeHeader() throws IOException {
+
+    }
+
+    @Override
+    public void writeHeader(String reason) throws IOException {
+
+    }
+
+    @Override
     public void flushAndClose() throws IOException {
 
     }
