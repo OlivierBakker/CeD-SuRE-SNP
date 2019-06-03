@@ -72,6 +72,7 @@ public class DiscaredIpcrRecordWriter implements IpcrOutputWriter{
         writer.write(sep);
 
 
+
 /*
         if (record.getAlternativeAllele() == null) {
             writer.write(".");
@@ -87,6 +88,13 @@ public class DiscaredIpcrRecordWriter implements IpcrOutputWriter{
             writer.write("-");
         } else {
             writer.write("+");
+        }
+
+        writer.write(sep);
+        if (record.getSampleId() != null) {
+            writer.write(record.getSampleId());
+        } else {
+            writer.write(".");
         }
         writer.newLine();
 
@@ -111,6 +119,8 @@ public class DiscaredIpcrRecordWriter implements IpcrOutputWriter{
         writer.write("cigarString");
         writer.write(sep);
         writer.write("strand");
+        writer.write(sep);
+        writer.write("sampleId");
         writer.newLine();
     }
 

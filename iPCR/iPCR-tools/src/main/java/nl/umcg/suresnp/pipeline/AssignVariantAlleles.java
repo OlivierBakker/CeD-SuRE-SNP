@@ -49,6 +49,13 @@ public class AssignVariantAlleles {
         LOGGER.warn("Currently assigns any read in BAM file if possible, does not do filtering of alignment quality" +
                 ",duplicates etc. so make sure you filter your BAM beforehand if needed.");
 
+        if (params.getSampleGenotypeId() != null) {
+            LOGGER.warn("Provided sample id to check genotype calls using -v. Make sure your BAM only contains the " +
+                    "reads for the sample you provided, otherwise reads will be wrongly assigned to the sample provided." +
+                    "If read groups have been properly marked you should be able to split the BAM in a per sample ones based on the" +
+                    "@RG tags in the read headers.");
+        }
+
         // Read barcode data
         List<InfoRecordFilter> filters = new ArrayList<>();
         filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
@@ -108,7 +115,7 @@ public class AssignVariantAlleles {
                 // Retrieve the current record
                 SAMRecord record = primarySamRecordIterator.next();
                 primaryReadNameCache.add(record.getReadName());
-                IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, "PrimaryBamFile");
+                IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
                 evaluateIpcrRecord(curIpcrRecord, "PrimaryBamFile", sampleIdx);
 
                 i++;
@@ -128,9 +135,9 @@ public class AssignVariantAlleles {
                                 0,
                                 curVariant,
                                 record,
-                                variantType), "ReadInPrimaryBam");
+                                variantType), "SecondaryBamFile\tReadInPrimaryBam");
                     } else {
-                        IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, "SecondaryBamFile");
+                        IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "SecondaryBamFile");
                         evaluateIpcrRecord(curIpcrRecord, "SecondaryBamFile", sampleIdx);
                     }
                     i++;
@@ -154,6 +161,7 @@ public class AssignVariantAlleles {
         // TODO: refactor to filter pattern so filters can be provided at runtime
         // TODO: refactor/fix the ugly reason stuff
         if (curIpcrRecord != null) {
+            curIpcrRecord.setSampleId(params.getSampleGenotypeId());
             // Check if the read is a artifical haplotype
             if (!curIpcrRecord.getRecord().getReadName().matches("^HC[0-9]*")) {
                 // Check if the read has been marked as a duplicate alignment
@@ -208,11 +216,10 @@ public class AssignVariantAlleles {
     }
 
 
-    private IpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant, String source) throws IOException {
+    private IpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
         // TODO: implement option maxDistToReadEnd, to only assign reads where the base is x bases in
         // TODO: implement option minBaseQualScore, to only assign a allele if the quality of that base is sufficient
         // TODO: although functional, clean up the code to make it more readable
-        // TODO: implement option to utilize the sample genotype HOM_REF, HET, HOM_ALT to remove reads which do not support the call when assigning per sample
 
         String referenceAllele = curVariant.getRefAllele().getAlleleAsString();
         String alternativeAllele = String.join("", curVariant.getAlternativeAlleles().getAllelesAsString());
@@ -232,6 +239,17 @@ public class AssignVariantAlleles {
         boolean discarded = false;
         String tmpReadAllele1;
         String tmpReadAllele2;
+
+        String expectedAlleleBasedOnSampleGenotype = null;
+        if (sampleIdx >= 0) {
+            int sampleDosage = curVariant.getSampleCalledDosages()[sampleIdx];
+
+            if (sampleDosage == 2) {
+                expectedAlleleBasedOnSampleGenotype = curVariant.getVariantAlleles().getAllelesAsString().get(0);
+            } else if (sampleDosage == 0) {
+                expectedAlleleBasedOnSampleGenotype = curVariant.getVariantAlleles().getAllelesAsString().get(1);
+            }
+        }
 
         switch (variantType) {
             case SNP:
@@ -268,7 +286,11 @@ public class AssignVariantAlleles {
                 }
                 tmpReadAllele2 = read.substring(variantPosInRead, insertEnd);
 
-                if (tmpReadAllele1.equals(referenceAllele) && !tmpReadAllele2.equals(alternativeAllele)) {
+                // TODO: verify
+                if (tmpReadAllele1.equals(expectedAlleleBasedOnSampleGenotype)) {
+                    readAllele = tmpReadAllele1;
+                    break;
+                } else if (tmpReadAllele1.equals(referenceAllele) && !tmpReadAllele2.equals(alternativeAllele)) {
                     readAllele = tmpReadAllele1;
                     break;
                 } else if (tmpReadAllele2.equals(alternativeAllele)) {
@@ -293,8 +315,11 @@ public class AssignVariantAlleles {
                 }
                 tmpReadAllele1 = read.substring(variantPosInRead, deletionEnd);
                 tmpReadAllele2 = Character.toString(read.charAt(variantPosInRead));
-
-                if (tmpReadAllele1.equals(referenceAllele)) {
+                // TODO: verify
+                if (tmpReadAllele2.equals(expectedAlleleBasedOnSampleGenotype)) {
+                    readAllele = tmpReadAllele2;
+                    break;
+                } else if (tmpReadAllele1.equals(referenceAllele)) {
                     readAllele = tmpReadAllele1;
                     break;
                 } else if (tmpReadAllele2.equals(alternativeAllele)) {
