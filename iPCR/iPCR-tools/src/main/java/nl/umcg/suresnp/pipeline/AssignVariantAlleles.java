@@ -15,7 +15,6 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.VariantType;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
-import org.molgenis.genotype.Alleles;
 import org.molgenis.genotype.RandomAccessGenotypeData;
 import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
 import org.molgenis.genotype.variant.GeneticVariant;

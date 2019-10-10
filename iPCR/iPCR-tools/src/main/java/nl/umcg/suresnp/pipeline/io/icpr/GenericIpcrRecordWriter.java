@@ -19,7 +19,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
         }
 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
@@ -28,11 +28,19 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeRecord(IpcrRecord record) throws IOException {
+        // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
         writer.write(record.getRecord().getReadName());
         writer.write(sep);
+        writer.write(record.getRecord().getContig());
+        writer.write(sep);
+        writer.write(Integer.toString(record.getRecord().getAlignmentStart()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getRecord().getAlignmentEnd()));
 
+        // Variant info
+        writer.write(sep);
         if (record.getGeneticVariant().getPrimaryVariantId() == null) {
             writer.write(record.getGeneticVariant().getSequenceName()
                     + ":" + record.getGeneticVariant().getStartPos()
@@ -45,6 +53,11 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write(record.getVariantType().toString());
         writer.write(sep);
+        writer.write(Integer.toString(record.getGeneticVariant().getStartPos()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getVariantStartInRead()));
+        writer.write(sep);
+
         // Ref allele
         writer.write(record.getGeneticVariant().getRefAllele().getAlleleAsString());
         List<String> alleles = record.getGeneticVariant().getVariantAlleles().getAllelesAsString();
@@ -93,9 +106,19 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write("readName");
         writer.write(sep);
+        writer.write("sequence");
+        writer.write(sep);
+        writer.write("alignmentStart");
+        writer.write(sep);
+        writer.write("alignmentEnd");
+        writer.write(sep);
         writer.write("variantId");
         writer.write(sep);
         writer.write("variantType");
+        writer.write(sep);
+        writer.write("variantStart");
+        writer.write(sep);
+        writer.write("variantStartInRead");
         writer.write(sep);
         writer.write("refAllele");
         writer.write(sep);

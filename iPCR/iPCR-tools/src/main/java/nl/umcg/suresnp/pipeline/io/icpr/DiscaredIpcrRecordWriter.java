@@ -20,7 +20,7 @@ public class DiscaredIpcrRecordWriter implements IpcrOutputWriter{
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
         }
 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));

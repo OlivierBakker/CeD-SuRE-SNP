@@ -19,7 +19,7 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
 
     // TODO: cleanup duplicated code
     public GenericBarcodeFileReader(String outputPrefix) throws IOException {
-        this. writer = new BufferedWriter(new FileWriter(outputPrefix + ".discarded.barcodes.txt"));
+        this.writer = new BufferedWriter(new FileWriter(outputPrefix + ".discarded.barcodes.txt"));
         this.outputPrefix = outputPrefix;
     }
 
