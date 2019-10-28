@@ -67,6 +67,11 @@ public class BarebonesBarcodeFileReader implements BarcodeFileReader {
         return readBarcodeFileAsStringMap(file);
     }
 
+    @Override
+    public Map<String, Integer> readBarcodeCountFile(File file) throws IOException {
+        return null;
+    }
+
 
     @Override
     public void close() throws IOException {

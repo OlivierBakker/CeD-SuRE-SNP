@@ -1,17 +1,16 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecordWithMate;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
 
 import java.io.IOException;
 
-public class GenericIpcrRecordStdoutWriter implements IpcrOutputWriter {
+public class GenericIpcrRecordStdoutWriter implements AlleleSpecificIpcrOutputWriter {
 
     public GenericIpcrRecordStdoutWriter() {
     }
 
     @Override
-    public void writeRecord(IpcrRecord record) throws IOException {
+    public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
 
         System.out.println(record.getBarcode() + "\t"
                 + record.getRecord().getReadName() + "\t"
@@ -19,7 +18,7 @@ public class GenericIpcrRecordStdoutWriter implements IpcrOutputWriter {
     }
 
     @Override
-    public void writeRecord(IpcrRecord record, String reason) throws IOException {
+    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
 
         writeRecord(record);
     }

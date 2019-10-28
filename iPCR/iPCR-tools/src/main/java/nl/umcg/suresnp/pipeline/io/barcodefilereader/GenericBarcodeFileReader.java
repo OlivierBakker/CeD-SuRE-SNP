@@ -170,4 +170,27 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
 
     }
 
+    @Override
+    public Map<String, Integer> readBarcodeCountFile(File inputBarcodes) throws IOException {
+        // Open a new CSV reader
+        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new FileInputStream(inputBarcodes))), "\t");
+        Map<String, Integer> readBarcodePairs = new HashMap<>();
+        String[] line;
+        int i = 0;
+
+        while ((line = reader.readNext(false)) != null) {
+            // Logging progress
+            if (i > 0){if(i % 1000000 == 0){LOGGER.info("Read " + i / 1000000 + " million records");}}
+            i++;
+
+            if (line.length != 2) {
+                continue;
+            } else {
+                readBarcodePairs.put(line[0], Integer.parseInt(line[1]));
+            }
+        }
+        reader.close();
+
+        return readBarcodePairs;
+    }
 }

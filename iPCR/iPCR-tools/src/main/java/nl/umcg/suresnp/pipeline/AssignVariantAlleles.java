@@ -9,9 +9,9 @@ import nl.umcg.suresnp.pipeline.io.*;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.BarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.icpr.DiscaredIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.VariantType;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
@@ -27,7 +27,7 @@ import static nl.umcg.suresnp.pipeline.ipcrrecords.VariantType.INSERTION;
 public class AssignVariantAlleles {
 
     private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
-    private IpcrOutputWriter ipcrOutputWriter;
+    private AlleleSpecificIpcrOutputWriter alleleSpecificIpcrOutputWriter;
     private DiscaredIpcrRecordWriter discaredOutputWriter;
     private BarcodeFileReader barcodeFileReader;
     private AssignVariantAllelesParameters params;
@@ -37,13 +37,12 @@ public class AssignVariantAlleles {
 
         this.barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
         //this.ipcrOutputWriter = new GenericIpcrRecordWriter(new File(params.getOutputPrefix() + ".ipcr"), false);
-        this.ipcrOutputWriter = params.getOutputWriter();
+        this.alleleSpecificIpcrOutputWriter = params.getOutputWriter();
         this.discaredOutputWriter = new DiscaredIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
         this.params = params;
     }
 
     public void run() throws IOException, IpcrParseException {
-
 
         LOGGER.warn("Currently assigns any read in BAM file if possible, does not do filtering of alignment quality" +
                 ",duplicates etc. so make sure you filter your BAM beforehand if needed.");
@@ -75,7 +74,7 @@ public class AssignVariantAlleles {
         }
 
         discaredOutputWriter.writeHeader("source\treason");
-        ipcrOutputWriter.writeHeader("source");
+        alleleSpecificIpcrOutputWriter.writeHeader("source");
 
         int sampleIdx = -9;
         if (params.getSampleGenotypeId() != null) {
@@ -114,8 +113,8 @@ public class AssignVariantAlleles {
                 // Retrieve the current record
                 SAMRecord record = primarySamRecordIterator.next();
                 primaryReadNameCache.add(record.getReadName());
-                IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
-                evaluateIpcrRecord(curIpcrRecord, "PrimaryBamFile", sampleIdx);
+                AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
+                evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "PrimaryBamFile", sampleIdx);
 
                 i++;
             }
@@ -128,7 +127,7 @@ public class AssignVariantAlleles {
                     SAMRecord record = secondarySamRecordIterator.next();
 
                     if (primaryReadNameCache.contains(record.getReadName())) {
-                        discaredOutputWriter.writeRecord(new IpcrRecord(null,
+                        discaredOutputWriter.writeRecord(new AlleleSpecificIpcrRecord(null,
                                 null,
                                 null,
                                 0,
@@ -136,8 +135,8 @@ public class AssignVariantAlleles {
                                 record,
                                 variantType), "SecondaryBamFile\tReadInPrimaryBam");
                     } else {
-                        IpcrRecord curIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "SecondaryBamFile");
-                        evaluateIpcrRecord(curIpcrRecord, "SecondaryBamFile", sampleIdx);
+                        AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "SecondaryBamFile");
+                        evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "SecondaryBamFile", sampleIdx);
                     }
                     i++;
                 }
@@ -146,7 +145,7 @@ public class AssignVariantAlleles {
         }
 
         // Close file streams
-        ipcrOutputWriter.flushAndClose();
+        alleleSpecificIpcrOutputWriter.flushAndClose();
         discaredOutputWriter.flushAndClose();
 
         genotypeData.close();
@@ -155,27 +154,27 @@ public class AssignVariantAlleles {
         LOGGER.info("Done");
     }
 
-    private boolean evaluateIpcrRecord(IpcrRecord curIpcrRecord, String source, int sampleIdx) throws IOException {
+    private boolean evaluateIpcrRecord(AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord, String source, int sampleIdx) throws IOException {
 
         // TODO: refactor to filter pattern so filters can be provided at runtime
         // TODO: refactor/fix the ugly reason stuff
-        if (curIpcrRecord != null) {
-            curIpcrRecord.setSampleId(params.getSampleGenotypeId());
+        if (curAlleleSpecificIpcrRecord != null) {
+            curAlleleSpecificIpcrRecord.setSampleId(params.getSampleGenotypeId());
             // Check if the read is a artifical haplotype
-            if (!curIpcrRecord.getRecord().getReadName().matches("^HC[0-9]*")) {
+            if (!curAlleleSpecificIpcrRecord.getRecord().getReadName().matches("^HC[0-9]*")) {
                 // Check if the read has been marked as a duplicate alignment
-                if (!curIpcrRecord.getRecord().getDuplicateReadFlag()) {
+                if (!curAlleleSpecificIpcrRecord.getRecord().getDuplicateReadFlag()) {
                     // Get the barcode for the read
-                    String curBarcode = barcodeReadMap.get(curIpcrRecord.getRecord().getReadName());
+                    String curBarcode = barcodeReadMap.get(curAlleleSpecificIpcrRecord.getRecord().getReadName());
                     // Check if the read has a barcode
                     if (curBarcode == null) {
-                        discaredOutputWriter.writeRecord(curIpcrRecord, source + "\tBarcodeNotAvail");
+                        discaredOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source + "\tBarcodeNotAvail");
                     } else {
-                        curIpcrRecord.setBarcode(curBarcode);
+                        curAlleleSpecificIpcrRecord.setBarcode(curBarcode);
                         // If the sample index is provided, use it to match the read alleles to the samples genotype
                         if (sampleIdx >= 0) {
-                            int curGenotype = curIpcrRecord.getGeneticVariant().getSampleCalledDosages()[sampleIdx];
-                            List<String> alleles = curIpcrRecord.getGeneticVariant().getVariantAlleles().getAllelesAsString();
+                            int curGenotype = curAlleleSpecificIpcrRecord.getGeneticVariant().getSampleCalledDosages()[sampleIdx];
+                            List<String> alleles = curAlleleSpecificIpcrRecord.getGeneticVariant().getVariantAlleles().getAllelesAsString();
                             String allele;
                             // When the genotype is HOM_REF or HOM_ALT only allow those alleles in the read, otherwise discard
                             // If HET allow any of the 2 alleles
@@ -187,27 +186,27 @@ public class AssignVariantAlleles {
                             } else if (curGenotype == 2) {
                                 allele = alleles.get(0);
                             } else {
-                                ipcrOutputWriter.writeRecord(curIpcrRecord, source);
+                                alleleSpecificIpcrOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source);
                                 return true;
                             }
-                            if (curIpcrRecord.getReadAllele().equals(allele)) {
-                                ipcrOutputWriter.writeRecord(curIpcrRecord, source);
+                            if (curAlleleSpecificIpcrRecord.getReadAllele().equals(allele)) {
+                                alleleSpecificIpcrOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source);
                                 return true;
                             } else {
-                                discaredOutputWriter.writeRecord(curIpcrRecord, source + "\tReadAlleleMismatchesGenotype:" + curGenotype);
+                                discaredOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source + "\tReadAlleleMismatchesGenotype:" + curGenotype);
                                 return false;
                             }
 
                         } else {
-                            ipcrOutputWriter.writeRecord(curIpcrRecord, source);
+                            alleleSpecificIpcrOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source);
                             return true;
                         }
                     }
                 } else {
-                    discaredOutputWriter.writeRecord(curIpcrRecord, source + "\tReadMarkedAsDuplicate");
+                    discaredOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source + "\tReadMarkedAsDuplicate");
                 }
             } else {
-                discaredOutputWriter.writeRecord(curIpcrRecord, source + "\tArtificialHaplotype");
+                discaredOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source + "\tArtificialHaplotype");
             }
         }
 
@@ -215,7 +214,7 @@ public class AssignVariantAlleles {
     }
 
 
-    private IpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
+    private AlleleSpecificIpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
         // TODO: implement option maxDistToReadEnd, to only assign reads where the base is x bases in
         // TODO: implement option minBaseQualScore, to only assign a allele if the quality of that base is sufficient
         // TODO: although functional, clean up the code to make it more readable
@@ -336,7 +335,7 @@ public class AssignVariantAlleles {
                 discarded = true;
         }
 
-        IpcrRecord outputRecord = new IpcrRecord(null, readAllele, altReadAllele, variantPosInRead, curVariant, samRecord, variantType);
+        AlleleSpecificIpcrRecord outputRecord = new AlleleSpecificIpcrRecord(null, readAllele, altReadAllele, variantPosInRead, curVariant, samRecord, variantType);
 
         if (discarded) {
             discaredOutputWriter.writeRecord(outputRecord, source + "\t" + reason);

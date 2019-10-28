@@ -1,34 +1,42 @@
 package nl.umcg.suresnp.pipeline;
 
 import htsjdk.samtools.*;
+import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
+import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
+import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.lang.System.exit;
-import static nl.umcg.suresnp.pipeline.io.icpr.IpcrFileReader.getPerc;
 
-public class MergeBamWithBarcodes {
+public class MergeBamWithBarcodeCounts {
 
-    private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
+    private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodeCounts.class);
+    private MergeBamWithBarcodeCountsParameters params;
 
-    @Deprecated
-    public static void run(GenerateBarcodeComplexityCurveParameters params, IpcrOutputWriter outputWriter) {
+    public MergeBamWithBarcodeCounts(MergeBamWithBarcodeCountsParameters params) {
+        this.params = params;
+    }
+
+    public void run() {
 
         try {
-
-            CommandLine cmd = params.getCmd();
+            // Quick and dirty implementation to merge alignment data with barcode counts.
             // Define the input files
-            File inputBamFile = new File(cmd.getOptionValue("i").trim());
-            File inputBarcodeFile = new File(cmd.getOptionValue("b").trim());
-
-            // Read and parse the barcode file
-            Map<String, String> readBarcodePairs = readBarcodeInfoFile(inputBarcodeFile);
+            File inputBamFile = new File(params.getInputBam());
 
             // Open the SAM reader
             SamReader samReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(inputBamFile);
@@ -44,6 +52,23 @@ public class MergeBamWithBarcodes {
                 exit(1);
             }
 
+            IpcrOutputWriter outputWriter = params.getOutputWriter();
+            outputWriter.writeHeader();
+
+            GenericFile inputBarcodeFile = new GenericFile(params.getInputBarcodes());
+            File inputBarcodeCountFile = new File(params.getInputBarcodeCounts());
+
+            // Read and parse the barcode file
+            GenericBarcodeFileReader barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
+
+            // Read barcode data
+            List<InfoRecordFilter> filters = new ArrayList<>();
+            filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
+            filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
+
+            Map<String, String> readBarcodePairs = barcodeFileReader.readBarcodeFileAsStringMap(inputBarcodeFile, filters);
+            Map<String, Integer> readBarcodeCounts = barcodeFileReader.readBarcodeCountFile(inputBarcodeCountFile);
+            barcodeFileReader.close();
 
             // Init variables for logging some statistics
             int filterFailCount = 0;
@@ -74,6 +99,7 @@ public class MergeBamWithBarcodes {
                             cachedSamRecord = null;
                             continue;
                         }
+
                         cachedSamRecord = record;
                         continue;
                     }
@@ -94,7 +120,18 @@ public class MergeBamWithBarcodes {
                     SAMRecord mate = record;
                     // If the current record is the mate of the previous write to the outputWriter
                     if (mate.getReadName().equals(cachedSamRecord.getReadName())) {
-                       // outputWriter.writeRecord(new IpcrRecordWithMate(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord, mate));
+
+                        String barcode = readBarcodePairs.get(cachedSamRecord.getReadName());
+
+                        //Needs to be a loop to accept multiple files
+                        int barcodeCount = readBarcodeCounts.get(barcode);
+
+
+
+                        IpcrRecord curIcprRecord = new IpcrRecord(barcode, barcodeCount, cachedSamRecord, mate);
+
+                        outputWriter.writeRecord(curIcprRecord);
+
                         cachedSamRecord = null;
                     } else {
                         LOGGER.warn("Altough flagged as valid read pair, the read id's do not match. This should not happen unless the flags in the BAM are wrong.");
@@ -119,45 +156,10 @@ public class MergeBamWithBarcodes {
 
     }
 
-    private static Map<String, String> readBarcodeInfoFile(File inputBarcodes) throws IOException {
-        // Open a new CSV reader
-        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new FileInputStream(inputBarcodes))), "\t");
-        Map<String, String> readBarcodePairs = new HashMap<>();
 
-        String[] line;
-        int i = 0;
-        int barcodeLengthPassCount = 0;
-        int invalidLineLengthCount = 0;
-
-        while ((line = reader.readNext(false)) != null) {
-            // Logging progress
-            if (i > 0){if(i % 1000000 == 0){LOGGER.info("Read " + i / 1000000 + " million records");}}
-            i++;
-
-            if (line.length != 11) {
-                invalidLineLengthCount ++;
-                continue;
-            } else {
-                if (Integer.parseInt(line[2]) == 20) {
-                    barcodeLengthPassCount ++;
-                    String readId = line[0].split("\\s")[0];
-                    String barcode = line[4];
-
-                    readBarcodePairs.put(readId, barcode);
-                }
-            }
-        }
-        reader.close();
-
-        // Log some info
-        int bcLengthFilterCount = (i - invalidLineLengthCount) - barcodeLengthPassCount;
-        LOGGER.info("Processed " + i + " barcode records");
-        LOGGER.info("Read " + barcodeLengthPassCount + " (" + getPerc(barcodeLengthPassCount, i) +"%) valid barcode read pairs");
-        LOGGER.info("Read " + readBarcodePairs.size() + " (" + getPerc(readBarcodePairs.size(), i) +"%) unique barcode read pairs");
-        LOGGER.info(bcLengthFilterCount + " (" + getPerc(bcLengthFilterCount, i) +"%) barcodes where invalid due to barcode lengths != 20");
-        LOGGER.info(invalidLineLengthCount + " (" + getPerc(invalidLineLengthCount, i) +"%) lines in the input had the incorrect length. This can happen with cutadapt");
-
-        return readBarcodePairs;
+    public static int getPerc(int a, int b) {
+        float p = ((float)a / (float)b) *100;
+        return Math.round(p);
     }
 
 }

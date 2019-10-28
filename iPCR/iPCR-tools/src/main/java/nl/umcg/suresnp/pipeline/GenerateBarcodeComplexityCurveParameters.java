@@ -1,8 +1,8 @@
 package nl.umcg.suresnp.pipeline;
 
 import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordStdoutWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -28,7 +28,7 @@ public class GenerateBarcodeComplexityCurveParameters {
     private String outputSuffix;
 
     private boolean isStdoutput;
-    private IpcrOutputWriter outputWriter;
+    private AlleleSpecificIpcrOutputWriter outputWriter;
 
     // General arguments
     private String toolType;
@@ -144,7 +144,7 @@ public class GenerateBarcodeComplexityCurveParameters {
                 outputSuffix = ".gz";
             }
 
-            outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+            outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
         }
 
         // Hardcoded arguments for testing
@@ -202,7 +202,7 @@ public class GenerateBarcodeComplexityCurveParameters {
         return OPTIONS;
     }
 
-    public IpcrOutputWriter getOutputWriter() {
+    public AlleleSpecificIpcrOutputWriter getOutputWriter() {
         return outputWriter;
     }
 

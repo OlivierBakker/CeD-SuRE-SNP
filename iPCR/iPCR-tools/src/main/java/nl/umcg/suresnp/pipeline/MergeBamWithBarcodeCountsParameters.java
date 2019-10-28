@@ -1,8 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordStdoutWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.*;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -12,15 +10,16 @@ import java.io.IOException;
 
 import static java.lang.System.exit;
 
-public class AssignVariantAllelesParameters {
 
-    private final Logger LOGGER = Logger.getLogger(GenerateBarcodeComplexityCurveParameters.class);
+public class MergeBamWithBarcodeCountsParameters {
+
+    private final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodeCountsParameters.class);
     private final CommandLine cmd;
 
     // IO arguments
     private String inputBam;
     private String inputBarcodes;
-    private String inputVcf;
+    private String inputBarcodeCounts;
     private String secondaryInputBam;
 
     private String outputPrefix;
@@ -28,7 +27,7 @@ public class AssignVariantAllelesParameters {
 
     private boolean isStdoutput;
     private boolean isReduced;
-    private AlleleSpecificIpcrOutputWriter outputWriter;
+    private IpcrOutputWriter outputWriter;
 
     // General arguments
     private String toolType;
@@ -36,8 +35,6 @@ public class AssignVariantAllelesParameters {
     // Tool specific arguments
     private int barcodeLength;
     private int adapterMaxMismatch;
-    private String sampleGenotypeId;
-
 
     private static final Options OPTIONS;
 
@@ -69,7 +66,6 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-
         option = Option.builder("j")
                 .longOpt("secondary-input-bam")
                 .hasArg(true)
@@ -80,27 +76,18 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("g")
-                .longOpt("input-genotype")
-                .hasArg(true)
-                .desc("Currently only supports VCF")
-                .build();
-        OPTIONS.addOption(option);
-
-        option = Option.builder("v")
-                .longOpt("use-sample-genotype")
-                .hasArg(true)
-                .desc("The sample identifier to use to check the read alleles. If the call is HOM_REF only alleles " +
-                        "that match the reference will be assigned. If the call is HOM_ALT only reads matching the " +
-                        "alt allele will be assigned. Mismatching reads will be written to <prefix>.discarded.reads.txt")
-                .build();
-        OPTIONS.addOption(option);
-
-
         option = Option.builder("b")
                 .longOpt("barcode-info")
                 .hasArg(true)
                 .desc("The file containing read names and barcodes")
+                .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("n")
+                .longOpt("barcode-counts")
+                .hasArg(true)
+                .desc("RNAseq based barcode counts")
                 .argName("path/to/file")
                 .build();
         OPTIONS.addOption(option);
@@ -113,29 +100,27 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("s")
+     /*   option = Option.builder("s")
                 .longOpt("stdout")
                 .desc("Pipe output to stdout instead of to a file. Will omit logging of warnings, info and debug.")
                 .build();
-        OPTIONS.addOption(option);
+        OPTIONS.addOption(option);*/
 
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
                 .build();
         OPTIONS.addOption(option);
-
+/*
         option = Option.builder("r")
                 .longOpt("reduced")
                 .desc("Print reduced output (without the sequences, cigars and variant info. " +
                         "Variant info is written to a separate file. Can be used to save space when using a large library)")
                 .build();
-        OPTIONS.addOption(option);
-
+        OPTIONS.addOption(option);*/
     }
 
-
-    public AssignVariantAllelesParameters(String[] args) throws ParseException, IOException {
+    public MergeBamWithBarcodeCountsParameters(String[] args) throws ParseException, IOException {
 
         CommandLineParser parser = new DefaultParser();
         cmd = parser.parse(AssignVariantAllelesParameters.getOptions(), args);
@@ -148,9 +133,10 @@ public class AssignVariantAllelesParameters {
 
         // Input files
         inputBam = cmd.getOptionValue("i").trim();
-        inputVcf = cmd.getOptionValue("g").trim();
         inputBarcodes = cmd.getOptionValue('b').trim();
-        toolType = "AssignVariantAlleles";
+        inputBarcodeCounts = cmd.getOptionValue('b').trim();
+
+        toolType = "MergeBamWithBarcodeCounts";
 
         if (cmd.hasOption("j")) {
             secondaryInputBam = cmd.getOptionValue("j").trim();
@@ -165,15 +151,14 @@ public class AssignVariantAllelesParameters {
 
         if (cmd.hasOption("s")) {
             // When writing to stdout do not use log4j unless there is an error
-            outputWriter = new GenericIpcrRecordStdoutWriter();
-
-            Logger.getRootLogger().setLevel(Level.ERROR);
-
+            //outputWriter = new GenericIpcrRecordStdoutWriter();
+            //Logger.getRootLogger().setLevel(Level.ERROR);
+            LOGGER.error("Not yet implemented");
         } else {
             // When writing to a file check if the correct options are specified
             if (!cmd.hasOption("o")) {
                 LOGGER.error("-o not specified");
-                GenerateBarcodeComplexityCurveParameters.printHelp();
+                MergeBamWithBarcodeCountsParameters.printHelp();
                 exit(1);
             }
 
@@ -184,7 +169,7 @@ public class AssignVariantAllelesParameters {
                 outputSuffix = ".gz";
             }
 
-            outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+            outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
         }
 
 
@@ -192,43 +177,26 @@ public class AssignVariantAllelesParameters {
         barcodeLength = 20;
         adapterMaxMismatch = 3;
 
-        if (cmd.hasOption("v")) {
-            sampleGenotypeId = cmd.getOptionValue('v').trim();
-        }
-
-    }
-
-
-    public String getSampleGenotypeId() {
-        return sampleGenotypeId;
-    }
-
-    public boolean hasSecondaryInputBam() {
-        return secondaryInputBam != null;
-    }
-
-    public String getSecondaryInputBam() {
-        return secondaryInputBam;
-    }
-
-    public int getAdapterMaxMismatch() {
-        return adapterMaxMismatch;
-    }
-
-    public int getBarcodeLength() {
-        return barcodeLength;
-    }
-
-    public String getInputBam() {
-        return inputBam;
     }
 
     public CommandLine getCmd() {
         return cmd;
     }
 
+    public String getInputBam() {
+        return inputBam;
+    }
+
     public String getInputBarcodes() {
         return inputBarcodes;
+    }
+
+    public String getInputBarcodeCounts() {
+        return inputBarcodeCounts;
+    }
+
+    public String getSecondaryInputBam() {
+        return secondaryInputBam;
     }
 
     public String getOutputPrefix() {
@@ -239,10 +207,6 @@ public class AssignVariantAllelesParameters {
         return outputSuffix;
     }
 
-    public String getInputVcf() {
-        return inputVcf;
-    }
-
     public boolean isStdoutput() {
         return isStdoutput;
     }
@@ -251,12 +215,20 @@ public class AssignVariantAllelesParameters {
         return isReduced;
     }
 
-    public static Options getOPTIONS() {
-        return OPTIONS;
+    public IpcrOutputWriter getOutputWriter() {
+        return outputWriter;
     }
 
-    public AlleleSpecificIpcrOutputWriter getOutputWriter() {
-        return outputWriter;
+    public int getBarcodeLength() {
+        return barcodeLength;
+    }
+
+    public int getAdapterMaxMismatch() {
+        return adapterMaxMismatch;
+    }
+
+    public static Options getOPTIONS() {
+        return OPTIONS;
     }
 
     public String getToolType() {
@@ -272,5 +244,4 @@ public class AssignVariantAllelesParameters {
         formatter.setWidth(999);
         formatter.printHelp(" ", OPTIONS);
     }
-
 }

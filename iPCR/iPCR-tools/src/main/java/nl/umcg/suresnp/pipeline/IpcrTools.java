@@ -30,6 +30,10 @@ public class IpcrTools {
                     GenerateBarcodeComplexityCurve generateBarcodeComplexityCurve = new GenerateBarcodeComplexityCurve(barcodeCurveParams);
                     generateBarcodeComplexityCurve.run();
                     break;
+                case "MergeBamWithBarcodeCounts":
+                    MergeBamWithBarcodeCountsParameters barcodeCountParams = new MergeBamWithBarcodeCountsParameters(args);
+                    MergeBamWithBarcodeCounts mergeBamWithBarcodeCounts = new MergeBamWithBarcodeCounts(barcodeCountParams);
+                    mergeBamWithBarcodeCounts.run();
             }
 
         } catch (UnrecognizedOptionException e) {

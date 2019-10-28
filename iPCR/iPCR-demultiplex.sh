@@ -4,28 +4,27 @@
 #SABTCH --nodes=1
 #SBATCH --ntasks=1
 
-
 # Loading required software
 ml pigz
 ml Python/3.6.3-foss-2015b
 
-
 #-------------------------------------------------------------------------------#
 #                            Script global Settings                             #
 #-------------------------------------------------------------------------------#
-SCRIPTNAME=iPCR-trim.sh
-VERSION=0.0.2
+SCRIPTNAME=iPCR-demultiplex.sh
+VERSION=0.0.1
 
 # Tools
-GAWK=gawk
 CUTADAPT=~/.local/bin/cutadapt
 
 # IO variable defaults (for testing)
 OUTDIR=./output
+# Basename for output
 BASENAME="SuRE53"
+# Fasta formatted CutAdapt compatible wildcards for sample indeces
 SAMP_IDX="sample_indexes.fasta"
+# Input prefix for fastq files
 INPUT_PREFIX=$1
-
 READS_FORW="${INPUT_PREFIX}_1.fq.gz"
 READS_REV="${INPUT_PREFIX}_2.fq.gz"
 
@@ -40,7 +39,6 @@ starttime=$(date +%s)
 #-------------------------------------------------------------------------------#
 #                              Main program loop                                #
 #-------------------------------------------------------------------------------#
-
 # Demultiplex in paired end mode 
 echo "[INFO - $(date '+%Y-%m-%d %H:%M:%S')] Demultiplexing on exact matches"
 

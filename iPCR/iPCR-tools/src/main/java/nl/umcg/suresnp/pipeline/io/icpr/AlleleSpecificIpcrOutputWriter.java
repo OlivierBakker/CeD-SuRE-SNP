@@ -2,14 +2,13 @@ package nl.umcg.suresnp.pipeline.io.icpr;
 
 
 import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.IOException;
 
-public interface IpcrOutputWriter {
+public interface AlleleSpecificIpcrOutputWriter {
 
-    void writeRecord(IpcrRecord record) throws IOException;
-    void writeRecord(IpcrRecord record, String reason) throws IOException;
+    void writeRecord(AlleleSpecificIpcrRecord record) throws IOException;
+    void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException;
     void writeHeader() throws IOException;
     void writeHeader(String reason) throws IOException;
     void flushAndClose() throws IOException;

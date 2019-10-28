@@ -6,13 +6,13 @@ import java.io.*;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
-public class DiscaredIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter {
-    private OutputStream outputStream;
-    private BufferedWriter writer;
+public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter {
+
+    protected OutputStream outputStream;
+    protected BufferedWriter writer;
     private final String sep = "\t";
 
-
-    public DiscaredIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
+    public AlleleSpecificIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
 
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
@@ -23,21 +23,22 @@ public class DiscaredIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
+
     @Override
     public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
-        writeRecord(record, "");
-    }
-
-    @Override
-    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
-        if (reason.length() > 1) {
-            writer.write(reason);
-            writer.write(sep);
-        }
-
+        // Alignment info
+        writer.write(record.getBarcode());
+        writer.write(sep);
         writer.write(record.getRecord().getReadName());
         writer.write(sep);
+        writer.write(record.getRecord().getContig());
+        writer.write(sep);
+        writer.write(Integer.toString(record.getRecord().getAlignmentStart()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getRecord().getAlignmentEnd()));
 
+        // Variant info
+        writer.write(sep);
         if (record.getGeneticVariant().getPrimaryVariantId() == null) {
             writer.write(record.getGeneticVariant().getSequenceName()
                     + ":" + record.getGeneticVariant().getStartPos()
@@ -50,6 +51,11 @@ public class DiscaredIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter 
         writer.write(sep);
         writer.write(record.getVariantType().toString());
         writer.write(sep);
+        writer.write(Integer.toString(record.getGeneticVariant().getStartPos()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getVariantStartInRead()));
+        writer.write(sep);
+
         // Ref allele
         writer.write(record.getGeneticVariant().getRefAllele().getAlleleAsString());
         List<String> alleles = record.getGeneticVariant().getVariantAlleles().getAllelesAsString();
@@ -67,18 +73,6 @@ public class DiscaredIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter 
             writer.write(record.getReadAllele());
         }
         writer.write(sep);
-
-
-
-/*
-        if (record.getAlternativeAllele() == null) {
-            writer.write(".");
-        } else {
-            writer.write(record.getAlternativeAllele());
-        }
-*/
-
-        writer.write(sep);
         writer.write(record.getRecord().getCigarString());
         writer.write(sep);
         if (record.getRecord().getReadNegativeStrandFlag()) {
@@ -93,17 +87,36 @@ public class DiscaredIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter 
         } else {
             writer.write(".");
         }
-        writer.newLine();
 
+        writer.newLine();
+    }
+
+    @Override
+    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
+        writer.write(reason);
+        writer.write(sep);
+        writeRecord(record);
     }
 
     @Override
     public void writeHeader() throws IOException {
+        writer.write("barcode");
+        writer.write(sep);
         writer.write("readName");
+        writer.write(sep);
+        writer.write("sequence");
+        writer.write(sep);
+        writer.write("alignmentStart");
+        writer.write(sep);
+        writer.write("alignmentEnd");
         writer.write(sep);
         writer.write("variantId");
         writer.write(sep);
         writer.write("variantType");
+        writer.write(sep);
+        writer.write("variantStart");
+        writer.write(sep);
+        writer.write("variantStartInRead");
         writer.write(sep);
         writer.write("refAllele");
         writer.write(sep);
@@ -129,12 +142,12 @@ public class DiscaredIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter 
         writeHeader();
 
     }
-
     @Override
     public void flushAndClose() throws IOException {
         writer.flush();
         writer.close();
         outputStream.close();
     }
+
 
 }

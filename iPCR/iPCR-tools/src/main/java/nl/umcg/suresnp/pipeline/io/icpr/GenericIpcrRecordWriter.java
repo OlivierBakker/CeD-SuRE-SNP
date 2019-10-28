@@ -1,8 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecordWithMate;
 
 import java.io.*;
 import java.util.List;
@@ -28,123 +27,50 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeRecord(IpcrRecord record) throws IOException {
-        // Alignment info
-        writer.write(record.getBarcode());
-        writer.write(sep);
-        writer.write(record.getRecord().getReadName());
-        writer.write(sep);
-        writer.write(record.getRecord().getContig());
-        writer.write(sep);
-        writer.write(Integer.toString(record.getRecord().getAlignmentStart()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getRecord().getAlignmentEnd()));
-
-        // Variant info
-        writer.write(sep);
-        if (record.getGeneticVariant().getPrimaryVariantId() == null) {
-            writer.write(record.getGeneticVariant().getSequenceName()
-                    + ":" + record.getGeneticVariant().getStartPos()
-                    + "," + record.getGeneticVariant().getRefAllele().toString()
-                    + "," + String.join("_", record.getGeneticVariant().getAlternativeAlleles().getAllelesAsString())
-            );
-        } else {
-            writer.write(record.getGeneticVariant().getPrimaryVariantId());
-        }
-        writer.write(sep);
-        writer.write(record.getVariantType().toString());
-        writer.write(sep);
-        writer.write(Integer.toString(record.getGeneticVariant().getStartPos()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getVariantStartInRead()));
-        writer.write(sep);
-
-        // Ref allele
-        writer.write(record.getGeneticVariant().getRefAllele().getAlleleAsString());
-        List<String> alleles = record.getGeneticVariant().getVariantAlleles().getAllelesAsString();
-        writer.write(sep);
-        // Effect allele (dosage 2)
-        writer.write(alleles.get(0));
-        writer.write(sep);
-        // Alt allele (dosage 0)
-        writer.write(alleles.get(1));
-        writer.write(sep);
-
-        if (record.getReadAllele() == null) {
-            writer.write(".");
-        } else {
-            writer.write(record.getReadAllele());
-        }
-        writer.write(sep);
-        writer.write(record.getRecord().getCigarString());
-        writer.write(sep);
-        if (record.getRecord().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
-
-        writer.write(sep);
-        if (record.getSampleId() != null) {
-            writer.write(record.getSampleId());
-        } else {
-            writer.write(".");
-        }
-
-        writer.newLine();
+        this.writeRecord(record, "");
     }
 
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
-        writer.write(reason);
-        writer.write(sep);
-        writeRecord(record);
+        // Alignment info
+        writer.write(record.getOutputString(sep));
+        writer.newLine();
     }
 
     @Override
     public void writeHeader() throws IOException {
-        writer.write("barcode");
-        writer.write(sep);
-        writer.write("readName");
-        writer.write(sep);
-        writer.write("sequence");
-        writer.write(sep);
-        writer.write("alignmentStart");
-        writer.write(sep);
-        writer.write("alignmentEnd");
-        writer.write(sep);
-        writer.write("variantId");
-        writer.write(sep);
-        writer.write("variantType");
-        writer.write(sep);
-        writer.write("variantStart");
-        writer.write(sep);
-        writer.write("variantStartInRead");
-        writer.write(sep);
-        writer.write("refAllele");
-        writer.write(sep);
-        writer.write("dosg2Allele");
-        writer.write(sep);
-        writer.write("dosg0Allele");
-        writer.write(sep);
-        writer.write("alleleInRead");
-        writer.write(sep);
-        writer.write("cigarString");
-        writer.write(sep);
-        writer.write("strand");
-        writer.write(sep);
-        writer.write("sampleId");
-        writer.newLine();
+        this.writeHeader("");
     }
 
 
     @Override
     public void writeHeader(String reason) throws IOException {
-        writer.write(reason);
+        writer.write("barcode");
         writer.write(sep);
-        writeHeader();
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
+        writer.write("barcode");
+        writer.write(sep);
 
+        writer.newLine();
     }
-    @Override
+
     public void flushAndClose() throws IOException {
         writer.flush();
         writer.close();
