@@ -33,7 +33,38 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
         // Alignment info
-        writer.write(record.getOutputString(sep));
+        writer.write(record.getBarcode());
+        writer.write(sep);
+        writer.write(record.getPrimarySamRecord().getReadName());
+        writer.write(sep);
+        writer.write(record.getPrimarySamRecord().getContig());
+        writer.write(sep);
+
+        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentEnd()));
+        writer.write(sep);
+
+        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentStart()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
+        writer.write(sep);
+
+        writer.write(Integer.toString(record.getPrimarySamRecord().getMappingQuality()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getPrimarySamRecordMate().getMappingQuality()));
+        writer.write(sep);
+
+        writer.write(record.getPrimarySamRecord().getCigarString());
+        writer.write(sep);
+        writer.write(record.getPrimarySamRecordMate().getCigarString());
+        writer.write(sep);
+
+        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
+            writer.write("-");
+        } else {
+            writer.write("+");
+        }
         writer.newLine();
     }
 
@@ -47,27 +78,27 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     public void writeHeader(String reason) throws IOException {
         writer.write("barcode");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readName");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("chromosome");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readOneStart");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readOneEnd");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readTwoStart");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readTwoEnd");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readOneMQ");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readTwoMQ");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readOneCigar");
         writer.write(sep);
-        writer.write("barcode");
+        writer.write("readTwoCigar");
         writer.write(sep);
-
+        writer.write("orientation");
         writer.newLine();
     }
 

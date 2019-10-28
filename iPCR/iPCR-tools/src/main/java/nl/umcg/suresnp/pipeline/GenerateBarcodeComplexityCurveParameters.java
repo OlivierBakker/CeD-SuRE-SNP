@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordStdoutWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.GenericAlleleSpecificIpcrRecordStdoutWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
 import org.apache.commons.cli.*;
@@ -125,7 +125,7 @@ public class GenerateBarcodeComplexityCurveParameters {
 
         if (cmd.hasOption("s")) {
             // When writing to stdout do not use log4j unless there is an error
-            outputWriter = new GenericIpcrRecordStdoutWriter();
+            outputWriter = new GenericAlleleSpecificIpcrRecordStdoutWriter();
 
             Logger.getRootLogger().setLevel(Level.ERROR);
 

@@ -29,13 +29,13 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
-        writer.write(record.getRecord().getReadName());
+        writer.write(record.getPrimarySamRecord().getReadName());
         writer.write(sep);
-        writer.write(record.getRecord().getContig());
+        writer.write(record.getPrimarySamRecord().getContig());
         writer.write(sep);
-        writer.write(Integer.toString(record.getRecord().getAlignmentStart()));
+        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getRecord().getAlignmentEnd()));
+        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentEnd()));
 
         // Variant info
         writer.write(sep);
@@ -73,9 +73,9 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
             writer.write(record.getReadAllele());
         }
         writer.write(sep);
-        writer.write(record.getRecord().getCigarString());
+        writer.write(record.getPrimarySamRecord().getCigarString());
         writer.write(sep);
-        if (record.getRecord().getReadNegativeStrandFlag()) {
+        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
             writer.write("-");
         } else {
             writer.write("+");

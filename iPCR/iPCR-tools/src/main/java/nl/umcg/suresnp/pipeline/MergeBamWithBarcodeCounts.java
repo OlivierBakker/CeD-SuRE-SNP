@@ -7,9 +7,7 @@ import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.*;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
@@ -26,9 +24,16 @@ public class MergeBamWithBarcodeCounts {
 
     private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodeCounts.class);
     private MergeBamWithBarcodeCountsParameters params;
+    private IpcrOutputWriter discardedOutputWriter;
+    private IpcrOutputWriter outputWriter;
+    private GenericBarcodeFileReader barcodeFileReader;
 
-    public MergeBamWithBarcodeCounts(MergeBamWithBarcodeCountsParameters params) {
+
+    public MergeBamWithBarcodeCounts(MergeBamWithBarcodeCountsParameters params) throws IOException {
         this.params = params;
+        this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
+        this.outputWriter = params.getOutputWriter();
+        this.barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
     }
 
     public void run() {
@@ -52,22 +57,19 @@ public class MergeBamWithBarcodeCounts {
                 exit(1);
             }
 
-            IpcrOutputWriter outputWriter = params.getOutputWriter();
             outputWriter.writeHeader();
-
-            GenericFile inputBarcodeFile = new GenericFile(params.getInputBarcodes());
-            File inputBarcodeCountFile = new File(params.getInputBarcodeCounts());
+            discardedOutputWriter.writeHeader("reason");
 
             // Read and parse the barcode file
-            GenericBarcodeFileReader barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
-
+            GenericFile inputBarcodeFile = new GenericFile(params.getInputBarcodes());
+            //File inputBarcodeCountFile = new File(params.getInputBarcodeCounts());
             // Read barcode data
             List<InfoRecordFilter> filters = new ArrayList<>();
             filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
             filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
-
             Map<String, String> readBarcodePairs = barcodeFileReader.readBarcodeFileAsStringMap(inputBarcodeFile, filters);
-            Map<String, Integer> readBarcodeCounts = barcodeFileReader.readBarcodeCountFile(inputBarcodeCountFile);
+
+            //Map<String, Integer> readBarcodeCounts = barcodeFileReader.readBarcodeCountFile(inputBarcodeCountFile);
             barcodeFileReader.close();
 
             // Init variables for logging some statistics
@@ -83,7 +85,11 @@ public class MergeBamWithBarcodeCounts {
             // Loop over all records in SAM file
             while (samRecordIterator.hasNext()) {
                 // Logging progress
-                if (i > 0){if (i % 1000000 == 0){LOGGER.info("Processed " + i / 1000000 + " million SAM records");}}
+                if (i > 0) {
+                    if (i % 1000000 == 0) {
+                        LOGGER.info("Processed " + i / 1000000 + " million SAM records");
+                    }
+                }
                 i++;
 
                 // Retrieve the current record
@@ -95,7 +101,8 @@ public class MergeBamWithBarcodeCounts {
                     if (record.getFirstOfPairFlag()) {
                         // Discard unmapped reads, unproper pairs and secondary alignments
                         if (record.getReadUnmappedFlag() || record.getMateUnmappedFlag() || !record.getProperPairFlag() || record.isSecondaryAlignment()) {
-                            filterFailCount ++;
+                            filterFailCount++;
+                            discardedOutputWriter.writeRecord(new IpcrRecord(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord), "unmapped|mateUnmapped|!properPair|secondary");
                             cachedSamRecord = null;
                             continue;
                         }
@@ -104,13 +111,15 @@ public class MergeBamWithBarcodeCounts {
                         continue;
                     }
                 } else {
-                    noBarcodeCount ++;
+                    noBarcodeCount++;
+                    discardedOutputWriter.writeRecord(new IpcrRecord("NA", cachedSamRecord), "noBarcode");
                     cachedSamRecord = null;
                     continue;
                 }
 
                 // If the record is a secondary alignment, ignore it
                 if (record.isSecondaryAlignment()) {
+                    discardedOutputWriter.writeRecord(new IpcrRecord(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord), "secondaryAlignment");
                     cachedSamRecord = null;
                     continue;
                 }
@@ -120,16 +129,9 @@ public class MergeBamWithBarcodeCounts {
                     SAMRecord mate = record;
                     // If the current record is the mate of the previous write to the outputWriter
                     if (mate.getReadName().equals(cachedSamRecord.getReadName())) {
-
                         String barcode = readBarcodePairs.get(cachedSamRecord.getReadName());
-
-                        //Needs to be a loop to accept multiple files
-                        int barcodeCount = readBarcodeCounts.get(barcode);
-
-
-
-                        IpcrRecord curIcprRecord = new IpcrRecord(barcode, barcodeCount, cachedSamRecord, mate);
-
+                        // Needs to be a loop to accept multiple files
+                        IpcrRecord curIcprRecord = new IpcrRecord(barcode, cachedSamRecord, mate);
                         outputWriter.writeRecord(curIcprRecord);
 
                         cachedSamRecord = null;
@@ -158,7 +160,7 @@ public class MergeBamWithBarcodeCounts {
 
 
     public static int getPerc(int a, int b) {
-        float p = ((float)a / (float)b) *100;
+        float p = ((float) a / (float) b) * 100;
         return Math.round(p);
     }
 

@@ -66,7 +66,7 @@ public class MergeBamWithBarcodeCountsParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("j")
+/*        option = Option.builder("j")
                 .longOpt("secondary-input-bam")
                 .hasArg(true)
                 .desc("Secondary input bamfile, Used to assign reads when not in primary bam file." +
@@ -74,7 +74,7 @@ public class MergeBamWithBarcodeCountsParameters {
                         "This is used for assigning reads from homzoygous reference samples which are not in the --bamout file")
                 .argName("path/to/file")
                 .build();
-        OPTIONS.addOption(option);
+        OPTIONS.addOption(option);*/
 
         option = Option.builder("b")
                 .longOpt("barcode-info")
@@ -84,13 +84,13 @@ public class MergeBamWithBarcodeCountsParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("n")
+/*        option = Option.builder("n")
                 .longOpt("barcode-counts")
                 .hasArg(true)
                 .desc("RNAseq based barcode counts")
                 .argName("path/to/file")
                 .build();
-        OPTIONS.addOption(option);
+        OPTIONS.addOption(option);*/
 
         option = Option.builder("o")
                 .longOpt("output")
@@ -134,7 +134,7 @@ public class MergeBamWithBarcodeCountsParameters {
         // Input files
         inputBam = cmd.getOptionValue("i").trim();
         inputBarcodes = cmd.getOptionValue('b').trim();
-        inputBarcodeCounts = cmd.getOptionValue('b').trim();
+        //inputBarcodeCounts = cmd.getOptionValue('b').trim();
 
         toolType = "MergeBamWithBarcodeCounts";
 

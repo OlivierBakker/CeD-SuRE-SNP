@@ -8,7 +8,7 @@ import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.*;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.BarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.icpr.DiscaredIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
 import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
@@ -28,7 +28,7 @@ public class AssignVariantAlleles {
 
     private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
     private AlleleSpecificIpcrOutputWriter alleleSpecificIpcrOutputWriter;
-    private DiscaredIpcrRecordWriter discaredOutputWriter;
+    private DiscaredAlleleSpecificIpcrRecordWriter discaredOutputWriter;
     private BarcodeFileReader barcodeFileReader;
     private AssignVariantAllelesParameters params;
     private Map<String, String> barcodeReadMap;
@@ -38,7 +38,7 @@ public class AssignVariantAlleles {
         this.barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
         //this.ipcrOutputWriter = new GenericIpcrRecordWriter(new File(params.getOutputPrefix() + ".ipcr"), false);
         this.alleleSpecificIpcrOutputWriter = params.getOutputWriter();
-        this.discaredOutputWriter = new DiscaredIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
+        this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
         this.params = params;
     }
 
@@ -161,11 +161,11 @@ public class AssignVariantAlleles {
         if (curAlleleSpecificIpcrRecord != null) {
             curAlleleSpecificIpcrRecord.setSampleId(params.getSampleGenotypeId());
             // Check if the read is a artifical haplotype
-            if (!curAlleleSpecificIpcrRecord.getRecord().getReadName().matches("^HC[0-9]*")) {
+            if (!curAlleleSpecificIpcrRecord.getPrimarySamRecord().getReadName().matches("^HC[0-9]*")) {
                 // Check if the read has been marked as a duplicate alignment
-                if (!curAlleleSpecificIpcrRecord.getRecord().getDuplicateReadFlag()) {
+                if (!curAlleleSpecificIpcrRecord.getPrimarySamRecord().getDuplicateReadFlag()) {
                     // Get the barcode for the read
-                    String curBarcode = barcodeReadMap.get(curAlleleSpecificIpcrRecord.getRecord().getReadName());
+                    String curBarcode = barcodeReadMap.get(curAlleleSpecificIpcrRecord.getPrimarySamRecord().getReadName());
                     // Check if the read has a barcode
                     if (curBarcode == null) {
                         discaredOutputWriter.writeRecord(curAlleleSpecificIpcrRecord, source + "\tBarcodeNotAvail");
