@@ -2,13 +2,14 @@ package nl.umcg.suresnp.pipeline.io.barcodefilereader;
 
 import nl.umcg.suresnp.pipeline.barcodes.InfoRecord;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
-import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.log4j.Logger;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

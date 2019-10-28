@@ -5,11 +5,11 @@ import htsjdk.samtools.*;
 import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
-import nl.umcg.suresnp.pipeline.io.*;
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.BarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.icpr.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
 import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.VariantType;
@@ -19,7 +19,8 @@ import org.molgenis.genotype.RandomAccessGenotypeData;
 import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
 import org.molgenis.genotype.variant.GeneticVariant;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.ipcrrecords.VariantType.INSERTION;

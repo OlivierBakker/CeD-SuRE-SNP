@@ -1,21 +1,16 @@
 package nl.umcg.suresnp.pipeline;
 
-import jdk.javadoc.internal.doclets.toolkit.util.DocFinder;
 import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.BarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.BarebonesBarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
 import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static java.lang.StrictMath.getExponent;
-import static java.lang.StrictMath.round;
 
 public class GenerateBarcodeComplexityCurve {
 

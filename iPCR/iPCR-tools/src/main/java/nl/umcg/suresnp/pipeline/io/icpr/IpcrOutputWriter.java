@@ -1,7 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.IOException;

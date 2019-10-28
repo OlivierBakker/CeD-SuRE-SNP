@@ -1,8 +1,8 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.*;
+import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
 import org.apache.commons.cli.*;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.File;

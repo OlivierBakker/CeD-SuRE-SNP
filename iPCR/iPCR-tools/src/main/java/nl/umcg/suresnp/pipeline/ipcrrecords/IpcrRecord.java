@@ -2,8 +2,6 @@ package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 import htsjdk.samtools.SAMRecord;
 
-import java.util.Map;
-
 public class IpcrRecord implements Comparable {
 
     private String barcode;

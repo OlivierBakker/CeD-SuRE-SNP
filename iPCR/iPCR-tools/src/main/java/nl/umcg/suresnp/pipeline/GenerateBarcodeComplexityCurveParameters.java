@@ -1,8 +1,8 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.GenericAlleleSpecificIpcrRecordStdoutWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.GenericAlleleSpecificIpcrRecordStdoutWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;

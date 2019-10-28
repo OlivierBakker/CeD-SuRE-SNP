@@ -4,17 +4,16 @@ import htsjdk.samtools.*;
 import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
-import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.icpr.*;
+import nl.umcg.suresnp.pipeline.io.icpr.DiscardedIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -157,7 +156,7 @@ public class MergeBamWithBarcodeCounts {
         }
 
     }
-
+;
 
     public static int getPerc(int a, int b) {
         float p = ((float) a / (float) b) * 100;

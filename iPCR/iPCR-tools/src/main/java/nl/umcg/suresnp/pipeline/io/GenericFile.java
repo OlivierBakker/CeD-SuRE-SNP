@@ -1,9 +1,11 @@
 package nl.umcg.suresnp.pipeline.io;
 
 import org.apache.commons.io.FilenameUtils;
-import sun.java2d.InvalidPipeException;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;

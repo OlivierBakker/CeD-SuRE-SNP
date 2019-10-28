@@ -1,10 +1,8 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
-import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 public class GenericIpcrRecordWriter implements IpcrOutputWriter {
