@@ -37,6 +37,15 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write(record.getPrimarySamRecord().getReadName());
         writer.write(sep);
+
+        if (record.getPrimarySamRecordMate() != null) {
+            writer.write(record.getPrimarySamRecordMate().getReadName());
+            writer.write(sep);
+        } else {
+            writer.write("NA");
+            writer.write(sep);
+        }
+
         writer.write(record.getPrimarySamRecord().getContig());
         writer.write(sep);
 
@@ -100,6 +109,8 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write("barcode");
         writer.write(sep);
         writer.write("readName");
+        writer.write(sep);
+        writer.write("readNameMate");
         writer.write(sep);
         writer.write("chromosome");
         writer.write(sep);

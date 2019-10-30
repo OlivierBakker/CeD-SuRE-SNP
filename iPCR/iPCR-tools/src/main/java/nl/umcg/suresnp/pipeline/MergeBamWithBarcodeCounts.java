@@ -27,7 +27,6 @@ public class MergeBamWithBarcodeCounts {
     private IpcrOutputWriter outputWriter;
     private GenericBarcodeFileReader barcodeFileReader;
 
-
     public MergeBamWithBarcodeCounts(MergeBamWithBarcodeCountsParameters params) throws IOException {
         this.params = params;
         this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
@@ -93,11 +92,18 @@ public class MergeBamWithBarcodeCounts {
 
                 // Retrieve the current record
                 SAMRecord record = samRecordIterator.next();
-
                 // Check if the current record has a barcode associated with it
                 if (readBarcodePairs.get(record.getReadName()) != null) {
                     // Check if the current record is the first in pair, if not skip to next iteration
                     if (record.getFirstOfPairFlag()) {
+
+                        // Discard non autosomal reads
+                        if (!isAutosome(record.getContig())) {
+                            discardedOutputWriter.writeRecord(new IpcrRecord(readBarcodePairs.get(record.getReadName()), record), "nonAutosomalRead");
+                            cachedSamRecord = null;
+                            continue;
+                        }
+
                         // Discard unmapped reads, unproper pairs and secondary alignments
                         if (record.getReadUnmappedFlag() || record.getMateUnmappedFlag() || !record.getProperPairFlag() || record.isSecondaryAlignment()) {
                             filterFailCount++;
@@ -111,7 +117,9 @@ public class MergeBamWithBarcodeCounts {
                     }
                 } else {
                     noBarcodeCount++;
-                    discardedOutputWriter.writeRecord(new IpcrRecord("NA", cachedSamRecord), "noBarcode");
+                    if (cachedSamRecord != null) {
+                        discardedOutputWriter.writeRecord(new IpcrRecord("NA", cachedSamRecord), "noBarcode");
+                    }
                     cachedSamRecord = null;
                     continue;
                 }
@@ -135,7 +143,8 @@ public class MergeBamWithBarcodeCounts {
 
                         cachedSamRecord = null;
                     } else {
-                        LOGGER.warn("Altough flagged as valid read pair, the read id's do not match. This should not happen unless the flags in the BAM are wrong.");
+                        LOGGER.warn("Altough flagged as valid read pair, the read id's do not match. This should not happen unless the flags in the BAM are wrong. Mismatches written to discarded reads file");
+                        discardedOutputWriter.writeRecord(new IpcrRecord(readBarcodePairs.get(cachedSamRecord.getReadName()), cachedSamRecord, record), "mateNameMismatch");
                         cachedSamRecord = null;
                     }
                 }
@@ -146,10 +155,12 @@ public class MergeBamWithBarcodeCounts {
             LOGGER.info(filterFailCount + " (" + getPerc(filterFailCount, i) + "%) reads failed filtering. Either unmapped, secondary alignment or improper pair");
             LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a barcode");
 
+
             // Close all the streams
             samRecordIterator.close();
             samReader.close();
             outputWriter.flushAndClose();
+            discardedOutputWriter.flushAndClose();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -157,6 +168,11 @@ public class MergeBamWithBarcodeCounts {
 
     }
 ;
+
+    public static boolean isAutosome(String contig) {
+        return (MergeBamWithBarcodeCountsParameters.getAutosomes().contains(contig));
+    }
+
 
     public static int getPerc(int a, int b) {
         float p = ((float) a / (float) b) * 100;

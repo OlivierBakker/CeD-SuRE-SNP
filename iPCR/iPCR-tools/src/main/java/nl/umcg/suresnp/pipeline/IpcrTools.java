@@ -7,6 +7,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
+import static java.lang.System.exit;
+
 public class IpcrTools {
 
     private static Logger LOGGER = Logger.getLogger(IpcrTools.class);
@@ -34,6 +36,11 @@ public class IpcrTools {
                     MergeBamWithBarcodeCountsParameters barcodeCountParams = new MergeBamWithBarcodeCountsParameters(args);
                     MergeBamWithBarcodeCounts mergeBamWithBarcodeCounts = new MergeBamWithBarcodeCounts(barcodeCountParams);
                     mergeBamWithBarcodeCounts.run();
+                    break;
+                default:
+                    LOGGER.error("Did not supply a valid tooltype");
+                    IpcrToolParameters.printHelp();
+                    exit(1);
             }
 
         } catch (UnrecognizedOptionException e) {

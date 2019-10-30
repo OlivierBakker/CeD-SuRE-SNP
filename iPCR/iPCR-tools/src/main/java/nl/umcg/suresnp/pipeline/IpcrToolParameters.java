@@ -45,12 +45,6 @@ public class IpcrToolParameters {
         CommandLineParser parser = new DefaultParser();
         cmd = parser.parse(OPTIONS, args, true);
 
-        // Print help and exit
-        if (cmd.hasOption("h")) {
-            printHelp();
-            exit(0);
-        }
-
         if (!cmd.hasOption("T")) {
             LOGGER.error("Missing required option -T");
             printHelp();
