@@ -102,6 +102,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write("barcode");
         writer.write(sep);
         writer.write("readName");
+        writer.write(sep);
 
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
