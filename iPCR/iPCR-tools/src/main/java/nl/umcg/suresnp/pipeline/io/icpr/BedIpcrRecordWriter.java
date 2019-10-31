@@ -6,14 +6,14 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import java.io.*;
 import java.util.zip.GZIPOutputStream;
 
-public class GenericIpcrRecordWriter implements IpcrOutputWriter {
+public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
     protected OutputStream outputStream;
     protected BufferedWriter writer;
     private String[] barcodeCountFilesSampleNames;
     private final String sep = "\t";
 
-    public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
+    public BedIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
@@ -34,7 +34,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
-    public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
+    public BedIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
         } else {
@@ -51,13 +51,23 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
+
+        writer.write(record.getPrimarySamRecord().getContig());
+        writer.write(sep);
+
+        int r1Start = record.getPrimarySamRecord().getAlignmentStart();
+        int r2End = record.getPrimarySamRecordMate().getAlignmentEnd();
+
+
+
+
+
         // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
         writer.write(record.getPrimarySamRecord().getReadName());
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getContig());
-        writer.write(sep);
+
 
         writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
         writer.write(sep);
@@ -65,8 +75,6 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
 
         writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentStart()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
         writer.write(sep);
 
         writer.write(Integer.toString(record.getPrimarySamRecord().getMappingQuality()));

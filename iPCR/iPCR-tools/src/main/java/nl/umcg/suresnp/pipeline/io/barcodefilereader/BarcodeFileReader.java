@@ -19,7 +19,7 @@ public interface BarcodeFileReader {
 
     Map<String, String> readBarcodeFileAsStringMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
 
-    Map<String, Integer> readBarcodeCountFile(File file) throws IOException;
+    Map<String, Integer> readBarcodeCountFile(GenericFile file) throws IOException;
 
     void close() throws IOException;
 }

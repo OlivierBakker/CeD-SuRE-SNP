@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 public class GenericBarcodeFileReader implements BarcodeFileReader {
     private static final Logger LOGGER = Logger.getLogger(GenericBarcodeFileReader.class);
@@ -98,12 +99,12 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
     public Map<String, String> readBarcodeFileAsStringMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
         // May seem excessive, but allows for easy change to zipped files if needed
         CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(file.getAsInputStream())), "\t");
-
         Map<String, String> barcodeRecordMap = new HashMap<>();
 
         String[] line;
         int curRecord = 0;
         int discarded = 0;
+        LOGGER.info("Reading file: " + file.getBaseName());
 
         while ((line = reader.readNext(true)) != null) {
             // Logging
@@ -142,7 +143,6 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
             }
 
             curRecord++;
-
         }
         reader.close();
         LOGGER.info("Done, Read " + curRecord + " records");
@@ -151,8 +151,8 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
             LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
             LOGGER.warn(outputPrefix + "/" + file.getBaseName() + ".discarded.barcodes.txt");
         }
-
-        return barcodeRecordMap;    }
+        return barcodeRecordMap;
+    }
 
 
     @Override
@@ -171,22 +171,29 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
     }
 
     @Override
-    public Map<String, Integer> readBarcodeCountFile(File inputBarcodes) throws IOException {
+    public Map<String, Integer> readBarcodeCountFile(GenericFile inputBarcodes) throws IOException {
         // Open a new CSV reader
-        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new FileInputStream(inputBarcodes))), "\t");
+
+        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(inputBarcodes.getAsInputStream())), "\t");
         Map<String, Integer> readBarcodePairs = new HashMap<>();
         String[] line;
         int i = 0;
 
+        LOGGER.info("Reading file: " + inputBarcodes.getBaseName());
+
         while ((line = reader.readNext(false)) != null) {
             // Logging progress
-            if (i > 0){if(i % 1000000 == 0){LOGGER.info("Read " + i / 1000000 + " million records");}}
+            if (i > 0) {
+                if (i % 1000000 == 0) {
+                    LOGGER.info("Read " + i / 1000000 + " million records");
+                }
+            }
             i++;
 
             if (line.length != 2) {
                 continue;
             } else {
-                readBarcodePairs.put(line[0], Integer.parseInt(line[1]));
+                readBarcodePairs.put(line[1], Integer.parseInt(line[0]));
             }
         }
         reader.close();

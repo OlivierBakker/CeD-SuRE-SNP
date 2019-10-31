@@ -2,11 +2,14 @@ package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 import htsjdk.samtools.SAMRecord;
 
+import java.util.Map;
+
 public class IpcrRecord implements Comparable {
 
     private String barcode;
     private SAMRecord primarySamRecord;
     private SAMRecord primarySamRecordMate;
+    private Map<String, Integer> barcodeCountPerSample;
 
     public IpcrRecord(String barcode, SAMRecord primarySamRecord) {
         this.barcode = barcode;
@@ -17,6 +20,13 @@ public class IpcrRecord implements Comparable {
         this.barcode = barcode;
         this.primarySamRecord = primarySamRecord;
         this.primarySamRecordMate = primarySamRecordMate;
+    }
+
+    public IpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate,Map<String, Integer> barcodeCountPerSample) {
+        this.barcode = barcode;
+        this.primarySamRecord = primarySamRecord;
+        this.primarySamRecordMate = primarySamRecordMate;
+        this.barcodeCountPerSample = barcodeCountPerSample;
     }
 
     public String getBarcode() {
@@ -41,6 +51,15 @@ public class IpcrRecord implements Comparable {
 
     public void setPrimarySamRecordMate(SAMRecord primarySamRecordMate) {
         this.primarySamRecordMate = primarySamRecordMate;
+    }
+
+
+    public Map<String, Integer> getBarcodeCountPerSample() {
+        return barcodeCountPerSample;
+    }
+
+    public void setBarcodeCountPerSample(Map<String, Integer> barcodeCountPerSample) {
+        this.barcodeCountPerSample = barcodeCountPerSample;
     }
 
     @Override

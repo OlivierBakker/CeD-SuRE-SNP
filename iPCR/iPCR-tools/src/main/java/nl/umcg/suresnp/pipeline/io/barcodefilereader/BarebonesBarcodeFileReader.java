@@ -69,10 +69,10 @@ public class BarebonesBarcodeFileReader implements BarcodeFileReader {
     }
 
     @Override
-    public Map<String, Integer> readBarcodeCountFile(File file) throws IOException {
+    public Map<String, Integer> readBarcodeCountFile(GenericFile file) throws IOException {
+        LOGGER.warn("Not implemented in BarebonesBarcodeFileReader. Returning null");
         return null;
     }
-
 
     @Override
     public void close() throws IOException {

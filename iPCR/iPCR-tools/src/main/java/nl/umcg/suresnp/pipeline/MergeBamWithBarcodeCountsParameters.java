@@ -37,7 +37,9 @@ public class MergeBamWithBarcodeCountsParameters {
     private int barcodeLength;
     private int adapterMaxMismatch;
 
-    private static final ArrayList<String> autosomes;
+    private String[] barcodeCountFiles;
+
+    private static final ArrayList<String> chromosomes;
 
     private static final Options OPTIONS;
 
@@ -77,13 +79,13 @@ public class MergeBamWithBarcodeCountsParameters {
                 .build();
         OPTIONS.addOption(option);
 
-/*        option = Option.builder("n")
+        option = Option.builder("n")
                 .longOpt("barcode-counts")
                 .hasArg(true)
                 .desc("RNAseq based barcode counts")
                 .argName("path/to/file")
                 .build();
-        OPTIONS.addOption(option);*/
+        OPTIONS.addOption(option);
 
         option = Option.builder("o")
                 .longOpt("output")
@@ -112,7 +114,7 @@ public class MergeBamWithBarcodeCountsParameters {
                 .build();
         OPTIONS.addOption(option);*/
 
-        autosomes = new ArrayList<String>() {{
+        chromosomes = new ArrayList<String>() {{
             add("1");
             add("2");
             add("3");
@@ -135,6 +137,10 @@ public class MergeBamWithBarcodeCountsParameters {
             add("20");
             add("21");
             add("22");
+            add("x");
+            add("y");
+            add("X");
+            add("Y");
             add("chr1");
             add("chr2");
             add("chr3");
@@ -157,6 +163,10 @@ public class MergeBamWithBarcodeCountsParameters {
             add("chr20");
             add("chr21");
             add("chr22");
+            add("chrx");
+            add("chry");
+            add("chrX");
+            add("chrY");
         }};
     }
 
@@ -189,6 +199,10 @@ public class MergeBamWithBarcodeCountsParameters {
             outputPrefix = "ipcrtools";
         }
 
+        if (cmd.hasOption("n")) {
+            barcodeCountFiles = cmd.getOptionValues("n");
+        }
+
         if (cmd.hasOption("s")) {
             // When writing to stdout do not use log4j unless there is an error
             //outputWriter = new GenericIpcrRecordStdoutWriter();
@@ -209,9 +223,12 @@ public class MergeBamWithBarcodeCountsParameters {
                 outputSuffix = ".gz";
             }
 
-            outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+            if (barcodeCountFiles != null) {
+                outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped, barcodeCountFiles);
+            } else {
+                outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+            }
         }
-
 
         // Hardcoded arguments for testing
         barcodeLength = 20;
@@ -221,6 +238,15 @@ public class MergeBamWithBarcodeCountsParameters {
 
     public CommandLine getCmd() {
         return cmd;
+    }
+
+    public boolean hasBarcodeCountFiles() {
+        return barcodeCountFiles != null;
+    }
+
+
+    public String[] getBarcodeCountFiles() {
+        return barcodeCountFiles;
     }
 
     public String getInputBam() {
@@ -279,8 +305,8 @@ public class MergeBamWithBarcodeCountsParameters {
         return OPTIONS;
     }
 
-    public static ArrayList<String> getAutosomes() {
-        return autosomes;
+    public static ArrayList<String> getChromosomes() {
+        return chromosomes;
     }
 
     public static void printHelp() {
