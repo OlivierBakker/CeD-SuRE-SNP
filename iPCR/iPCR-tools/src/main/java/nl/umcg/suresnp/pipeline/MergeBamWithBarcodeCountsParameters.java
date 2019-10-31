@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
+import nl.umcg.suresnp.pipeline.io.icpr.BedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
 import org.apache.commons.cli.*;
@@ -25,6 +26,7 @@ public class MergeBamWithBarcodeCountsParameters {
 
     private String outputPrefix;
     private String outputSuffix;
+    private String outputType;
 
     private boolean isStdoutput;
     private boolean isReduced;
@@ -92,6 +94,14 @@ public class MergeBamWithBarcodeCountsParameters {
                 .hasArg(true)
                 .desc("Output prefix")
                 .argName("path/to/output")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("t")
+                .longOpt("output-type")
+                .hasArg(true)
+                .desc("Output type")
+                .argName("BED|IPCR")
                 .build();
         OPTIONS.addOption(option);
 
@@ -184,8 +194,6 @@ public class MergeBamWithBarcodeCountsParameters {
         // Input files
         inputBam = cmd.getOptionValue("i").trim();
         inputBarcodes = cmd.getOptionValue('b').trim();
-        //inputBarcodeCounts = cmd.getOptionValue('b').trim();
-
         toolType = "MergeBamWithBarcodeCounts";
 
         if (cmd.hasOption("j")) {
@@ -197,6 +205,12 @@ public class MergeBamWithBarcodeCountsParameters {
             outputPrefix = cmd.getOptionValue("o").trim();
         } else {
             outputPrefix = "ipcrtools";
+        }
+
+        if (cmd.hasOption('t')) {
+            outputType = cmd.getOptionValue('t').trim();
+        } else {
+            outputType = "IPCR";
         }
 
         if (cmd.hasOption("n")) {
@@ -223,11 +237,30 @@ public class MergeBamWithBarcodeCountsParameters {
                 outputSuffix = ".gz";
             }
 
-            if (barcodeCountFiles != null) {
-                outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped, barcodeCountFiles);
-            } else {
-                outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+
+            switch (outputType) {
+                case "BED":
+                    if (barcodeCountFiles != null) {
+                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped, barcodeCountFiles);
+                    } else {
+                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+                    }
+                    break;
+                case "IPCR":
+                    if (barcodeCountFiles != null) {
+                        outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped, barcodeCountFiles);
+                    } else {
+                        outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+                    }
+                    break;
+
+                default:
+                    LOGGER.error("Invalid output type -t");
+                    printHelp();
+                    exit(1);
             }
+
+
         }
 
         // Hardcoded arguments for testing

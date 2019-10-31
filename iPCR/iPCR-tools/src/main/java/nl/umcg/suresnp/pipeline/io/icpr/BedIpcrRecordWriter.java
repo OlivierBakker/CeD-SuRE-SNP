@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
+import htsjdk.samtools.SAMRecord;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
@@ -16,9 +17,9 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     public BedIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
         if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
+            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bed"));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bed.gz"));
         }
         this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
 
@@ -36,9 +37,9 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
     public BedIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
         if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
+            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bed"));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bed.gz"));
         }
 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
@@ -52,46 +53,27 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
+        // Flip arroud so that the primary sam record is the first position
+        SAMRecord tmp;
+        if (record.getPrimarySamRecord().getMateNegativeStrandFlag()) {
+            tmp = record.getPrimarySamRecord();
+            record.setPrimarySamRecord(record.getPrimarySamRecordMate());
+            record.setPrimarySamRecordMate(tmp);
+        }
+
         writer.write(record.getPrimarySamRecord().getContig());
         writer.write(sep);
 
-        int r1Start = record.getPrimarySamRecord().getAlignmentStart();
-        int r2End = record.getPrimarySamRecordMate().getAlignmentEnd();
-
-
-
-
-
-        // Alignment info
-        writer.write(record.getBarcode());
-        writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getReadName());
-        writer.write(sep);
-
-
         writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentEnd()));
+
+        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentStart()));
+        writer.write(record.getBarcode());
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamRecord().getMappingQuality()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getMappingQuality()));
-        writer.write(sep);
-
-        writer.write(record.getPrimarySamRecord().getCigarString());
-        writer.write(sep);
-        writer.write(record.getPrimarySamRecordMate().getCigarString());
-        writer.write(sep);
-
-        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
+        writer.write(record.getPrimarySamRecord().getReadName());
         writer.write(sep);
 
         if (record.getBarcodeCountPerSample() != null) {
@@ -111,30 +93,15 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeHeader(String reason) throws IOException {
+        writer.write("chr");
+        writer.write(sep);
+        writer.write("start");
+        writer.write(sep);
+        writer.write("end");
+        writer.write(sep);
         writer.write("barcode");
         writer.write(sep);
         writer.write("readName");
-        writer.write(sep);
-        writer.write("chromosome");
-        writer.write(sep);
-        writer.write("readOneStart");
-        writer.write(sep);
-        writer.write("readOneEnd");
-        writer.write(sep);
-        writer.write("readTwoStart");
-        writer.write(sep);
-        writer.write("readTwoEnd");
-        writer.write(sep);
-        writer.write("readOneMQ");
-        writer.write(sep);
-        writer.write("readTwoMQ");
-        writer.write(sep);
-        writer.write("readOneCigar");
-        writer.write(sep);
-        writer.write("readTwoCigar");
-        writer.write(sep);
-        writer.write("orientation");
-        writer.write(sep);
 
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {

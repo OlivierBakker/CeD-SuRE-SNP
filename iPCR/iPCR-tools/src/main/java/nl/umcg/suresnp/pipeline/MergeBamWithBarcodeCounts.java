@@ -61,7 +61,7 @@ public class MergeBamWithBarcodeCounts {
             outputWriter.writeHeader();
             discardedOutputWriter.writeHeader("reason");
 
-            // Read barcode count files
+            // Read barcode count filesq
             Map<String, Map<String, Integer>> readBarcodeCounts = null;
 
             if (params.hasBarcodeCountFiles()) {
@@ -86,7 +86,7 @@ public class MergeBamWithBarcodeCounts {
             int filterFailCount = 0;
             int noBarcodeCount = 0;
             int missingMateCount = 0;
-
+            int strandMismatchCount = 0;
             // Define the iterator
             SAMRecordIterator samRecordIterator = samReader.iterator();
 
@@ -114,7 +114,7 @@ public class MergeBamWithBarcodeCounts {
                         if (isValidCachableSamRecord(record)) {
                             validCachedSamRecord = record;
                         } else {
-                            filterFailCount ++;
+                            filterFailCount++;
                         }
                     } else {
                         noBarcodeCount++;
@@ -125,8 +125,14 @@ public class MergeBamWithBarcodeCounts {
                     // If the previous record passed all checks, see if the current record is its mate
                     SAMRecord mate = record;
 
-                    // If the current record is the mate of the previous write to the outputWriter
+                    if (mate.getMateNegativeStrandFlag() != validCachedSamRecord.getMateNegativeStrandFlag()) {
+                        strandMismatchCount++;
+                        //discardedOutputWriter.writeRecord(new IpcrRecord("NA", mate), "strandMismatch");
+                        //validCachedSamRecord = null;
+                    }
+
                     if (mate.getReadName().equals(validCachedSamRecord.getReadName())) {
+                        // If the current record is the mate of the previous write to the outputWriter
                         String barcode = readBarcodePairs.get(validCachedSamRecord.getReadName());
 
                         // If barcode count files have been provided add the barcode counts
@@ -159,7 +165,7 @@ public class MergeBamWithBarcodeCounts {
                         // This can happen if either the R1 or R2 has been filtered but not both.
                         // If this is the case, check if the current read (mate) is valid and put that as the cached read
                         discardedOutputWriter.writeRecord(new IpcrRecord(readBarcodePairs.get(validCachedSamRecord.getReadName()), validCachedSamRecord, mate), "mateNameMismatch");
-                        missingMateCount ++;
+                        missingMateCount++;
 
                         // Check if the current record has a barcode associated with it
                         if (readBarcodePairs.get(mate.getReadName()) != null) {
@@ -167,7 +173,7 @@ public class MergeBamWithBarcodeCounts {
                                 validCachedSamRecord = mate;
                             } else {
                                 validCachedSamRecord = null;
-                                filterFailCount ++;
+                                filterFailCount++;
                             }
                         } else {
                             noBarcodeCount++;
@@ -180,6 +186,7 @@ public class MergeBamWithBarcodeCounts {
 
             // Log some info
             LOGGER.info("Processed a total of " + i + " reads");
+            LOGGER.info(strandMismatchCount + " (" + getPerc(strandMismatchCount, i/2) + "%) pairs with opposing strands");
             LOGGER.info(filterFailCount + " (" + getPerc(filterFailCount, i) + "%) reads failed filtering. Either unmapped, secondary alignment or improper pair");
             LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a barcode");
             LOGGER.info(missingMateCount + " (" + getPerc(missingMateCount, i) + "%) reads where valid but missed mate");

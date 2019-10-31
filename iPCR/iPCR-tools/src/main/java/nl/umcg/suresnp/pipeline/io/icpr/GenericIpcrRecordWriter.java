@@ -69,6 +69,11 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
         writer.write(sep);
 
+        writer.write(Integer.toString(record.getPrimarySamRecord().getFlags()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getPrimarySamRecordMate().getFlags()));
+        writer.write(sep);
+
         writer.write(Integer.toString(record.getPrimarySamRecord().getMappingQuality()));
         writer.write(sep);
         writer.write(Integer.toString(record.getPrimarySamRecordMate().getMappingQuality()));
@@ -80,6 +85,13 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
 
         if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
+            writer.write("-");
+        } else {
+            writer.write("+");
+        }
+        writer.write(sep);
+
+        if (record.getPrimarySamRecordMate().getReadNegativeStrandFlag()) {
             writer.write("-");
         } else {
             writer.write("+");
@@ -117,6 +129,10 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write("readTwoEnd");
         writer.write(sep);
+        writer.write("readOneFlag");
+        writer.write(sep);
+        writer.write("readTwoFlag");
+        writer.write(sep);
         writer.write("readOneMQ");
         writer.write(sep);
         writer.write("readTwoMQ");
@@ -125,9 +141,10 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write("readTwoCigar");
         writer.write(sep);
-        writer.write("orientation");
+        writer.write("readOneStrand");
         writer.write(sep);
-
+        writer.write("readTwoStrand");
+        writer.write(sep);
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
                 writer.write(key);
