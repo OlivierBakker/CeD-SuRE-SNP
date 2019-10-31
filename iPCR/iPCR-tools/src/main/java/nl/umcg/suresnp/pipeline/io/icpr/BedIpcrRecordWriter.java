@@ -53,9 +53,9 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
-        // Flip arroud so that the primary sam record is the first position
+        // Flip arround so that the primary sam record is the first position
         SAMRecord tmp;
-        if (record.getPrimarySamRecord().getMateNegativeStrandFlag()) {
+        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
             tmp = record.getPrimarySamRecord();
             record.setPrimarySamRecord(record.getPrimarySamRecordMate());
             record.setPrimarySamRecordMate(tmp);
