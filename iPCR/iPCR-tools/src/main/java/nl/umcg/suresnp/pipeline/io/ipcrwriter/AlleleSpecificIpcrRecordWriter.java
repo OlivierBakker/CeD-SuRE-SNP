@@ -1,6 +1,6 @@
-package nl.umcg.suresnp.pipeline.io.icpr;
+package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificBamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificSamBasedIpcrRecord;
 
 import java.io.*;
 import java.util.List;
@@ -25,7 +25,7 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
 
 
     @Override
-    public void writeRecord(AlleleSpecificBamBasedIpcrRecord record) throws IOException {
+    public void writeRecord(AlleleSpecificSamBasedIpcrRecord record) throws IOException {
         // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
@@ -92,7 +92,7 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
     }
 
     @Override
-    public void writeRecord(AlleleSpecificBamBasedIpcrRecord record, String reason) throws IOException {
+    public void writeRecord(AlleleSpecificSamBasedIpcrRecord record, String reason) throws IOException {
         writer.write(reason);
         writer.write(sep);
         writeRecord(record);

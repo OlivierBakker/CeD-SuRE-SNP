@@ -69,8 +69,6 @@ public class GenerateBarcodeComplexityCurve {
         outputStream.close();
 
         LOGGER.debug("Debug point");
-
-
     }
 
     private static int[] generateIntervals(int start, int end, int nValues) {

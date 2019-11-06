@@ -6,9 +6,9 @@ import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFi
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.icpr.DiscardedIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.BamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -20,16 +20,16 @@ import java.util.Map;
 
 import static java.lang.System.exit;
 
-public class MergeBamWithBarcodeCounts {
+public class MergeBamWithBarcodes {
 
-    private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodeCounts.class);
-    private MergeBamWithBarcodeCountsParameters params;
+    private static final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodes.class);
+    private MergeBamWithBarcodesParameters params;
     private IpcrOutputWriter discardedOutputWriter;
     private IpcrOutputWriter outputWriter;
     private GenericBarcodeFileReader barcodeFileReader;
     private Map<String, String> readBarcodePairs;
 
-    public MergeBamWithBarcodeCounts(MergeBamWithBarcodeCountsParameters params) throws IOException {
+    public MergeBamWithBarcodes(MergeBamWithBarcodesParameters params) throws IOException {
         this.params = params;
         this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
         this.outputWriter = params.getOutputWriter();
@@ -73,7 +73,7 @@ public class MergeBamWithBarcodeCounts {
 
             // Read and parse the barcode file
             GenericFile inputBarcodeFile = new GenericFile(params.getInputBarcodes());
-            // File inputBarcodeCountFile = new File(params.getInputBarcodeCounts());
+
             // Read barcode data
             List<InfoRecordFilter> filters = new ArrayList<>();
             filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
@@ -85,7 +85,7 @@ public class MergeBamWithBarcodeCounts {
             int filterFailCount = 0;
             int noBarcodeCount = 0;
             int missingMateCount = 0;
-            int strandMismatchCount = 0;
+
             // Define the iterator
             SAMRecordIterator samRecordIterator = samReader.iterator();
 
@@ -117,18 +117,12 @@ public class MergeBamWithBarcodeCounts {
                         }
                     } else {
                         noBarcodeCount++;
-                        discardedOutputWriter.writeRecord(new BamBasedIpcrRecord("NA", record), "noBarcode");
+                        discardedOutputWriter.writeRecord(new SamBasedIpcrRecord("NA", record), "noBarcode");
                         validCachedSamRecord = null;
                     }
                 } else {
                     // If the previous record passed all checks, see if the current record is its mate
                     SAMRecord mate = record;
-
-                    if (mate.getMateNegativeStrandFlag() != validCachedSamRecord.getMateNegativeStrandFlag()) {
-                        strandMismatchCount++;
-                        //discardedOutputWriter.writeRecord(new IpcrRecord("NA", mate), "strandMismatch");
-                        //validCachedSamRecord = null;
-                    }
 
                     if (mate.getReadName().equals(validCachedSamRecord.getReadName())) {
                         // If the current record is the mate of the previous write to the outputWriter
@@ -149,11 +143,11 @@ public class MergeBamWithBarcodeCounts {
                             }
                         }
 
-                        BamBasedIpcrRecord curIcprRecord;
+                        SamBasedIpcrRecord curIcprRecord;
                         if (currentBarcodeCounts == null) {
-                            curIcprRecord = new BamBasedIpcrRecord(barcode, validCachedSamRecord, mate);
+                            curIcprRecord = new SamBasedIpcrRecord(barcode, validCachedSamRecord, mate);
                         } else {
-                            curIcprRecord = new BamBasedIpcrRecord(barcode, validCachedSamRecord, mate, currentBarcodeCounts);
+                            curIcprRecord = new SamBasedIpcrRecord(barcode, validCachedSamRecord, mate, currentBarcodeCounts);
                         }
                         outputWriter.writeRecord(curIcprRecord);
 
@@ -163,7 +157,7 @@ public class MergeBamWithBarcodeCounts {
                     } else {
                         // This can happen if either the R1 or R2 has been filtered but not both.
                         // If this is the case, check if the current read (mate) is valid and put that as the cached read
-                        discardedOutputWriter.writeRecord(new BamBasedIpcrRecord(readBarcodePairs.get(validCachedSamRecord.getReadName()), validCachedSamRecord, mate), "mateNameMismatch");
+                        discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(validCachedSamRecord.getReadName()), validCachedSamRecord, mate), "mateNameMismatch");
                         missingMateCount++;
 
                         // Check if the current record has a barcode associated with it
@@ -176,7 +170,7 @@ public class MergeBamWithBarcodeCounts {
                             }
                         } else {
                             noBarcodeCount++;
-                            discardedOutputWriter.writeRecord(new BamBasedIpcrRecord("NA", mate), "noBarcode");
+                            discardedOutputWriter.writeRecord(new SamBasedIpcrRecord("NA", mate), "noBarcode");
                             validCachedSamRecord = null;
                         }
                     }
@@ -185,7 +179,6 @@ public class MergeBamWithBarcodeCounts {
 
             // Log some info
             LOGGER.info("Processed a total of " + i + " reads");
-            LOGGER.info(strandMismatchCount + " (" + getPerc(strandMismatchCount, i/2) + "%) pairs with opposing strands");
             LOGGER.info(filterFailCount + " (" + getPerc(filterFailCount, i) + "%) reads failed filtering. Either unmapped, secondary alignment or improper pair");
             LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a barcode");
             LOGGER.info(missingMateCount + " (" + getPerc(missingMateCount, i) + "%) reads where valid but missed mate");
@@ -210,35 +203,35 @@ public class MergeBamWithBarcodeCounts {
         }*/
         // If the pair is not proper, ignore it
         if (!record.getProperPairFlag()) {
-            discardedOutputWriter.writeRecord(new BamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "notProperPair");
+            discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "notProperPair");
             return false;
         }
         // Discard non chromosomal reads
         if (!isChromosome(record.getContig())) {
-            discardedOutputWriter.writeRecord(new BamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "nonChromosomalRead");
+            discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "nonChromosomalRead");
             return false;
         }
         // If the record is a secondary alignment, ignore it
         if (record.isSecondaryAlignment()) {
-            discardedOutputWriter.writeRecord(new BamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "secondaryAlignment");
+            discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "secondaryAlignment");
             return false;
         }
         // If the record is unmapped, ignore it
         if (record.getReadUnmappedFlag()) {
-            discardedOutputWriter.writeRecord(new BamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "unmapped");
+            discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "unmapped");
             return false;
         }
         // If the mate is unmapped, ignore it
         if (record.getMateUnmappedFlag()) {
-            discardedOutputWriter.writeRecord(new BamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "mateUnmapped");
+            discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "mateUnmapped");
             return false;
         }
         return true;
     }
 
-
+    // TODO: very ugly fix this
     public static boolean isChromosome(String contig) {
-        return (MergeBamWithBarcodeCountsParameters.getChromosomes().contains(contig));
+        return (MergeBamWithBarcodesParameters.getChromosomes().contains(contig));
     }
 
 

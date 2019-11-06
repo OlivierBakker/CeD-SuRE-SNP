@@ -5,25 +5,25 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.Map;
 
-public class BamBasedIpcrRecord implements Comparable, IpcrRecord {
+public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     private String barcode;
     private SAMRecord primarySamRecord;
     private SAMRecord primarySamRecordMate;
     private Map<String, Integer> barcodeCountPerSample;
 
-    public BamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord) {
+    public SamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord) {
         this.barcode = barcode;
         this.primarySamRecord = primarySamRecord;
     }
 
-    public BamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate) {
+    public SamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate) {
         this.barcode = barcode;
         this.primarySamRecord = primarySamRecord;
         this.primarySamRecordMate = primarySamRecordMate;
     }
 
-    public BamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate, Map<String, Integer> barcodeCountPerSample) {
+    public SamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate, Map<String, Integer> barcodeCountPerSample) {
         this.barcode = barcode;
         this.primarySamRecord = primarySamRecord;
         this.primarySamRecordMate = primarySamRecordMate;
@@ -231,7 +231,7 @@ public class BamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int compareTo(Object o) {
-        BamBasedIpcrRecord other = (BamBasedIpcrRecord) o;
+        SamBasedIpcrRecord other = (SamBasedIpcrRecord) o;
         return (barcode.compareTo(other.getBarcode()));
     }
 }

@@ -74,7 +74,6 @@ public interface IpcrRecord {
 
     void setBarcodeCountPerSample(Map<String, Integer> barcodeCountPerSample);
 
-
     void flipPrimaryAndMate();
 
 }

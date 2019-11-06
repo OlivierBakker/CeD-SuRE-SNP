@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.log4j.Logger;
@@ -32,11 +32,15 @@ public class IpcrTools {
                     GenerateBarcodeComplexityCurve generateBarcodeComplexityCurve = new GenerateBarcodeComplexityCurve(barcodeCurveParams);
                     generateBarcodeComplexityCurve.run();
                     break;
-                case "MergeBamWithBarcodeCounts":
-                    MergeBamWithBarcodeCountsParameters barcodeCountParams = new MergeBamWithBarcodeCountsParameters(args);
-                    MergeBamWithBarcodeCounts mergeBamWithBarcodeCounts = new MergeBamWithBarcodeCounts(barcodeCountParams);
-                    mergeBamWithBarcodeCounts.run();
+                case "MergeSamWithBarcodes":
+                    MergeBamWithBarcodesParameters barcodeCountParams = new MergeBamWithBarcodesParameters(args);
+                    MergeBamWithBarcodes mergeBamWithBarcodes = new MergeBamWithBarcodes(barcodeCountParams);
+                    mergeBamWithBarcodes.run();
                     break;
+                case "NormalizeCdnaWithIpcr":
+                    NormalizeCdnaWithIpcrParameters normalizeParams = new NormalizeCdnaWithIpcrParameters();
+                    NormalizeCdnaWithIpcr normalizeCdnaWithIpcr = new NormalizeCdnaWithIpcr();
+                    normalizeCdnaWithIpcr.run(args);
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();

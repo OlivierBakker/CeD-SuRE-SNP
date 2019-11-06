@@ -1,8 +1,8 @@
-package nl.umcg.suresnp.pipeline.io.icpr;
+package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import htsjdk.samtools.SAMRecord;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.ipcrrecords.BamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
@@ -56,13 +56,11 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
+        // TODO: FIX UGLY CAST
         // For each cDNA count write out the record once
-        // Flip arround so that the primary sam record is the first position
-        SAMRecord tmp;
-        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
-            tmp = record.getPrimarySamRecord();
-            record.setPrimarySamRecord(record.getPrimarySamRecordMate());
-            record.setPrimarySamRecordMate(tmp);
+        // Flip arround so that the primary record is the first position
+        if (record.getPrimaryStrand() == '-') {
+            record.flipPrimaryAndMate();
         }
 
         // Write the record for each cDNA count
@@ -72,18 +70,18 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
             if (cDNAcount > 0) {
                 while (i < cDNAcount) {
-                    writeBedRecord(record);
+                    writeBedRecord((SamBasedIpcrRecord) record);
                     i ++;
                 };
             }
 
         } else {
-            writeBedRecord(record);
+            writeBedRecord((SamBasedIpcrRecord) record);
         }
     }
 
 
-    private void writeBedRecord(BamBasedIpcrRecord record) throws IOException {
+    private void writeBedRecord(SamBasedIpcrRecord record) throws IOException {
         // chrom
         writer.write(record.getPrimarySamRecord().getContig());
         writer.write(sep);

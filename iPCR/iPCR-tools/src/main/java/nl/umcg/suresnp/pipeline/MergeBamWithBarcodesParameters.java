@@ -1,9 +1,9 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.icpr.BedIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.BedpeIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.BedIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.BedpeIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.GenericIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -14,9 +14,9 @@ import java.util.ArrayList;
 import static java.lang.System.exit;
 
 
-public class MergeBamWithBarcodeCountsParameters {
+public class MergeBamWithBarcodesParameters {
 
-    private final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodeCountsParameters.class);
+    private final Logger LOGGER = Logger.getLogger(MergeBamWithBarcodesParameters.class);
     private final CommandLine cmd;
 
     // IO arguments
@@ -181,14 +181,14 @@ public class MergeBamWithBarcodeCountsParameters {
         }};
     }
 
-    public MergeBamWithBarcodeCountsParameters(String[] args) throws ParseException, IOException {
+    public MergeBamWithBarcodesParameters(String[] args) throws ParseException, IOException {
 
         CommandLineParser parser = new DefaultParser();
-        cmd = parser.parse(MergeBamWithBarcodeCountsParameters.getOptions(), args);
+        cmd = parser.parse(MergeBamWithBarcodesParameters.getOptions(), args);
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MergeBamWithBarcodeCountsParameters.printHelp();
+            MergeBamWithBarcodesParameters.printHelp();
             exit(0);
         }
 
@@ -227,7 +227,7 @@ public class MergeBamWithBarcodeCountsParameters {
             // When writing to a file check if the correct options are specified
             if (!cmd.hasOption("o")) {
                 LOGGER.error("-o not specified");
-                MergeBamWithBarcodeCountsParameters.printHelp();
+                MergeBamWithBarcodesParameters.printHelp();
                 exit(1);
             }
 
@@ -237,7 +237,6 @@ public class MergeBamWithBarcodeCountsParameters {
                 zipped = true;
                 outputSuffix = ".gz";
             }
-
 
             switch (outputType) {
                 case "BEDPE":
@@ -267,14 +266,11 @@ public class MergeBamWithBarcodeCountsParameters {
                     printHelp();
                     exit(1);
             }
-
-
         }
 
         // Hardcoded arguments for testing
         barcodeLength = 20;
         adapterMaxMismatch = 3;
-
     }
 
     public CommandLine getCmd() {

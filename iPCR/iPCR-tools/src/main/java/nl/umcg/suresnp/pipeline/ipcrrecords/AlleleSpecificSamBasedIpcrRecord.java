@@ -3,7 +3,7 @@ package nl.umcg.suresnp.pipeline.ipcrrecords;
 import htsjdk.samtools.SAMRecord;
 import org.molgenis.genotype.variant.GeneticVariant;
 
-public class AlleleSpecificBamBasedIpcrRecord extends BamBasedIpcrRecord {
+public class AlleleSpecificSamBasedIpcrRecord extends SamBasedIpcrRecord {
 
     private String readAllele;
     private String alternativeAllele;
@@ -12,7 +12,7 @@ public class AlleleSpecificBamBasedIpcrRecord extends BamBasedIpcrRecord {
     private VariantType variantType;
     private String SampleId;
 
-    public AlleleSpecificBamBasedIpcrRecord(String barcode, String readAllele, String alternativeAllele, int variantStartInRead, GeneticVariant geneticVariant, SAMRecord primarySamRecord, VariantType variantType) {
+    public AlleleSpecificSamBasedIpcrRecord(String barcode, String readAllele, String alternativeAllele, int variantStartInRead, GeneticVariant geneticVariant, SAMRecord primarySamRecord, VariantType variantType) {
         super(barcode, primarySamRecord);
         this.readAllele = readAllele;
         this.alternativeAllele = alternativeAllele;
