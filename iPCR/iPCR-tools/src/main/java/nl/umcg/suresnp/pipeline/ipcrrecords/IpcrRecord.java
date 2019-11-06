@@ -1,70 +1,76 @@
 package nl.umcg.suresnp.pipeline.ipcrrecords;
 
-import htsjdk.samtools.SAMRecord;
-
 import java.util.Map;
 
-public class IpcrRecord implements Comparable {
+public interface IpcrRecord {
 
-    private String barcode;
-    private SAMRecord primarySamRecord;
-    private SAMRecord primarySamRecordMate;
-    private Map<String, Integer> barcodeCountPerSample;
+    String getBarcode();
 
-    public IpcrRecord(String barcode, SAMRecord primarySamRecord) {
-        this.barcode = barcode;
-        this.primarySamRecord = primarySamRecord;
-    }
+    void setBarcode(String barcode);
 
-    public IpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate) {
-        this.barcode = barcode;
-        this.primarySamRecord = primarySamRecord;
-        this.primarySamRecordMate = primarySamRecordMate;
-    }
+    String getReadName();
 
-    public IpcrRecord(String barcode, SAMRecord primarySamRecord, SAMRecord primarySamRecordMate,Map<String, Integer> barcodeCountPerSample) {
-        this.barcode = barcode;
-        this.primarySamRecord = primarySamRecord;
-        this.primarySamRecordMate = primarySamRecordMate;
-        this.barcodeCountPerSample = barcodeCountPerSample;
-    }
+    void setReadName(String name);
 
-    public String getBarcode() {
-        return barcode;
-    }
+    String getContig();
 
-    public void setBarcode(String barcode) {
-        this.barcode = barcode;
-    }
+    void setContig(String contig);
 
-    public SAMRecord getPrimarySamRecord() {
-        return primarySamRecord;
-    }
+    // Paired end reads
+    int getPrimaryStart();
 
-    public void setPrimarySamRecord(SAMRecord primarySamRecord) {
-        this.primarySamRecord = primarySamRecord;
-    }
+    void setPrimaryStart(int start);
 
-    public SAMRecord getPrimarySamRecordMate() {
-        return primarySamRecordMate;
-    }
+    int getPrimaryEnd();
 
-    public void setPrimarySamRecordMate(SAMRecord primarySamRecordMate) {
-        this.primarySamRecordMate = primarySamRecordMate;
-    }
+    void setPrimaryEnd(int end);
+
+    int getMateStart();
+
+    void setMateStart(int start);
+
+    int getMateEnd();
+
+    void setMateEnd(int end);
 
 
-    public Map<String, Integer> getBarcodeCountPerSample() {
-        return barcodeCountPerSample;
-    }
+    int getPrimarySamFlags();
 
-    public void setBarcodeCountPerSample(Map<String, Integer> barcodeCountPerSample) {
-        this.barcodeCountPerSample = barcodeCountPerSample;
-    }
+    void setPrimarySamFlags(int flag);
 
-    @Override
-    public int compareTo(Object o) {
-        IpcrRecord other = (IpcrRecord) o;
-        return (barcode.compareTo(other.getBarcode()));
-    }
+    int getMateSamFlags();
+
+    void setMateSamFlags(int flag);
+
+    int getPrimaryMappingQuality();
+
+    void setPrimaryMappingQuality(int quality);
+
+    int getMateMappingQuality();
+
+    void setMateMappingQuality(int quality);
+
+    String getPrimaryCigar();
+
+    void setPrimaryCigar(String cigar);
+
+    String getMateCigar();
+
+    void setMateCigar(String cigar);
+
+    char getPrimaryStrand();
+
+    void setPrimaryStrand(char strand);
+
+    char getMateStrand();
+
+    void setMateStrand(char strand);
+
+    Map<String, Integer> getBarcodeCountPerSample();
+
+    void setBarcodeCountPerSample(Map<String, Integer> barcodeCountPerSample);
+
+
+    void flipPrimaryAndMate();
+
 }

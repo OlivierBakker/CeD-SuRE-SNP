@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.io.icpr;
 
 import htsjdk.samtools.SAMRecord;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.ipcrrecords.BamBasedIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
@@ -12,6 +13,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     protected OutputStream outputStream;
     protected BufferedWriter writer;
     private String[] barcodeCountFilesSampleNames;
+
     private final String sep = "\t";
 
     public BedIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
@@ -27,8 +29,9 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         int i = 0;
         for (String curFile: barcodeCountFilesSampleNames) {
             String tmp = new GenericFile(curFile).getBaseName();
-            int idx = tmp.indexOf('.');
-            this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
+            //int idx = tmp.indexOf('.');
+           // this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
+            this.barcodeCountFilesSampleNames[i] = tmp;
             i++;
         }
 
@@ -53,6 +56,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
+        // For each cDNA count write out the record once
         // Flip arround so that the primary sam record is the first position
         SAMRecord tmp;
         if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
@@ -61,26 +65,57 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
             record.setPrimarySamRecordMate(tmp);
         }
 
+        // Write the record for each cDNA count
+        if (record.getBarcodeCountPerSample() != null) {
+            int i = 0;
+            int cDNAcount = record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[0]);
+
+            if (cDNAcount > 0) {
+                while (i < cDNAcount) {
+                    writeBedRecord(record);
+                    i ++;
+                };
+            }
+
+        } else {
+            writeBedRecord(record);
+        }
+    }
+
+
+    private void writeBedRecord(BamBasedIpcrRecord record) throws IOException {
+        // chrom
         writer.write(record.getPrimarySamRecord().getContig());
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
+        // Make the positions 0 based and half open
+        // chromStart
+        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart() - 1));
         writer.write(sep);
 
+        // chromEnd
         writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
         writer.write(sep);
 
-        writer.write(record.getBarcode());
+        // name
+        writer.write(record.getBarcode() + "|" + record.getPrimarySamRecord().getReadName());
         writer.write(sep);
 
-        writer.write(record.getPrimarySamRecord().getReadName());
-        writer.write(sep);
-
-        if (record.getBarcodeCountPerSample() != null) {
+        // score
+/*        if (record.getBarcodeCountPerSample() != null) {
             for (String key: record.getBarcodeCountPerSample().keySet()) {
                 writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
-                writer.write(sep);
+                writer.write(";");
             }
+        }*/
+        writer.write(".");
+        writer.write(sep);
+
+        // Strand
+        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
+            writer.write("-");
+        } else {
+            writer.write("+");
         }
 
         writer.newLine();
@@ -106,10 +141,10 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
-                writer.write(key);
+                int idx = key.indexOf('.');
+                writer.write(key.substring(0, idx));
                 writer.write(sep);
             }
-
         }
 
         writer.newLine();

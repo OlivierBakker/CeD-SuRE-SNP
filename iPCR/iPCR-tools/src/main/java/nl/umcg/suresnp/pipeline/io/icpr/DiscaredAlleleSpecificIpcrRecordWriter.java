@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificBamBasedIpcrRecord;
 
 import java.io.*;
 import java.util.List;
@@ -24,12 +24,12 @@ public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpc
     }
 
     @Override
-    public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
+    public void writeRecord(AlleleSpecificBamBasedIpcrRecord record) throws IOException {
         writeRecord(record, "");
     }
 
     @Override
-    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
+    public void writeRecord(AlleleSpecificBamBasedIpcrRecord record, String reason) throws IOException {
         if (reason.length() > 1) {
             writer.write(reason);
             writer.write(sep);

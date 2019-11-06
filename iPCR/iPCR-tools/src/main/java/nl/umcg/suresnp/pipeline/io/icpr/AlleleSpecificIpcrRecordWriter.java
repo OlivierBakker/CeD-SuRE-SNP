@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificBamBasedIpcrRecord;
 
 import java.io.*;
 import java.util.List;
@@ -25,17 +25,17 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
 
 
     @Override
-    public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
+    public void writeRecord(AlleleSpecificBamBasedIpcrRecord record) throws IOException {
         // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getReadName());
+        writer.write(record.getReadName());
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getContig());
+        writer.write(record.getContig());
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
+        writer.write(Integer.toString(record.getPrimaryStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentEnd()));
+        writer.write(Integer.toString(record.getPrimaryEnd()));
 
         // Variant info
         writer.write(sep);
@@ -92,7 +92,7 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
     }
 
     @Override
-    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
+    public void writeRecord(AlleleSpecificBamBasedIpcrRecord record, String reason) throws IOException {
         writer.write(reason);
         writer.write(sep);
         writeRecord(record);

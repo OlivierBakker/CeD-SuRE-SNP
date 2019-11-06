@@ -1,6 +1,7 @@
 package nl.umcg.suresnp.pipeline;
 
 import nl.umcg.suresnp.pipeline.io.icpr.BedIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.icpr.BedpeIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.GenericIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrOutputWriter;
 import org.apache.commons.cli.*;
@@ -239,11 +240,18 @@ public class MergeBamWithBarcodeCountsParameters {
 
 
             switch (outputType) {
+                case "BEDPE":
+                    if (barcodeCountFiles != null) {
+                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix + outputSuffix), zipped, barcodeCountFiles);
+                    } else {
+                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix + outputSuffix), zipped);
+                    }
+                    break;
                 case "BED":
                     if (barcodeCountFiles != null) {
-                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped, barcodeCountFiles);
+                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix + outputSuffix), zipped, barcodeCountFiles);
                     } else {
-                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix + outputSuffix), zipped);
                     }
                     break;
                 case "IPCR":

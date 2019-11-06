@@ -26,8 +26,9 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         int i = 0;
         for (String curFile: barcodeCountFilesSampleNames) {
             String tmp = new GenericFile(curFile).getBaseName();
-            int idx = tmp.indexOf('.');
-            this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
+            //int idx = tmp.indexOf('.');
+            //this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
+            this.barcodeCountFilesSampleNames[i] = tmp;
             i++;
         }
 
@@ -54,52 +55,44 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getReadName());
+        writer.write(record.getReadName());
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getContig());
-        writer.write(sep);
-
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentEnd()));
+        writer.write(record.getContig());
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentStart()));
+        writer.write(Integer.toString(record.getPrimaryEnd()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
-        writer.write(sep);
-
-        writer.write(Integer.toString(record.getPrimarySamRecord().getFlags()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getFlags()));
+        writer.write(Integer.toString(record.getPrimaryEnd()));
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamRecord().getMappingQuality()));
+        writer.write(Integer.toString(record.getMateStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getMappingQuality()));
-        writer.write(sep);
-
-        writer.write(record.getPrimarySamRecord().getCigarString());
-        writer.write(sep);
-        writer.write(record.getPrimarySamRecordMate().getCigarString());
+        writer.write(Integer.toString(record.getMateEnd()));
         writer.write(sep);
 
-        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
+        writer.write(Integer.toString(record.getPrimarySamFlags()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getMateSamFlags()));
         writer.write(sep);
 
-        if (record.getPrimarySamRecordMate().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
+        writer.write(Integer.toString(record.getPrimaryMappingQuality()));
+        writer.write(sep);
+        writer.write(Integer.toString(record.getMateMappingQuality()));
+        writer.write(sep);
+
+        writer.write(record.getPrimaryCigar());
+        writer.write(sep);
+        writer.write(record.getMateCigar());
+        writer.write(sep);
+
+        writer.write(record.getPrimaryStrand());
+        writer.write(sep);
+
+        writer.write(record.getMateStrand());
         writer.write(sep);
 
         if (record.getBarcodeCountPerSample() != null) {
-            for (String key: record.getBarcodeCountPerSample().keySet()) {
+            for (String key: barcodeCountFilesSampleNames) {
                 writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
                 writer.write(sep);
             }
@@ -147,10 +140,10 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
-                writer.write(key);
+                int idx = key.indexOf('.');
+                writer.write(key.substring(0, idx));
                 writer.write(sep);
             }
-
         }
 
         writer.newLine();

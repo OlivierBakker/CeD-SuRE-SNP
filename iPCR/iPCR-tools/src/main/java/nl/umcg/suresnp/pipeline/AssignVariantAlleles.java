@@ -11,7 +11,7 @@ import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.icpr.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.icpr.IpcrParseException;
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificBamBasedIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.VariantType;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
@@ -114,7 +114,7 @@ public class AssignVariantAlleles {
                 // Retrieve the current record
                 SAMRecord record = primarySamRecordIterator.next();
                 primaryReadNameCache.add(record.getReadName());
-                AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
+                AlleleSpecificBamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
                 evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "PrimaryBamFile", sampleIdx);
 
                 i++;
@@ -128,7 +128,7 @@ public class AssignVariantAlleles {
                     SAMRecord record = secondarySamRecordIterator.next();
 
                     if (primaryReadNameCache.contains(record.getReadName())) {
-                        discaredOutputWriter.writeRecord(new AlleleSpecificIpcrRecord(null,
+                        discaredOutputWriter.writeRecord(new AlleleSpecificBamBasedIpcrRecord(null,
                                 null,
                                 null,
                                 0,
@@ -136,7 +136,7 @@ public class AssignVariantAlleles {
                                 record,
                                 variantType), "SecondaryBamFile\tReadInPrimaryBam");
                     } else {
-                        AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "SecondaryBamFile");
+                        AlleleSpecificBamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "SecondaryBamFile");
                         evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "SecondaryBamFile", sampleIdx);
                     }
                     i++;
@@ -155,7 +155,7 @@ public class AssignVariantAlleles {
         LOGGER.info("Done");
     }
 
-    private boolean evaluateIpcrRecord(AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord, String source, int sampleIdx) throws IOException {
+    private boolean evaluateIpcrRecord(AlleleSpecificBamBasedIpcrRecord curAlleleSpecificIpcrRecord, String source, int sampleIdx) throws IOException {
 
         // TODO: refactor to filter pattern so filters can be provided at runtime
         // TODO: refactor/fix the ugly reason stuff
@@ -215,7 +215,7 @@ public class AssignVariantAlleles {
     }
 
 
-    private AlleleSpecificIpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
+    private AlleleSpecificBamBasedIpcrRecord assignVariantAlleleToSamRecord(SAMRecord samRecord, VariantType variantType, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
         // TODO: implement option maxDistToReadEnd, to only assign reads where the base is x bases in
         // TODO: implement option minBaseQualScore, to only assign a allele if the quality of that base is sufficient
         // TODO: although functional, clean up the code to make it more readable
@@ -336,7 +336,7 @@ public class AssignVariantAlleles {
                 discarded = true;
         }
 
-        AlleleSpecificIpcrRecord outputRecord = new AlleleSpecificIpcrRecord(null, readAllele, altReadAllele, variantPosInRead, curVariant, samRecord, variantType);
+        AlleleSpecificBamBasedIpcrRecord outputRecord = new AlleleSpecificBamBasedIpcrRecord(null, readAllele, altReadAllele, variantPosInRead, curVariant, samRecord, variantType);
 
         if (discarded) {
             discaredOutputWriter.writeRecord(outputRecord, source + "\t" + reason);
