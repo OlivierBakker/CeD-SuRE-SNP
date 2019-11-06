@@ -29,7 +29,7 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         // Alignment info
         writer.write(record.getBarcode());
         writer.write(sep);
-        writer.write(record.getReadName());
+        writer.write(record.getPrimaryReadName());
         writer.write(sep);
         writer.write(record.getContig());
         writer.write(sep);

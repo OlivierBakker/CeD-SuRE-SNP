@@ -74,14 +74,25 @@ public class BamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public String getReadName() {
+    public String getPrimaryReadName() {
         return primarySamRecord.getReadName();
     }
 
     @Override
-    public void setReadName(String name) {
+    public void setPrimaryReadName(String name) {
         throw new NotImplementedException();
     }
+
+    @Override
+    public String getMateReadName() {
+        return primarySamRecordMate.getReadName();
+    }
+
+    @Override
+    public void setMateReadName(String name) {
+        throw new NotImplementedException();
+    }
+
 
     @Override
     public int getPrimaryStart() {

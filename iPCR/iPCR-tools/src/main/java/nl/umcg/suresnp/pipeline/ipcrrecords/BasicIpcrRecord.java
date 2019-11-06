@@ -7,7 +7,8 @@ import java.util.Map;
 public class BasicIpcrRecord implements IpcrRecord {
 
     private String barcode;
-    private String readName;
+    private String primaryReadName;
+    private String mateReadName;
     private String contig;
     private int primaryStart;
     private int primaryEnd;
@@ -26,9 +27,9 @@ public class BasicIpcrRecord implements IpcrRecord {
     public BasicIpcrRecord() {
     }
 
-    public BasicIpcrRecord(String barcode, String readName, String contig, int primaryStart, int primaryEnd, int mateStart, int mateEnd, int primarySamFlags, int mateSamFlags, int primaryMappingQuality, int mateMappingQuality, String primaryCigar, String mateCigar, char primaryStrand, char mateStrand, Map<String, Integer> barcodeCountPerSample) {
+    public BasicIpcrRecord(String barcode, String primaryReadName, String contig, int primaryStart, int primaryEnd, int mateStart, int mateEnd, int primarySamFlags, int mateSamFlags, int primaryMappingQuality, int mateMappingQuality, String primaryCigar, String mateCigar, char primaryStrand, char mateStrand, Map<String, Integer> barcodeCountPerSample) {
         this.barcode = barcode;
-        this.readName = readName;
+        this.primaryReadName = primaryReadName;
         this.contig = contig;
         this.primaryStart = primaryStart;
         this.primaryEnd = primaryEnd;
@@ -56,13 +57,23 @@ public class BasicIpcrRecord implements IpcrRecord {
     }
 
     @Override
-    public String getReadName() {
-        return readName;
+    public String getPrimaryReadName() {
+        return primaryReadName;
     }
 
     @Override
-    public void setReadName(String readName) {
-        this.readName = readName;
+    public void setPrimaryReadName(String readName) {
+        this.primaryReadName = readName;
+    }
+
+    @Override
+    public String getMateReadName() {
+        return mateReadName;
+    }
+
+    @Override
+    public void setMateReadName(String mateReadName) {
+        this.mateReadName = mateReadName;
     }
 
     @Override

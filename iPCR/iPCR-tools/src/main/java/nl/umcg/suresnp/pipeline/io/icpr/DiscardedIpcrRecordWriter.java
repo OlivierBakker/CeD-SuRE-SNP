@@ -35,80 +35,72 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write(record.getBarcode());
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getReadName());
+        writer.write(record.getPrimaryReadName());
         writer.write(sep);
 
-        if (record.getPrimarySamRecordMate() != null) {
-            writer.write(record.getPrimarySamRecordMate().getReadName());
+        if (record.getMateReadName() != null) {
+            writer.write(record.getMateReadName());
             writer.write(sep);
         } else {
             writer.write("NA");
             writer.write(sep);
         }
 
-        writer.write(record.getPrimarySamRecord().getContig());
+        writer.write(record.getContig());
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart()));
+        writer.write(Integer.toString(record.getPrimaryStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentEnd()));
+        writer.write(Integer.toString(record.getPrimaryEnd()));
         writer.write(sep);
 
-        if (record.getPrimarySamRecordMate() != null) {
-            writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentStart()));
+        if (record.getMateStart() != 0) {
+            writer.write(Integer.toString(record.getMateStart()));
             writer.write(sep);
-            writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
+            writer.write(Integer.toString(record.getMateEnd()));
             writer.write(sep);
         } else {
-            writer.write("NA");
-            writer.write(sep);
             writer.write("NA");
             writer.write(sep);
+            writer.write("NA");
+            writer.write(sep);
         }
 
 
-        writer.write(Integer.toString(record.getPrimarySamRecord().getFlags()));
+        writer.write(Integer.toString(record.getPrimarySamFlags()));
         writer.write(sep);
 
-        if (record.getPrimarySamRecordMate() != null) {
-            writer.write(Integer.toString(record.getPrimarySamRecordMate().getFlags()));
+        if (record.getMateSamFlags() != 0) {
+            writer.write(Integer.toString(record.getMateSamFlags()));
         } else {
             writer.write("NA");
         }
 
-        writer.write(Integer.toString(record.getPrimarySamRecord().getMappingQuality()));
+        writer.write(Integer.toString(record.getPrimaryMappingQuality()));
         writer.write(sep);
 
-        if (record.getPrimarySamRecordMate() != null) {
-            writer.write(Integer.toString(record.getPrimarySamRecordMate().getMappingQuality()));
+        if (record.getMateMappingQuality() != 0) {
+            writer.write(Integer.toString(record.getMateMappingQuality()));
         } else {
             writer.write("NA");
         }
 
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getCigarString());
+        writer.write(record.getPrimaryCigar());
         writer.write(sep);
 
-        if (record.getPrimarySamRecordMate() != null) {
-            writer.write(record.getPrimarySamRecordMate().getCigarString());
+        if (record.getMateCigar() != null) {
+            writer.write(record.getMateCigar());
         } else {
             writer.write("NA");
         }
         writer.write(sep);
 
-        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
-        writer.write(sep);
+        writer.write(record.getPrimaryStrand());
 
-        if (record.getPrimarySamRecordMate() != null) {
-            if (record.getPrimarySamRecordMate().getReadNegativeStrandFlag()) {
-                writer.write("-");
-            } else {
-                writer.write("+");
-            }
+        if (record.getMateStrand() != 0){
+            writer.write(sep);
+            writer.write(record.getMateStrand());
         }
         writer.newLine();
     }

@@ -1,6 +1,5 @@
 package nl.umcg.suresnp.pipeline.io.icpr;
 
-import htsjdk.samtools.SAMRecord;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
@@ -72,7 +71,7 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(record.getBarcode());
         writer.write(sep);
 
-        writer.write(record.getReadName());
+        writer.write(record.getPrimaryReadName());
         writer.write(sep);
 
         if (record.getBarcodeCountPerSample() != null) {

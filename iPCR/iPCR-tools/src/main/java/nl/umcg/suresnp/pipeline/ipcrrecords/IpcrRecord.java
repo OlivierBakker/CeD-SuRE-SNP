@@ -8,9 +8,13 @@ public interface IpcrRecord {
 
     void setBarcode(String barcode);
 
-    String getReadName();
+    String getPrimaryReadName();
 
-    void setReadName(String name);
+    void setPrimaryReadName(String name);
+
+    String getMateReadName();
+
+    void setMateReadName(String name);
 
     String getContig();
 
