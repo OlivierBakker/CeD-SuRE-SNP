@@ -43,6 +43,7 @@ task fatJar(type: Jar) {
 }
 
 dependencies {
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'

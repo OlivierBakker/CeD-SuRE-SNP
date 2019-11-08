@@ -16,9 +16,9 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
     public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
         if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bed"));
+            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bedpe"));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bed.gz"));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bedpe.gz"));
         }
         this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
 
@@ -120,4 +120,13 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
         outputStream.close();
     }
 
+    @Override
+    public String[] getBarcodeCountFilesSampleNames() {
+        return barcodeCountFilesSampleNames;
+    }
+
+    @Override
+    public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
+        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
 }

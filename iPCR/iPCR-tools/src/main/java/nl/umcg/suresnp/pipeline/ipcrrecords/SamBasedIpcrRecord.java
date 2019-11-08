@@ -11,6 +11,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     private SAMRecord primarySamRecord;
     private SAMRecord primarySamRecordMate;
     private Map<String, Integer> barcodeCountPerSample;
+    private int ipcrDuplicateCount;
 
     public SamBasedIpcrRecord(String barcode, SAMRecord primarySamRecord) {
         this.barcode = barcode;
@@ -34,9 +35,16 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
         return barcode;
     }
 
+    @Override
+    public void setBarcode(String barcode) {
+        this.barcode=barcode;
+    }
+/*
+
     public void setBarcode(String barcode) {
         this.barcode = barcode;
     }
+*/
 
     public SAMRecord getPrimarySamRecord() {
         return primarySamRecord;
@@ -64,6 +72,16 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
+    public int getIpcrDuplicateCount() {
+        return ipcrDuplicateCount;
+    }
+
+    @Override
+    public void setIpcrDuplicateCount(int ipcrDuplicateCount) {
+        this.ipcrDuplicateCount = ipcrDuplicateCount;
+    }
+
+    @Override
     public String getContig() {
         return primarySamRecord.getContig();
     }
@@ -85,7 +103,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public String getMateReadName() {
-        return primarySamRecordMate.getReadName();
+        if (primarySamRecordMate != null) {
+            return primarySamRecordMate.getReadName();
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -116,7 +138,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getMateStart() {
-        return primarySamRecordMate.getAlignmentStart();
+        if (primarySamRecordMate != null) {
+            return primarySamRecordMate.getAlignmentStart();
+        } else {
+            return 0;
+        }
     }
 
     @Override
@@ -126,7 +152,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getMateEnd() {
-        return primarySamRecordMate.getAlignmentEnd();
+        if (primarySamRecordMate != null) {
+            return primarySamRecordMate.getAlignmentEnd();
+        } else {
+            return 0;
+        }
     }
 
     @Override
@@ -150,10 +180,14 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public char getMateStrand() {
-        if (primarySamRecordMate.getReadNegativeStrandFlag()) {
-            return '-';
+        if(primarySamRecordMate != null) {
+            if (primarySamRecordMate.getReadNegativeStrandFlag()) {
+                return '-';
+            } else {
+                return '+';
+            }
         } else {
-            return '+';
+            return 0;
         }
     }
 
@@ -174,7 +208,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getMateSamFlags() {
-        return primarySamRecordMate.getFlags();
+        if (primarySamRecordMate != null) {
+            return primarySamRecordMate.getFlags();
+        } else {
+            return 0;
+        }
     }
 
     @Override
@@ -194,7 +232,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getMateMappingQuality() {
-        return primarySamRecordMate.getMappingQuality();
+        if (primarySamRecordMate != null) {
+            return primarySamRecordMate.getMappingQuality();
+        } else {
+            return 0;
+        }
     }
 
     @Override
@@ -214,7 +256,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public String getMateCigar() {
-        return primarySamRecordMate.getCigarString();
+        if (primarySamRecordMate != null) {
+            return primarySamRecordMate.getCigarString();
+        } else {
+            return null;
+        }
     }
 
     @Override

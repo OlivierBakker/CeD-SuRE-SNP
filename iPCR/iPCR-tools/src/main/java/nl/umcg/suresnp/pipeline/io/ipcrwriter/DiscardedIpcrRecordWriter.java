@@ -1,6 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.*;
 import java.util.zip.GZIPOutputStream;
@@ -12,7 +13,6 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
     private final String sep = "\t";
 
     public DiscardedIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
         } else {
@@ -155,6 +155,16 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         writer.flush();
         writer.close();
         outputStream.close();
+    }
+
+    @Override
+    public String[] getBarcodeCountFilesSampleNames() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
+        throw new NotImplementedException();
     }
 
 }

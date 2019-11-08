@@ -37,7 +37,6 @@ public interface IpcrRecord {
 
     void setMateEnd(int end);
 
-
     int getPrimarySamFlags();
 
     void setPrimarySamFlags(int flag);
@@ -73,6 +72,10 @@ public interface IpcrRecord {
     Map<String, Integer> getBarcodeCountPerSample();
 
     void setBarcodeCountPerSample(Map<String, Integer> barcodeCountPerSample);
+
+    int getIpcrDuplicateCount();
+
+    void setIpcrDuplicateCount(int ipcrDuplicateCount);
 
     void flipPrimaryAndMate();
 

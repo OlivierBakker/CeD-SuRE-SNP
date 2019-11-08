@@ -23,6 +23,7 @@ public class BasicIpcrRecord implements IpcrRecord {
     private char primaryStrand;
     private char mateStrand;
     private Map<String, Integer> barcodeCountPerSample;
+    private int ipcrDuplicateCount;
 
     public BasicIpcrRecord() {
     }
@@ -53,8 +54,9 @@ public class BasicIpcrRecord implements IpcrRecord {
 
     @Override
     public void setBarcode(String barcode) {
-        this.barcode = barcode;
+        this.barcode=barcode;
     }
+
 
     @Override
     public String getPrimaryReadName() {
@@ -217,7 +219,40 @@ public class BasicIpcrRecord implements IpcrRecord {
     }
 
     @Override
-    public void flipPrimaryAndMate() {
-        throw new NotImplementedException();
+    public int getIpcrDuplicateCount() {
+        return ipcrDuplicateCount;
     }
+
+    @Override
+    public void setIpcrDuplicateCount(int ipcrDuplicateCount) {
+        this.ipcrDuplicateCount = ipcrDuplicateCount;
+    }
+
+    @Override
+    public void flipPrimaryAndMate() {
+        String tmpPrimaryReadName = primaryReadName;
+        int tmpPrimaryStart = primaryStart;
+        int tmpPrimaryEnd = primaryEnd;
+        int tmpPrimarySamFlags = primarySamFlags;
+        int tmpPrimaryMappingQual = primaryMappingQuality;
+        String tmpPrimaryCigar = primaryCigar;
+        char tmpPrimaryStrand = primaryStrand;
+
+        primaryReadName = mateReadName;
+        primaryStart = mateStart;
+        primaryEnd = mateEnd;
+        primarySamFlags = mateSamFlags;
+        primaryMappingQuality = mateMappingQuality;
+        primaryCigar = mateCigar;
+        primaryStrand = mateStrand;
+
+        mateReadName = tmpPrimaryReadName;
+        mateStart = tmpPrimaryStart;
+        mateEnd = tmpPrimaryEnd;
+        mateSamFlags = tmpPrimarySamFlags;
+        mateMappingQuality = tmpPrimaryMappingQual;
+        mateCigar = tmpPrimaryCigar;
+        mateStrand = tmpPrimaryStrand;
+    }
+
 }

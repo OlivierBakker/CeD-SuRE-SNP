@@ -16,20 +16,23 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
         if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
+            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".ipcr"));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".ipcr.gz"));
         }
-        this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
 
-        // Clean filenames, trim all .
-        int i = 0;
-        for (String curFile: barcodeCountFilesSampleNames) {
-            String tmp = new GenericFile(curFile).getBaseName();
-            //int idx = tmp.indexOf('.');
-            //this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
-            this.barcodeCountFilesSampleNames[i] = tmp;
-            i++;
+        if (barcodeCountFilesSampleNames != null) {
+            this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
+
+            // Clean filenames, trim all .
+            int i = 0;
+            for (String curFile: barcodeCountFilesSampleNames) {
+                String tmp = new GenericFile(curFile).getBaseName();
+                //int idx = tmp.indexOf('.');
+                //this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
+                this.barcodeCountFilesSampleNames[i] = tmp;
+                i++;
+            }
         }
 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
@@ -37,9 +40,9 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
         if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
+            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix+ ".ipcr"));
         } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".ipcr.gz"));
         }
 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
@@ -60,7 +63,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(record.getContig());
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimaryEnd()));
+        writer.write(Integer.toString(record.getPrimaryStart()));
         writer.write(sep);
         writer.write(Integer.toString(record.getPrimaryEnd()));
         writer.write(sep);
@@ -91,7 +94,11 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(record.getMateStrand());
         writer.write(sep);
 
-        if (record.getBarcodeCountPerSample() != null) {
+        writer.write(Integer.toString(record.getIpcrDuplicateCount()));
+        writer.write(sep);
+
+
+        if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
                 writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
                 writer.write(sep);
@@ -138,10 +145,16 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write("readTwoStrand");
         writer.write(sep);
+        writer.write("ipcrCount");
+        writer.write(sep);
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
                 int idx = key.indexOf('.');
-                writer.write(key.substring(0, idx));
+                if (idx < 0) {
+                    writer.write(key);
+                } else {
+                    writer.write(key.substring(0, idx));
+                }
                 writer.write(sep);
             }
         }
@@ -156,4 +169,13 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         outputStream.close();
     }
 
+    @Override
+    public String[] getBarcodeCountFilesSampleNames() {
+        return barcodeCountFilesSampleNames;
+    }
+
+    @Override
+    public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
+        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
 }

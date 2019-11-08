@@ -3,12 +3,14 @@ package nl.umcg.suresnp.pipeline.io.ipcrreader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.BasicIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class IpcrFileReader implements IpcrRecordProvider {
@@ -19,34 +21,38 @@ public class IpcrFileReader implements IpcrRecordProvider {
     private String[] header;
     private String[] cdnaSamples;
 
-    public IpcrFileReader(GenericFile file) throws IOException {
+    public IpcrFileReader(GenericFile file, boolean hasHeader) throws IOException {
         reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
-        sep="\t";
-        setHeader();
+        sep = "\t";
+        if (hasHeader) {
+            setHeader();
+        }
     }
 
-    public IpcrFileReader(GenericFile file, String sep) throws IOException {
+    public IpcrFileReader(GenericFile file, boolean hasHeader, String sep) throws IOException {
         reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
         this.sep = sep;
-        setHeader();
+        if (hasHeader) {
+            setHeader();
+        }
     }
 
     private void setHeader() throws IOException {
         String line = reader.readLine();
         header = line.split(sep);
-        if (header.length < 15) {
+        if (header.length < 16) {
             LOGGER.error("Error parsing line:");
             LOGGER.error(line);
-            LOGGER.error("Needed 15 columns in IPCR file, found: " + header.length);
-            throw new IllegalArgumentException("Needed 15 columns in IPCR file, found: " + header.length);
+            LOGGER.error("Needed 16 columns in IPCR file, found: " + header.length);
+            throw new IllegalArgumentException("Needed 16 columns in IPCR file, found: " + header.length);
         }
 
-        if (header.length > 15) {
+        if (header.length > 16) {
             LOGGER.info("Detected barcode counts for samples:");
-            cdnaSamples = new String[header.length-15];
+            cdnaSamples = new String[header.length - 16];
 
-            int i=15;
-            int j=0;
+            int i = 16;
+            int j = 0;
             while (i < header.length) {
                 LOGGER.info(header[i]);
                 cdnaSamples[j] = header[i];
@@ -69,19 +75,46 @@ public class IpcrFileReader implements IpcrRecordProvider {
     }
 
     @Override
+    public List<IpcrRecord> getRecordsAsList() throws IOException {
+        IpcrRecord curRecord = getNextRecord();
+        List<IpcrRecord> records = new TreeList<>();
+
+        int i = 0;
+        while (curRecord != null) {
+            // Logging progress
+            if (i > 0) {
+                if (i % 1000000 == 0) {
+                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
+                }
+            }
+            i++;
+            records.add(curRecord);
+            curRecord = getNextRecord();
+        }
+        LOGGER.info("Read " + i + " records");
+
+        return records;
+    }
+
+    @Override
+    public String[] getSamples() {
+        return cdnaSamples;
+    }
+
+    @Override
     public void close() throws IOException {
         reader.close();
     }
 
     private IpcrRecord parseIpcrRecord(String line) {
-        IpcrRecord record = new BasicIpcrRecord();
         String[] data = line.split(sep);
+        IpcrRecord record = new BasicIpcrRecord();
 
-        if (data.length < 15) {
+        if (data.length < 16) {
             LOGGER.error("Error parsing line:");
             LOGGER.error(line);
             LOGGER.error("Needed 15 columns in IPCR file, found: " + data.length);
-            throw new IllegalArgumentException("Needed 15 columns in IPCR file, found: " + data.length);
+            throw new IllegalArgumentException("Needed 16 columns in IPCR file, found: " + data.length);
         }
         record.setBarcode(data[0]);
         record.setPrimaryReadName(data[1]);
@@ -99,12 +132,13 @@ public class IpcrFileReader implements IpcrRecordProvider {
         record.setMateCigar(data[12]);
         record.setPrimaryStrand(data[13].charAt(0));
         record.setMateStrand(data[14].charAt(0));
+        record.setIpcrDuplicateCount(Integer.parseInt(data[15]));
 
         if (cdnaSamples != null) {
             Map<String, Integer> curBarcodeCounts = new HashMap<>();
-            int i=0;
-            for (String sample: cdnaSamples) {
-                curBarcodeCounts.put(sample, Integer.parseInt(data[15 + i]));
+            int i = 0;
+            for (String sample : cdnaSamples) {
+                curBarcodeCounts.put(sample, Integer.parseInt(data[16 + i]));
                 i++;
             }
             record.setBarcodeCountPerSample(curBarcodeCounts);

@@ -55,48 +55,47 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
-
-        // TODO: FIX UGLY CAST
         // For each cDNA count write out the record once
         // Flip arround so that the primary record is the first position
         if (record.getPrimaryStrand() == '-') {
             record.flipPrimaryAndMate();
         }
 
-        // Write the record for each cDNA count
+        writeBedRecord(record);
+       /* // Write the record for each cDNA count
         if (record.getBarcodeCountPerSample() != null) {
             int i = 0;
             int cDNAcount = record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[0]);
 
             if (cDNAcount > 0) {
                 while (i < cDNAcount) {
-                    writeBedRecord((SamBasedIpcrRecord) record);
+                    writeBedRecord(record);
                     i ++;
                 };
             }
 
         } else {
-            writeBedRecord((SamBasedIpcrRecord) record);
-        }
+            writeBedRecord(record);
+        }*/
     }
 
 
-    private void writeBedRecord(SamBasedIpcrRecord record) throws IOException {
+    private void writeBedRecord(IpcrRecord record) throws IOException {
         // chrom
-        writer.write(record.getPrimarySamRecord().getContig());
+        writer.write(record.getContig());
         writer.write(sep);
 
         // Make the positions 0 based and half open
         // chromStart
-        writer.write(Integer.toString(record.getPrimarySamRecord().getAlignmentStart() - 1));
+        writer.write(Integer.toString(record.getPrimaryStart() - 1));
         writer.write(sep);
 
         // chromEnd
-        writer.write(Integer.toString(record.getPrimarySamRecordMate().getAlignmentEnd()));
+        writer.write(Integer.toString(record.getMateEnd()));
         writer.write(sep);
 
         // name
-        writer.write(record.getBarcode() + "|" + record.getPrimarySamRecord().getReadName());
+        writer.write(record.getBarcode() + "|" + record.getPrimaryReadName());
         writer.write(sep);
 
         // score
@@ -110,11 +109,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
 
         // Strand
-        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
+        writer.write(record.getPrimaryStrand());
 
         writer.newLine();
     }
@@ -137,6 +132,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write("readName");
         writer.write(sep);
 
+/*
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
                 int idx = key.indexOf('.');
@@ -144,6 +140,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
                 writer.write(sep);
             }
         }
+*/
 
         writer.newLine();
 
@@ -155,4 +152,13 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         outputStream.close();
     }
 
+    @Override
+    public String[] getBarcodeCountFilesSampleNames() {
+        return barcodeCountFilesSampleNames;
+    }
+
+    @Override
+    public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
+        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
 }

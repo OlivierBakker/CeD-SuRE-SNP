@@ -32,15 +32,16 @@ public class IpcrTools {
                     GenerateBarcodeComplexityCurve generateBarcodeComplexityCurve = new GenerateBarcodeComplexityCurve(barcodeCurveParams);
                     generateBarcodeComplexityCurve.run();
                     break;
-                case "MergeSamWithBarcodes":
-                    MergeBamWithBarcodesParameters barcodeCountParams = new MergeBamWithBarcodesParameters(args);
-                    MergeBamWithBarcodes mergeBamWithBarcodes = new MergeBamWithBarcodes(barcodeCountParams);
-                    mergeBamWithBarcodes.run();
+                case "MakeIpcrFile":
+                    MakeIpcrFileParameters barcodeCountParams = new MakeIpcrFileParameters(args);
+                    MakeIpcrFile makeIpcrFile = new MakeIpcrFile(barcodeCountParams);
+                    makeIpcrFile.run();
                     break;
                 case "NormalizeCdnaWithIpcr":
-                    NormalizeCdnaWithIpcrParameters normalizeParams = new NormalizeCdnaWithIpcrParameters();
-                    NormalizeCdnaWithIpcr normalizeCdnaWithIpcr = new NormalizeCdnaWithIpcr();
-                    normalizeCdnaWithIpcr.run(args);
+                    CollapseIpcrParameters normalizeParams = new CollapseIpcrParameters(args);
+                    CollapseIpcr collapseIpcr = new CollapseIpcr(normalizeParams);
+                    collapseIpcr.run();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();
