@@ -135,13 +135,23 @@ public class CollapseIpcr {
         records.remove(consensusIndex);
 
 
+
         // Get the count for the record that match, discard others
         int consensusCount = 1;
         for (IpcrRecord curRecord : records) {
+            curRecord.setMateReadName(consensusRecord.getPrimaryReadName());
+
             if (!curRecord.getContig().equals(consensusRecord.getContig())) {
                 // discard.write consensusContigMismatch
                 //LOGGER.info("Contig mismatch");
                 discardedOutputWriter.writeRecord(curRecord, "ContigMismatch");
+                continue;
+            }
+
+            if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
+                // discard.write consensusContigMismatch
+                //LOGGER.info("Contig mismatch");
+                discardedOutputWriter.writeRecord(curRecord, "PrimaryStrandMistmatch");
                 continue;
             }
 

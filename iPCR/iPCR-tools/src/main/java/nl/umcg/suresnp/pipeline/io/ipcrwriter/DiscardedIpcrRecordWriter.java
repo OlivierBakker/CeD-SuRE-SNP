@@ -66,7 +66,6 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
             writer.write(sep);
         }
 
-
         writer.write(Integer.toString(record.getPrimarySamFlags()));
         writer.write(sep);
 
@@ -76,6 +75,7 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
             writer.write("NA");
         }
 
+        writer.write(sep);
         writer.write(Integer.toString(record.getPrimaryMappingQuality()));
         writer.write(sep);
 
@@ -101,6 +101,8 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         if (record.getMateStrand() != 0){
             writer.write(sep);
             writer.write(record.getMateStrand());
+        } else {
+            writer.write("NA");
         }
         writer.newLine();
     }
