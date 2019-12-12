@@ -9,10 +9,13 @@ import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.filters.InRegionFilter;
+import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
 import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +41,6 @@ public class MakeIpcrFile {
     public void run() {
 
         try {
-            // Quick and dirty implementation to merge alignment data with barcode counts.
             // Define the input files
             File inputBamFile = new File(params.getInputBam());
 
@@ -65,10 +67,18 @@ public class MakeIpcrFile {
             // Read barcode fragment pairs
             Map<String, String> readBarcodePairs = readBarcodeFragmentPairs();
 
+            // Region filter
+            IpcrRecordFilter inRegionFilter = null;
+            if (params.getRegionFilterFile() != null) {
+                inRegionFilter = new InRegionFilter(params.getRegionFilterFile());
+            }
+
             // Init variables for logging some statistics
+            int filterPassCount = 0;
             int filterFailCount = 0;
             int noBarcodeCount = 0;
             int missingMateCount = 0;
+            int notInRegionCount = 0;
 
             // Define the iterator
             SAMRecordIterator samRecordIterator = samReader.iterator();
@@ -133,7 +143,20 @@ public class MakeIpcrFile {
                         } else {
                             curIcprRecord = new SamBasedIpcrRecord(barcode, validCachedSamRecord, mate, currentBarcodeCounts);
                         }
-                        outputWriter.writeRecord(curIcprRecord);
+
+                        // Filter on the regions
+                        if (inRegionFilter != null) {
+                            if (inRegionFilter.passesFilter(curIcprRecord)) {
+                                outputWriter.writeRecord(curIcprRecord);
+                                filterPassCount ++;
+                            } else {
+                                notInRegionCount ++;
+                            }
+
+                        } else {
+                            outputWriter.writeRecord(curIcprRecord);
+                            filterPassCount ++;
+                        }
 
                         // Reset as a valid pair has been written
                         validCachedSamRecord = null;
@@ -163,9 +186,11 @@ public class MakeIpcrFile {
 
             // Log some info
             LOGGER.info("Processed a total of " + i + " reads");
+            LOGGER.info(filterPassCount + " (" + getPerc(filterPassCount, i) + "%) valid ipcr records written");
             LOGGER.info(filterFailCount + " (" + getPerc(filterFailCount, i) + "%) reads failed filtering. Either unmapped, secondary alignment or improper pair");
             LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a barcode");
             LOGGER.info(missingMateCount + " (" + getPerc(missingMateCount, i) + "%) reads where valid but missed mate");
+            LOGGER.info(notInRegionCount + " (" + getPerc(notInRegionCount, i) + "%) pairs where filtered for not overlapping a region");
 
             // Close all the streams
             samRecordIterator.close();
@@ -173,7 +198,7 @@ public class MakeIpcrFile {
             outputWriter.flushAndClose();
             discardedOutputWriter.flushAndClose();
 
-        } catch (IOException e) {
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
     }
@@ -189,7 +214,6 @@ public class MakeIpcrFile {
             }
         }
         return readBarcodeCounts;
-
     }
 
     private Map<String, String> readBarcodeFragmentPairs() throws IOException {

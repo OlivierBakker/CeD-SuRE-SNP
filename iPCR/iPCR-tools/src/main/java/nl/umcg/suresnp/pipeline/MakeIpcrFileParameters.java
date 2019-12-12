@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.BedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.BedpeIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.GenericIpcrRecordWriter;
@@ -24,6 +25,7 @@ public class MakeIpcrFileParameters {
     private String inputBarcodes;
     private String inputBarcodeCounts;
     private String secondaryInputBam;
+    private GenericFile regionFilterFile;
 
     private String outputPrefix;
     private String outputSuffix;
@@ -95,6 +97,14 @@ public class MakeIpcrFileParameters {
                 .hasArg(true)
                 .desc("Output prefix")
                 .argName("path/to/output")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("f")
+                .longOpt("region-filter")
+                .hasArg(true)
+                .desc("BED file to only output records overlapping those regions")
+                .argName("path/to/file")
                 .build();
         OPTIONS.addOption(option);
 
@@ -216,6 +226,10 @@ public class MakeIpcrFileParameters {
 
         if (cmd.hasOption("n")) {
             barcodeCountFiles = cmd.getOptionValues("n");
+        }
+
+        if (cmd.hasOption("f")) {
+            regionFilterFile = new GenericFile(cmd.getOptionValue("f"));
         }
 
         if (cmd.hasOption("s")) {
@@ -342,6 +356,10 @@ public class MakeIpcrFileParameters {
 
     public static ArrayList<String> getChromosomes() {
         return chromosomes;
+    }
+
+    public GenericFile getRegionFilterFile() {
+        return regionFilterFile;
     }
 
     public static void printHelp() {

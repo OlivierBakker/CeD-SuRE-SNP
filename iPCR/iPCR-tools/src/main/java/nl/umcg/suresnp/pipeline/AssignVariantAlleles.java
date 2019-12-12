@@ -77,6 +77,7 @@ public class AssignVariantAlleles {
         discaredOutputWriter.writeHeader("source\treason");
         alleleSpecificIpcrOutputWriter.writeHeader("source");
 
+        // Determine the index of the sample to check genotypes against
         int sampleIdx = -9;
         if (params.getSampleGenotypeId() != null) {
             String[] sampleNames = genotypeData.getSampleNames();
@@ -88,6 +89,7 @@ public class AssignVariantAlleles {
             }
         }
 
+        // Loop over all genetic variants in VCF
         int i = 0;
         for (GeneticVariant curVariant : genotypeData) {
 
@@ -103,30 +105,24 @@ public class AssignVariantAlleles {
             SAMRecordIterator primarySamRecordIterator = primarySamReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
             Set<String> primaryReadNameCache = new HashSet<>();
 
-            // Loop over all the records
+            // Loop over all the records and assign the allele to the read
             while (primarySamRecordIterator.hasNext()) {
-                // Logging progress
-                if (i > 0) {
-                    if (i % 1000000 == 0) {
-                        LOGGER.info("Processed " + i / 1000000 + " million SAM records total (primary + secondary)");
-                    }
-                }
                 // Retrieve the current record
                 SAMRecord record = primarySamRecordIterator.next();
                 primaryReadNameCache.add(record.getReadName());
                 AlleleSpecificSamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
                 evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "PrimaryBamFile", sampleIdx);
-
                 i++;
             }
             primarySamRecordIterator.close();
 
+            // If provided do the same thing for the secondary BAM file provided. This is done because GATK
+            // --bamout does not provide HOM ref reads
             if (params.hasSecondaryInputBam() && secondarySamReader != null) {
-
                 SAMRecordIterator secondarySamRecordIterator = secondarySamReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+
                 while (secondarySamRecordIterator.hasNext()) {
                     SAMRecord record = secondarySamRecordIterator.next();
-
                     if (primaryReadNameCache.contains(record.getReadName())) {
                         discaredOutputWriter.writeRecord(new AlleleSpecificSamBasedIpcrRecord(null,
                                 null,

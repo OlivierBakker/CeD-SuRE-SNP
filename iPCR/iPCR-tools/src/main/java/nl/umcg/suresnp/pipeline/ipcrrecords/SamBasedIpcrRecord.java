@@ -280,4 +280,44 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
         SamBasedIpcrRecord other = (SamBasedIpcrRecord) o;
         return (barcode.compareTo(other.getBarcode()));
     }
+
+    @Override
+    public boolean isPartiallyOverlappingWindow(int start, int stop) {
+        return isStartInWindow(start, stop) || isStopInWindow(start, stop);
+    }
+
+    @Override
+    public boolean isFullyInsideWindow(int start, int stop) {
+        return isStartInWindow(start, stop) && isStopInWindow(start, stop);
+    }
+
+    @Override
+    public boolean isStartInWindow(int start, int stop) {
+        return getOrientationIndependentStart() >= start && getOrientationIndependentStart() <= stop;
+    }
+
+    @Override
+    public boolean isStopInWindow(int start, int stop) {
+        return getOrientationIndependentEnd() >= start && getOrientationIndependentEnd() <= stop;
+    }
+
+    @Override
+    public int getOrientationIndependentStart() {
+        if (getPrimaryStrand() == '+') {
+            return getPrimaryStart();
+        } else {
+            return getMateStart();
+        }
+    }
+
+    @Override
+    public int getOrientationIndependentEnd() {
+        if (getPrimaryStrand() == '-') {
+            return getPrimaryEnd();
+        } else {
+            return getMateEnd();
+        }
+    }
+
+
 }

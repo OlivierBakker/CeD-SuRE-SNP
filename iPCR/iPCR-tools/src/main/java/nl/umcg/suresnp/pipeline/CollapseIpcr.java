@@ -3,18 +3,18 @@ package nl.umcg.suresnp.pipeline;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.BedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.GenericIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.ipcrrecords.BasicIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
+import sun.net.www.content.text.Generic;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class CollapseIpcr {
 
@@ -90,23 +90,132 @@ public class CollapseIpcr {
                 outputList.add(createConsensusRecord(duplicateRecordCache));
             }
 
+            LOGGER.info("Done, collapsed " + outputList.size() + " valid records");
+
+            // Sort on position
+            LOGGER.info("Started sorting " + outputList.size() + " records");
+            start = System.currentTimeMillis();
+            outputList.sort(Comparator
+                    .comparing(IpcrRecord::getContig)
+                    .thenComparing(IpcrRecord::getOrientationIndependentStart));
+            stop = System.currentTimeMillis();
+            LOGGER.info("Done sorting. Took: " + ((stop - start) / 1000) + " seconds");
+
+            // Write the output
+            IpcrOutputWriter outputWriter1 = new BedIpcrRecordWriter(new File(params.getOutputPrefix()), false);
+            outputWriter1.setBarcodeCountFilesSampleNames(provider.getSamples());
+            outputWriter1.writeHeader();
+
+            for (IpcrRecord curRecord : outputList) {
+                outputWriter1.writeRecord(curRecord);
+            }
+            LOGGER.info("Done, writing pileup of size " + outputList.size());
+            outputWriter1.flushAndClose();
+
+
+            //TODO: Hardcoded sample name
+            List<IpcrRecord> pileup = makePileup(outputList,provider.getSamples()[0], 250);
+
             // Write the output
             outputWriter.setBarcodeCountFilesSampleNames(provider.getSamples());
             outputWriter.writeHeader();
 
-            for (IpcrRecord record : outputList) {
+            for (IpcrRecord record : pileup) {
                 outputWriter.writeRecord(record);
             }
+            LOGGER.info("Done, writing pileup of size " + pileup.size());
+
 
             outputWriter.flushAndClose();
             discardedOutputWriter.flushAndClose();
-            LOGGER.info("Done, wrote " + outputList.size() + " valid collapsed records");
         } catch (IOException e) {
             e.printStackTrace();
         }
-;
+        ;
 
     }
+
+    private List<IpcrRecord> makePileup(List<IpcrRecord> records, String sample, int fragmentSize) {
+        // assumes records are sorted on position
+        // TODO: does not handle the ends of contigs properly, fix this
+        List<IpcrRecord> outputPileup = new TreeList<>();
+        List<IpcrRecord> pileupCache = new ArrayList<>();
+
+        String cachedContig = records.get(0).getContig();
+        int contigStop = CollapseIpcrParameters.getChromSize(cachedContig);
+        int windowStart = 0;
+        int windowEnd = fragmentSize;
+        IpcrRecord tmpRecord;
+        Map<String, Integer> cDnaCounts;
+
+        for (IpcrRecord curRecord : records) {
+
+            if (curRecord.getContig().equals(cachedContig)) {
+                if (curRecord.isStartInWindow(windowStart, windowEnd)) {
+                    pileupCache.add(curRecord);
+                } else {
+                    tmpRecord = new BasicIpcrRecord(cachedContig, windowStart, windowEnd);
+                    tmpRecord.setIpcrDuplicateCount(pileupCache.size());
+                    cDnaCounts = new HashMap<>();
+
+                    int cDnaCount = 0;
+                    if (pileupCache.size() > 0) {
+                        for (IpcrRecord rec : pileupCache) {
+                            cDnaCount += rec.getBarcodeCountPerSample().get(sample);
+                        }
+                    }
+                    cDnaCounts.put(sample, cDnaCount);
+                    tmpRecord.setBarcodeCountPerSample(cDnaCounts);
+                    outputPileup.add(tmpRecord);
+                    pileupCache.clear();
+
+                    // Now proccess the current record
+                    windowStart = windowEnd;
+                    windowEnd = windowEnd + fragmentSize;
+
+                    if (curRecord.isStartInWindow(windowStart, windowEnd)) {
+                        pileupCache.add(curRecord);
+                    } else {
+                        tmpRecord = new BasicIpcrRecord(cachedContig, windowStart, curRecord.getOrientationIndependentStart());
+                        tmpRecord.setIpcrDuplicateCount(0);
+                        cDnaCounts = new HashMap<>();
+                        cDnaCounts.put(sample, 0);
+                        tmpRecord.setBarcodeCountPerSample(cDnaCounts);
+                        outputPileup.add(tmpRecord);
+                        pileupCache.clear();
+
+                        windowStart = curRecord.getOrientationIndependentStart();
+                        windowEnd = windowStart + fragmentSize;
+                    }
+                }
+            } else {
+                pileupCache.clear();
+                cachedContig = curRecord.getContig();
+                windowStart = 0;
+                windowEnd = fragmentSize;
+
+                if (curRecord.isStartInWindow(windowStart, windowEnd)) {
+                    pileupCache.add(curRecord);
+                } else {
+                    tmpRecord = new BasicIpcrRecord(cachedContig, windowStart, curRecord.getOrientationIndependentStart());
+                    tmpRecord.setIpcrDuplicateCount(0);
+                    cDnaCounts = new HashMap<>();
+                    cDnaCounts.put(sample, 0);
+                    tmpRecord.setBarcodeCountPerSample(cDnaCounts);
+                    outputPileup.add(tmpRecord);
+                    pileupCache.clear();
+
+                    windowStart = curRecord.getOrientationIndependentStart();
+                    windowEnd = windowStart + fragmentSize;
+                }
+            }
+
+        }
+
+        LOGGER.info("Made pileup of " + outputPileup.size() + " fragments");
+        return outputPileup;
+    }
+
 
     private IpcrRecord createConsensusRecord(List<IpcrRecord> records) throws IOException {
 
@@ -134,8 +243,6 @@ public class CollapseIpcr {
         }
         records.remove(consensusIndex);
 
-
-
         // Get the count for the record that match, discard others
         int consensusCount = 1;
         for (IpcrRecord curRecord : records) {
@@ -155,13 +262,13 @@ public class CollapseIpcr {
                 continue;
             }
 
-            if (!isInWindow(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+            if (!isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
                 // dicard.write consensusPrimaryStartMismatch
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR1Start");
                 continue;
             }
 
-            if (!isInWindow(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
+            if (!isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
                 // dicard.write consensusMateEndMismatch
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR2End");
                 continue;
@@ -175,8 +282,16 @@ public class CollapseIpcr {
     }
 
 
-    private boolean isInWindow(int x, int y, int distance) {
-        if (x > y - distance && x < y + distance) {
+    private boolean isInWindow(int x, int start, int end) {
+        if (x > start && x < end) {
+            return true;
+        }
+        return false;
+    }
+
+
+    private boolean isInWindowDistance(int x, int y, int distance) {
+        if (x > (y - distance) && x < (y + distance)) {
             return true;
         }
 

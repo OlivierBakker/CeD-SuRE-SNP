@@ -54,18 +54,14 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
         // Flip arround so that the primary read is the first position
-        if (record.getPrimaryStrand() == '-') {
-            record.flipPrimaryAndMate();
-        }
-
         writer.write(record.getContig());
         writer.write(sep);
 
         // Make the positions 0 based
-        writer.write(Integer.toString(record.getPrimaryStart()));
+        writer.write(Integer.toString(record.getOrientationIndependentStart()));
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimaryEnd()));
+        writer.write(Integer.toString(record.getOrientationIndependentEnd()));
         writer.write(sep);
 
         writer.write(record.getBarcode());
@@ -105,7 +101,12 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
         if (barcodeCountFilesSampleNames != null) {
             for (String key : barcodeCountFilesSampleNames) {
                 int idx = key.indexOf('.');
-                writer.write(key.substring(0, idx));
+
+                if (idx < 1) {
+                    writer.write(key);
+                } else {
+                    writer.write(key.substring(0, idx));
+                }
                 writer.write(sep);
             }
         }

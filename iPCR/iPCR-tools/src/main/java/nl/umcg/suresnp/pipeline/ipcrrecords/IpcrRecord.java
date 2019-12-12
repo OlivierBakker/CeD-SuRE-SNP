@@ -79,4 +79,17 @@ public interface IpcrRecord {
 
     void flipPrimaryAndMate();
 
+    boolean isPartiallyOverlappingWindow(int start, int stop);
+
+    boolean isFullyInsideWindow(int start, int stop);
+
+    boolean isStartInWindow(int start, int stop);
+
+    boolean isStopInWindow(int start, int stop);
+
+    int getOrientationIndependentStart();
+
+    int getOrientationIndependentEnd();
+
+
 }

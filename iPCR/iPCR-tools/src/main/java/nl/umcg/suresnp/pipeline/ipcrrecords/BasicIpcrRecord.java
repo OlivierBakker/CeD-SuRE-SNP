@@ -28,6 +28,12 @@ public class BasicIpcrRecord implements IpcrRecord {
     public BasicIpcrRecord() {
     }
 
+    public BasicIpcrRecord(String contig, int primaryStart, int mateEnd) {
+        this.contig = contig;
+        this.primaryStart = primaryStart;
+        this.mateEnd = mateEnd;
+    }
+
     public BasicIpcrRecord(String barcode, String primaryReadName, String contig, int primaryStart, int primaryEnd, int mateStart, int mateEnd, int primarySamFlags, int mateSamFlags, int primaryMappingQuality, int mateMappingQuality, String primaryCigar, String mateCigar, char primaryStrand, char mateStrand, Map<String, Integer> barcodeCountPerSample) {
         this.barcode = barcode;
         this.primaryReadName = primaryReadName;
@@ -54,7 +60,7 @@ public class BasicIpcrRecord implements IpcrRecord {
 
     @Override
     public void setBarcode(String barcode) {
-        this.barcode=barcode;
+        this.barcode = barcode;
     }
 
 
@@ -253,6 +259,53 @@ public class BasicIpcrRecord implements IpcrRecord {
         mateMappingQuality = tmpPrimaryMappingQual;
         mateCigar = tmpPrimaryCigar;
         mateStrand = tmpPrimaryStrand;
+    }
+
+    @Override
+    public boolean isPartiallyOverlappingWindow(int start, int stop) {
+        return isStartInWindow(start, stop) || isStopInWindow(start, stop);
+    }
+
+    @Override
+    public boolean isFullyInsideWindow(int start, int stop) {
+        return isStartInWindow(start, stop) && isStopInWindow(start, stop);
+    }
+
+    @Override
+    public boolean isStartInWindow(int start, int stop) {
+        return getOrientationIndependentStart() >= start && getOrientationIndependentStart() <= stop;
+    }
+
+    @Override
+    public boolean isStopInWindow(int start, int stop) {
+        return getOrientationIndependentEnd() >= start && getOrientationIndependentEnd() <= stop;
+    }
+
+    @Override
+    public int getOrientationIndependentStart() {
+
+        if (getPrimaryStrand() == 0) {
+            primaryStrand = '+';
+        }
+
+        if (getPrimaryStrand() == '+') {
+            return getPrimaryStart();
+        } else {
+            return getMateStart();
+        }
+    }
+
+    @Override
+    public int getOrientationIndependentEnd() {
+        if (getPrimaryStrand() == 0) {
+            primaryStrand = '+';
+        }
+        // Minus is correct here
+        if (getPrimaryStrand() == '-') {
+            return getPrimaryEnd();
+        } else {
+            return getMateEnd();
+        }
     }
 
 }

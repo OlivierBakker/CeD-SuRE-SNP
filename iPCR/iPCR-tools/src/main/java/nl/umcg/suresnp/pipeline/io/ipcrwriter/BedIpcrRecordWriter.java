@@ -25,7 +25,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         }
         this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
 
-        // Clean filenames, trim all .
+        // Clean filenames, trim all.
         int i = 0;
         for (String curFile: barcodeCountFilesSampleNames) {
             String tmp = new GenericFile(curFile).getBaseName();
@@ -56,27 +56,23 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
         // For each cDNA count write out the record once
-        // Flip arround so that the primary record is the first position
-        if (record.getPrimaryStrand() == '-') {
-            record.flipPrimaryAndMate();
-        }
 
-        writeBedRecord(record);
-       /* // Write the record for each cDNA count
+        //writeBedRecord(record);
+        // Write the record for each cDNA count
         if (record.getBarcodeCountPerSample() != null) {
             int i = 0;
-            int cDNAcount = record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[0]);
+            int cDNAcount = Math.round((float) record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[0]) / record.getIpcrDuplicateCount());
 
             if (cDNAcount > 0) {
                 while (i < cDNAcount) {
                     writeBedRecord(record);
-                    i ++;
+                    i++;
                 };
             }
-
         } else {
-            writeBedRecord(record);
-        }*/
+            //writeBedRecord(record);
+        }
+
     }
 
 
@@ -87,11 +83,11 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
         // Make the positions 0 based and half open
         // chromStart
-        writer.write(Integer.toString(record.getPrimaryStart() - 1));
+        writer.write(Integer.toString(record.getOrientationIndependentStart() - 1));
         writer.write(sep);
 
         // chromEnd
-        writer.write(Integer.toString(record.getMateEnd()));
+        writer.write(Integer.toString(record.getOrientationIndependentEnd()));
         writer.write(sep);
 
         // name

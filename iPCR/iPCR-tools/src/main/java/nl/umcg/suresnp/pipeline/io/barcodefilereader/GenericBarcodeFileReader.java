@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 public class GenericBarcodeFileReader implements BarcodeFileReader {
     private static final Logger LOGGER = Logger.getLogger(GenericBarcodeFileReader.class);
