@@ -3,6 +3,7 @@ package nl.umcg.suresnp.pipeline.io.ipcrreader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.BasicIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
@@ -66,7 +67,6 @@ public class IpcrFileReader implements IpcrRecordProvider {
     @Override
     public IpcrRecord getNextRecord() throws IOException {
         String line = reader.readLine();
-
         if (line != null) {
             return parseIpcrRecord(line);
         } else {
@@ -92,6 +92,34 @@ public class IpcrFileReader implements IpcrRecordProvider {
             curRecord = getNextRecord();
         }
         LOGGER.info("Read " + i + " records");
+
+        return records;
+    }
+
+    @Override
+    public List<IpcrRecord> getRecordsAsList(List<IpcrRecordFilter> filters) throws IOException {
+        IpcrRecord curRecord = getNextRecord();
+        List<IpcrRecord> records = new TreeList<>();
+
+        int i = 0;
+        while (curRecord != null) {
+            // Logging progress
+            if (i > 0) {
+                if (i % 1000000 == 0) {
+                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
+                }
+            }
+            i++;
+
+            for (IpcrRecordFilter filter : filters) {
+                if (filter.passesFilter(curRecord)) {
+                    records.add(curRecord);
+                }
+            }
+            curRecord = getNextRecord();
+        }
+        LOGGER.info("Read " + i + " records");
+        LOGGER.info(records.size() + " records passed filters");
 
         return records;
     }

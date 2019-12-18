@@ -1,6 +1,8 @@
 package nl.umcg.suresnp.pipeline;
 
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;
+import nl.umcg.suresnp.pipeline.tools.parameters.*;
+import nl.umcg.suresnp.pipeline.tools.runners.*;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.log4j.Logger;
@@ -41,6 +43,11 @@ public class IpcrTools {
                     CollapseIpcrParameters normalizeParams = new CollapseIpcrParameters(args);
                     CollapseIpcr collapseIpcr = new CollapseIpcr(normalizeParams);
                     collapseIpcr.run();
+                    break;
+                case "MakeReadNucleotideDistribution":
+                    MakeReadNucleotideDistributionParameters nucParams = new MakeReadNucleotideDistributionParameters(args);
+                    MakeReadNucleotideDistribution nucDist = new MakeReadNucleotideDistribution(nucParams);
+                    nucDist.run();
                     break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");

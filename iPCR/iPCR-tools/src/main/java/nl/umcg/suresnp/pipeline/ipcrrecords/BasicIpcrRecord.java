@@ -308,4 +308,17 @@ public class BasicIpcrRecord implements IpcrRecord {
         }
     }
 
+    @Override
+    public int getMappingQualitySum() {
+        int totalMq = getPrimaryMappingQuality() + getMateMappingQuality();
+        return totalMq;
+    }
+
+
+    @Override
+    public int getMappedBaseCount() {
+        int r1length = getPrimaryEnd() - getPrimaryStart();
+        int r2length = getMateEnd() - getMateStart();
+        return r1length + r2length;
+    }
 }

@@ -37,7 +37,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setBarcode(String barcode) {
-        this.barcode=barcode;
+        this.barcode = barcode;
     }
 /*
 
@@ -180,7 +180,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public char getMateStrand() {
-        if(primarySamRecordMate != null) {
+        if (primarySamRecordMate != null) {
             if (primarySamRecordMate.getReadNegativeStrandFlag()) {
                 return '-';
             } else {
@@ -319,5 +319,13 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
         }
     }
 
+    @Override
+    public int getMappingQualitySum() {
+        throw new NotImplementedException();
+    }
 
+    @Override
+    public int getMappedBaseCount() {
+        throw new NotImplementedException();
+    }
 }

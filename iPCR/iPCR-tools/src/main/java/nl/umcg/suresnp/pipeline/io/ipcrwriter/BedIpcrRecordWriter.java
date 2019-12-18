@@ -12,6 +12,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
     protected OutputStream outputStream;
     protected BufferedWriter writer;
+    private int sampleIndexToWrite;
     private String[] barcodeCountFilesSampleNames;
 
     private final String sep = "\t";
@@ -34,7 +35,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
             this.barcodeCountFilesSampleNames[i] = tmp;
             i++;
         }
-
+        sampleIndexToWrite = 0;
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
@@ -44,8 +45,12 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         } else {
             outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bed.gz"));
         }
-
+        sampleIndexToWrite = -1;
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+    }
+
+    public void setSampleIndexToWrite(int index) {
+        this.sampleIndexToWrite = index;
     }
 
     @Override
@@ -55,26 +60,31 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
-        // For each cDNA count write out the record once
 
-        //writeBedRecord(record);
-        // Write the record for each cDNA count
-        if (record.getBarcodeCountPerSample() != null) {
-            int i = 0;
-            int cDNAcount = Math.round((float) record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[0]) / record.getIpcrDuplicateCount());
-
-            if (cDNAcount > 0) {
-                while (i < cDNAcount) {
-                    writeBedRecord(record);
-                    i++;
-                };
+        int count;
+        if (sampleIndexToWrite >= 0) {
+            if (record.getBarcodeCountPerSample() != null) {
+                count = record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[sampleIndexToWrite]);
+            } else {
+                count=0;
             }
         } else {
-            //writeBedRecord(record);
+            count = record.getIpcrDuplicateCount();
         }
 
-    }
+        if (record.getBarcodeCountPerSample() != null) {
+            int i = 0;
 
+            if (count > 0) {
+                while (i < count) {
+                    writeBedRecord(record);
+                    i++;
+                }
+            }
+        }
+
+
+    }
 
     private void writeBedRecord(IpcrRecord record) throws IOException {
         // chrom
@@ -91,8 +101,8 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
 
         // name
-        writer.write(record.getBarcode() + "|" + record.getPrimaryReadName());
-        writer.write(sep);
+        writer.write(record.getBarcode());
+        //writer.write(sep);
 
         // score
 /*        if (record.getBarcodeCountPerSample() != null) {
@@ -101,11 +111,11 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
                 writer.write(";");
             }
         }*/
-        writer.write(".");
-        writer.write(sep);
+        //writer.write(".");
+        //writer.write(sep);
 
         // Strand
-        writer.write(record.getPrimaryStrand());
+       // writer.write(record.getPrimaryStrand());
 
         writer.newLine();
     }

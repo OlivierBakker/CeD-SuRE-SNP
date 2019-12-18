@@ -91,5 +91,9 @@ public interface IpcrRecord {
 
     int getOrientationIndependentEnd();
 
+    int getMappingQualitySum();
+
+    int getMappedBaseCount();
+
 
 }
