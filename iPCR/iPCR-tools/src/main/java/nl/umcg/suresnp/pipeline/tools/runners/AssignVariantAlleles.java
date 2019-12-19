@@ -62,7 +62,7 @@ public class AssignVariantAlleles {
         filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
 
         barcodeReadMap = barcodeFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
-        barcodeFileReader.close();
+        barcodeFileReader.flushAndClose();
 
         // Create genotype data iterator
         RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF, params.getInputVcf());

@@ -49,6 +49,11 @@ public class IpcrTools {
                     MakeReadNucleotideDistribution nucDist = new MakeReadNucleotideDistribution(nucParams);
                     nucDist.run();
                     break;
+                case "MakeBarcodeCounts":
+                    MakeBarcodeCountsParameters parameters = new MakeBarcodeCountsParameters(args);
+                    MakeBarcodeCounts makeBarcodeCounts = new MakeBarcodeCounts(parameters);
+                    makeBarcodeCounts.run();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();

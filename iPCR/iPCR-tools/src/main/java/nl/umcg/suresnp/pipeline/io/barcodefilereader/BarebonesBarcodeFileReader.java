@@ -23,12 +23,22 @@ public class BarebonesBarcodeFileReader implements BarcodeFileReader {
     }
 
     @Override
-    public Map<String, InfoRecord> readBarcodeFile(GenericFile file) throws IOException {
+    public List<InfoRecord> readBarcodeFileAsList(GenericFile file) throws IOException {
         throw new NotImplementedException();
     }
 
     @Override
-    public Map<String, InfoRecord> readBarcodeFile(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
+    public List<InfoRecord> readBarcodeFileAsList(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file) throws IOException {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
         throw new NotImplementedException();
     }
 
@@ -75,7 +85,7 @@ public class BarebonesBarcodeFileReader implements BarcodeFileReader {
     }
 
     @Override
-    public void close() throws IOException {
+    public void flushAndClose() throws IOException {
     }
 
     private static InfoRecord parseBarcodeRecord(String[] line) throws NumberFormatException {

@@ -11,9 +11,13 @@ import java.util.Map;
 
 public interface BarcodeFileReader {
 
-    Map<String, InfoRecord> readBarcodeFile(GenericFile file) throws IOException;
+    List<InfoRecord> readBarcodeFileAsList(GenericFile file) throws IOException;
 
-    Map<String, InfoRecord> readBarcodeFile(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
+    List<InfoRecord> readBarcodeFileAsList(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
+
+    Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file) throws IOException;
+
+    Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
 
     Map<String, String> readBarcodeFileAsStringMap(GenericFile file) throws IOException;
 
@@ -21,5 +25,5 @@ public interface BarcodeFileReader {
 
     Map<String, Integer> readBarcodeCountFile(GenericFile file) throws IOException;
 
-    void close() throws IOException;
+    void flushAndClose() throws IOException;
 }

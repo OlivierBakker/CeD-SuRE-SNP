@@ -18,7 +18,6 @@ public class CsvReader {
         try {
             if (trim) {
                 return reader.readLine().trim().split(separator);
-
             } else {
                 return reader.readLine().split(separator);
             }
