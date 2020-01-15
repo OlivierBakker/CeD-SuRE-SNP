@@ -32,13 +32,13 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record) throws IOException {
         ipcrBedWriter.writeRecord(record, "");
-        ipcrBedWriter.writeRecord(record, "");
+        cdnaBedWriter.writeRecord(record, "");
     }
 
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
         ipcrBedWriter.writeRecord(record, reason);
-        ipcrBedWriter.writeRecord(record, reason);
+        cdnaBedWriter.writeRecord(record, reason);
     }
 
     @Override

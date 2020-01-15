@@ -192,7 +192,6 @@ public class CollapseIpcrParameters {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
-
             case "MACS":
                 if (barcodeCountFiles != null) {
                     outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
