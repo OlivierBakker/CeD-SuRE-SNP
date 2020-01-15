@@ -254,7 +254,7 @@ public class GenericBarcodeFileReader implements BarcodeFileReader {
             if (line.length != 2) {
                 continue;
             } else {
-                readBarcodePairs.put(line[1], Integer.parseInt(line[0]));
+                readBarcodePairs.put(line[0], Integer.parseInt(line[1]));
             }
         }
         reader.close();

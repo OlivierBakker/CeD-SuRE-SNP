@@ -38,6 +38,10 @@ public class MakeBarcodeCounts {
         // Barcode count map
         Map<String, Integer> barcodeCounts = new HashMap<>();
 
+        // Logging variables
+        int totalCount=0;
+        int totalDiscard=0;
+
         // Did not use GenericBarcodeFileReader or SparseBarcodeFileReader for efficiency
         // So the algo can be streaming, otherwise need to refactor to provider type pattern
         for (String curFile : params.getInputBarcodes()) {
@@ -103,8 +107,10 @@ public class MakeBarcodeCounts {
             }
             reader.close();
             LOGGER.info("Done, Read " + curRecord + " records");
+            totalCount += curRecord;
 
             if (discarded > 0) {
+                totalDiscard += discarded;
                 LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
                 LOGGER.warn(params.getOutputPrefix() + ".discarded.barcodes.txt");
             }
@@ -112,7 +118,6 @@ public class MakeBarcodeCounts {
 
         discardedWriter.flush();
         discardedWriter.close();
-
 
         LOGGER.info(barcodeCounts.size() + " unique barcodes");
 
@@ -124,7 +129,7 @@ public class MakeBarcodeCounts {
             outputWriter.write(key + "\t" + curValue);
             outputWriter.newLine();
         }
-        LOGGER.info("Sanity check " + sanityCheckSum + " total count, should be equal to number below");
+        LOGGER.info("Sanity check " + sanityCheckSum + " total count, should be equal to " + (totalCount - totalDiscard));
         LOGGER.info("Done writing " + barcodeCounts.size() + " records");
 
         outputWriter.flush();

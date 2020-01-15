@@ -104,22 +104,12 @@ public class CollapseIpcr {
             outputWriter.setBarcodeCountFilesSampleNames(provider.getSamples());
             outputWriter.writeHeader();
 
-            // Fixed writers
-            BedIpcrRecordWriter ipcrBedWriter = new BedIpcrRecordWriter(new File(params.getOutputPrefix() + ".ipcr"), false);
-            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(params.getOutputPrefix() + ".cdna"), false, provider.getSamples());
-            ipcrBedWriter.setSampleIndexToWrite(-1);
-            cdnaBedWriter.setSampleIndexToWrite(0);
-
             for (IpcrRecord record : outputList) {
                 outputWriter.writeRecord(record);
-                ipcrBedWriter.writeRecord(record);
-                cdnaBedWriter.writeRecord(record);
             }
 
             outputWriter.flushAndClose();
             discardedOutputWriter.flushAndClose();
-            ipcrBedWriter.flushAndClose();
-            cdnaBedWriter.flushAndClose();
 
             LOGGER.info("Done, writing " + outputList.size() + " ipcr records");
 

@@ -18,7 +18,6 @@ public class CollapseIpcrParameters {
     private String inputFile;
     private String[] barcodeCountFiles;
 
-
     private String outputPrefix;
     private String outputSuffix;
     private String outputType;
@@ -191,6 +190,14 @@ public class CollapseIpcrParameters {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
                 } else {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped);
+                }
+                break;
+
+            case "MACS":
+                if (barcodeCountFiles != null) {
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                } else {
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
 
