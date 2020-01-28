@@ -14,7 +14,7 @@ import static java.lang.System.exit;
 
 public class AssignVariantAllelesParameters {
 
-    private final Logger LOGGER = Logger.getLogger(GenerateBarcodeComplexityCurveParameters.class);
+    private final Logger LOGGER = Logger.getLogger(MakeBarcodeComplexityCurveParameters.class);
     private final CommandLine cmd;
 
     // IO arguments
@@ -163,7 +163,7 @@ public class AssignVariantAllelesParameters {
             // When writing to a file check if the correct options are specified
             if (!cmd.hasOption("o")) {
                 LOGGER.error("-o not specified");
-                GenerateBarcodeComplexityCurveParameters.printHelp();
+                MakeBarcodeComplexityCurveParameters.printHelp();
                 exit(1);
             }
 

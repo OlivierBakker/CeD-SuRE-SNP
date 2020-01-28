@@ -5,7 +5,7 @@ import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilte
 import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
@@ -30,13 +30,13 @@ public class MakeIpcrFile {
     private MakeIpcrFileParameters params;
     private IpcrOutputWriter discardedOutputWriter;
     private IpcrOutputWriter outputWriter;
-    private GenericBarcodeFileReader barcodeFileReader;
+    private GenericInfoFileReader barcodeFileReader;
 
     public MakeIpcrFile(MakeIpcrFileParameters params) throws IOException {
         this.params = params;
         this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
         this.outputWriter = params.getOutputWriter();
-        this.barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
+        this.barcodeFileReader = new GenericInfoFileReader(params.getOutputPrefix());
     }
 
     public void run() {
@@ -186,12 +186,12 @@ public class MakeIpcrFile {
             }
 
             // Log some info
-            LOGGER.info("Processed a total of " + i + " reads");
-            LOGGER.info(filterPassCount + " (" + getPerc(filterPassCount, i) + "%) valid ipcr records written");
+            LOGGER.info("Processed a total of " + i + " reads, " + i / 2 + " pairs" );
+            LOGGER.info(filterPassCount + " (" + getPerc(filterPassCount, i / 2) + "%) valid ipcr records written");
+            LOGGER.info(notInRegionCount + " (" + getPerc(notInRegionCount, i / 2) + "%) pairs where filtered for not overlapping a region");
             LOGGER.info(filterFailCount + " (" + getPerc(filterFailCount, i) + "%) reads failed filtering. Either unmapped, secondary alignment or improper pair");
-            LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a barcode");
+            LOGGER.info(noBarcodeCount + " (" + getPerc(noBarcodeCount, i) + "%) reads where in the BAM but could not be associated to a valid barcode");
             LOGGER.info(missingMateCount + " (" + getPerc(missingMateCount, i) + "%) reads where valid but missed mate");
-            LOGGER.info(notInRegionCount + " (" + getPerc(notInRegionCount, i) + "%) pairs where filtered for not overlapping a region");
 
             // Close all the streams
             samRecordIterator.close();

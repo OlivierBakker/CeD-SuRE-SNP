@@ -30,16 +30,16 @@ public class IpcrTools {
                     assignVariantAlleles.run();
                     break;
                 case "GenerateBarcodeComplexityCurve":
-                    GenerateBarcodeComplexityCurveParameters barcodeCurveParams = new GenerateBarcodeComplexityCurveParameters(args);
-                    GenerateBarcodeComplexityCurve generateBarcodeComplexityCurve = new GenerateBarcodeComplexityCurve(barcodeCurveParams);
-                    generateBarcodeComplexityCurve.run();
+                    MakeBarcodeComplexityCurveParameters barcodeCurveParams = new MakeBarcodeComplexityCurveParameters(args);
+                    MakeBarcodeComplexityCurve makeBarcodeComplexityCurve = new MakeBarcodeComplexityCurve(barcodeCurveParams);
+                    makeBarcodeComplexityCurve.run();
                     break;
                 case "MakeIpcrFile":
                     MakeIpcrFileParameters barcodeCountParams = new MakeIpcrFileParameters(args);
                     MakeIpcrFile makeIpcrFile = new MakeIpcrFile(barcodeCountParams);
                     makeIpcrFile.run();
                     break;
-                case "NormalizeCdnaWithIpcr":
+                case "CollapseIpcr":
                     CollapseIpcrParameters normalizeParams = new CollapseIpcrParameters(args);
                     CollapseIpcr collapseIpcr = new CollapseIpcr(normalizeParams);
                     collapseIpcr.run();
@@ -53,6 +53,11 @@ public class IpcrTools {
                     MakeBarcodeCountsParameters parameters = new MakeBarcodeCountsParameters(args);
                     MakeBarcodeCounts makeBarcodeCounts = new MakeBarcodeCounts(parameters);
                     makeBarcodeCounts.run();
+                    break;
+                case "MakeBarcodeStats":
+                    MakeSummariesParameters bcParams = new MakeSummariesParameters(args);
+                    MakeSummaries makeSummaries = new MakeSummaries(bcParams);
+                    makeSummaries.barcodeOverlap();
                     break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");

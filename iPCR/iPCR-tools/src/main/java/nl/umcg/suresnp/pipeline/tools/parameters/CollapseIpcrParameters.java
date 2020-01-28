@@ -22,6 +22,9 @@ public class CollapseIpcrParameters {
     private String outputSuffix;
     private String outputType;
     private IpcrOutputWriter outputWriter;
+
+    private boolean noHeader;
+
     // General arguments
     private String toolType;
 
@@ -57,18 +60,16 @@ public class CollapseIpcrParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("Output type")
-                .argName("IPCR|BED|BEDPE")
+                .argName("IPCR|MACS|BED|BEDPE")
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("e")
-                .longOpt("expand")
-                .hasArg(true)
-                .desc("Write a record for each (normalized) cDNA count")
-                .argName("Sample index")
+        option = Option.builder("n")
+                .longOpt("no-header")
+                .hasArg(false)
+                .desc("Don't write the header")
                 .build();
         OPTIONS.addOption(option);
-
 
         option = Option.builder("h")
                 .longOpt("help")
@@ -158,10 +159,8 @@ public class CollapseIpcrParameters {
             outputType = "IPCR";
         }
 
-        boolean zipped = false;
-        if (cmd.hasOption("z")) {
-            zipped = true;
-        }
+        boolean zipped = cmd.hasOption("z");
+        noHeader = cmd.hasOption("n");
 
         switch (outputType) {
             case "BEDPE":
@@ -206,6 +205,10 @@ public class CollapseIpcrParameters {
                 exit(1);
         }
 
+    }
+
+    public boolean isNoHeader() {
+        return noHeader;
     }
 
     public CommandLine getCmd() {

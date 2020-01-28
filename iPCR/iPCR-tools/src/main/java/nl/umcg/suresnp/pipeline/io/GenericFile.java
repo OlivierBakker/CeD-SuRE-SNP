@@ -21,7 +21,7 @@ public class GenericFile {
     }
 
     public GenericFile(String path) {
-        this.path = path;
+        this.path = path.trim();
     }
 
     public Path getPath() {

@@ -31,91 +31,90 @@ public class CollapseIpcr {
 
     public void run() throws IOException {
 
-        try {
-            IpcrRecordProvider provider = new IpcrFileReader(new GenericFile(params.getInputFile()), true);
-            List<IpcrRecord> records = provider.getRecordsAsList();
-            provider.close();
+        IpcrRecordProvider provider = new IpcrFileReader(new GenericFile(params.getInputFile()), true);
+        List<IpcrRecord> records = provider.getRecordsAsList();
+        provider.close();
 
-            // Count how often barcodes appear in IPCR and normalize
-            LOGGER.info("Started sorting " + records.size() + " reads");
-            long start = System.currentTimeMillis();
-            records.sort(Comparator.comparing(IpcrRecord::getBarcode));
-            long stop = System.currentTimeMillis();
-            LOGGER.info("Done sorting. Took: " + ((stop - start) / 1000) + " seconds");
+        // Count how often barcodes appear in IPCR and normalize
+        LOGGER.info("Started sorting " + records.size() + " reads");
+        long start = System.currentTimeMillis();
+        records.sort(Comparator.comparing(IpcrRecord::getBarcode));
+        long stop = System.currentTimeMillis();
+        LOGGER.info("Done sorting. Took: " + ((stop - start) / 1000) + " seconds");
 
-            // Collapse iPCR records
-            List<IpcrRecord> outputList = new TreeList<>();
-            ArrayList<IpcrRecord> duplicateRecordCache = new ArrayList<>();
+        // Collapse iPCR records
+        List<IpcrRecord> outputList = new TreeList<>();
+        ArrayList<IpcrRecord> duplicateRecordCache = new ArrayList<>();
 
-            int j = 0;
-            String cachedBarcode = "";
-            for (IpcrRecord record : records) {
-                // Case for first record
-                if (j == 0) {
-                    cachedBarcode = record.getBarcode();
-                    duplicateRecordCache.add(record);
-                    j++;
-                    continue;
-                }
-
-                if (record.getBarcode().equals(cachedBarcode)) {
-                    duplicateRecordCache.add(record);
-                } else {
-
-                    if (duplicateRecordCache.size() == 1) {
-                        IpcrRecord tmp = duplicateRecordCache.get(0);
-                        tmp.setIpcrDuplicateCount(1);
-                        outputList.add(tmp);
-                    } else if (duplicateRecordCache.size() > 1) {
-                        // Collapse previous records;
-                        outputList.add(createConsensusRecord(duplicateRecordCache));
-                    }
-
-                    // Set new record
-                    duplicateRecordCache.clear();
-                    cachedBarcode = record.getBarcode();
-                    duplicateRecordCache.add(record);
-                }
-
+        int j = 0;
+        String cachedBarcode = "";
+        for (IpcrRecord record : records) {
+            // Case for first record
+            if (j == 0) {
+                cachedBarcode = record.getBarcode();
+                duplicateRecordCache.add(record);
                 j++;
-            }
-            // Proccess the last records remaining in the DuplicateRecordCache
-            if (duplicateRecordCache.size() == 1) {
-                IpcrRecord tmp = duplicateRecordCache.get(0);
-                tmp.setIpcrDuplicateCount(1);
-                outputList.add(tmp);
-            } else if (duplicateRecordCache.size() > 1) {
-                // Collapse previous records;
-                outputList.add(createConsensusRecord(duplicateRecordCache));
+                continue;
             }
 
-            LOGGER.info("Done, collapsed " + outputList.size() + " valid records");
+            if (record.getBarcode().equals(cachedBarcode)) {
+                duplicateRecordCache.add(record);
+            } else {
 
-            // Sort on position
-            LOGGER.info("Started sorting " + outputList.size() + " records");
-            start = System.currentTimeMillis();
-            outputList.sort(Comparator
-                    .comparing(IpcrRecord::getContig)
-                    .thenComparing(IpcrRecord::getOrientationIndependentStart));
-            stop = System.currentTimeMillis();
-            LOGGER.info("Done sorting. Took: " + ((stop - start) / 1000) + " seconds");
+                if (duplicateRecordCache.size() == 1) {
+                    IpcrRecord tmp = duplicateRecordCache.get(0);
+                    tmp.setIpcrDuplicateCount(1);
+                    outputList.add(tmp);
+                } else if (duplicateRecordCache.size() > 1) {
+                    // Collapse previous records;
+                    outputList.add(createConsensusRecord(duplicateRecordCache));
+                }
 
-            // Write the output
-            outputWriter.setBarcodeCountFilesSampleNames(provider.getSamples());
-            outputWriter.writeHeader();
-
-            for (IpcrRecord record : outputList) {
-                outputWriter.writeRecord(record);
+                // Set new record
+                duplicateRecordCache.clear();
+                cachedBarcode = record.getBarcode();
+                duplicateRecordCache.add(record);
             }
 
-            outputWriter.flushAndClose();
-            discardedOutputWriter.flushAndClose();
-
-            LOGGER.info("Done, writing " + outputList.size() + " ipcr records");
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            j++;
         }
+        // Proccess the last records remaining in the DuplicateRecordCache
+        if (duplicateRecordCache.size() == 1) {
+            IpcrRecord tmp = duplicateRecordCache.get(0);
+            tmp.setIpcrDuplicateCount(1);
+            outputList.add(tmp);
+        } else if (duplicateRecordCache.size() > 1) {
+            // Collapse previous records;
+            outputList.add(createConsensusRecord(duplicateRecordCache));
+        }
+
+        LOGGER.info("Done, collapsed " + outputList.size() + " valid records");
+
+        // Sort on position
+        LOGGER.info("Started sorting " + outputList.size() + " records");
+        start = System.currentTimeMillis();
+        outputList.sort(Comparator
+                .comparing(IpcrRecord::getContig)
+                .thenComparing(IpcrRecord::getOrientationIndependentStart));
+        stop = System.currentTimeMillis();
+        LOGGER.info("Done sorting. Took: " + ((stop - start) / 1000) + " seconds");
+
+        // Write the output
+        outputWriter.setBarcodeCountFilesSampleNames(provider.getSamples());
+
+        if (!params.isNoHeader()) {
+            outputWriter.writeHeader();
+        }
+
+        for (IpcrRecord record : outputList) {
+            outputWriter.writeRecord(record);
+        }
+
+        outputWriter.flushAndClose();
+        discardedOutputWriter.flushAndClose();
+
+        LOGGER.info("Done, writing " + outputList.size() + " ipcr records");
+
     }
 
     private List<IpcrRecord> makePileup(List<IpcrRecord> records, String sample, int fragmentSize) {
@@ -241,8 +240,6 @@ public class CollapseIpcr {
         consensusRecord.setIpcrDuplicateCount(consensusCount);
         return consensusRecord;
     }
-
-
 
 
     private boolean isInWindow(int x, int start, int end) {

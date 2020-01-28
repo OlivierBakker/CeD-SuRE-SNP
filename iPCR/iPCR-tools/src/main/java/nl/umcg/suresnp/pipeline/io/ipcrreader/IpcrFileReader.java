@@ -10,9 +10,7 @@ import org.apache.log4j.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class IpcrFileReader implements IpcrRecordProvider {
 
@@ -122,6 +120,30 @@ public class IpcrFileReader implements IpcrRecordProvider {
         LOGGER.info(records.size() + " records passed filters");
 
         return records;
+    }
+
+    @Override
+    public Set<String> getBarcodeSet() throws IOException {
+
+        Set<String> barcodeSet = new HashSet<>();
+        String line = reader.readLine();
+        int i = 0;
+        while (line != null) {
+            // Logging progress
+            if (i > 0) {
+                if (i % 1000000 == 0) {
+                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
+                }
+            }
+            i++;
+
+            String[] data = line.split(sep);
+            barcodeSet.add(data[0]);
+            line = reader.readLine();
+        }
+        LOGGER.info("Read " + i + " records");
+
+        return barcodeSet;
     }
 
     @Override

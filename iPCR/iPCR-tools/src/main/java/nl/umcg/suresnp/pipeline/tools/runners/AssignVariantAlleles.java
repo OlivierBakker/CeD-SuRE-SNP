@@ -6,8 +6,8 @@ import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilte
 import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.barcodefilereader.BarcodeFileReader;
-import nl.umcg.suresnp.pipeline.io.barcodefilereader.GenericBarcodeFileReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;
@@ -31,13 +31,13 @@ public class AssignVariantAlleles {
     private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
     private AlleleSpecificIpcrOutputWriter alleleSpecificIpcrOutputWriter;
     private DiscaredAlleleSpecificIpcrRecordWriter discaredOutputWriter;
-    private BarcodeFileReader barcodeFileReader;
+    private InfoFileReader infoFileReader;
     private AssignVariantAllelesParameters params;
     private Map<String, String> barcodeReadMap;
 
     public AssignVariantAlleles(AssignVariantAllelesParameters params) throws IOException {
 
-        this.barcodeFileReader = new GenericBarcodeFileReader(params.getOutputPrefix());
+        this.infoFileReader = new GenericInfoFileReader(params.getOutputPrefix());
         //this.ipcrOutputWriter = new GenericIpcrRecordWriter(new File(params.getOutputPrefix() + ".ipcr"), false);
         this.alleleSpecificIpcrOutputWriter = params.getOutputWriter();
         this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
@@ -61,8 +61,8 @@ public class AssignVariantAlleles {
         filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
         filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
 
-        barcodeReadMap = barcodeFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
-        barcodeFileReader.flushAndClose();
+        barcodeReadMap = infoFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
+        infoFileReader.flushAndClose();
 
         // Create genotype data iterator
         RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF, params.getInputVcf());
