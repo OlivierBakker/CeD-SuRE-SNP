@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class MakeBarcodeCounts {
 
     private final Logger LOGGER = Logger.getLogger(MakeBarcodeCounts.class);
@@ -53,12 +55,7 @@ public class MakeBarcodeCounts {
             int curRecord = 0;
             int discarded = 0;
             while ((line = reader.readNext(true)) != null) {
-                // Logging
-                if (curRecord > 0) {
-                    if (curRecord % 1000000 == 0) {
-                        LOGGER.info("Processed " + curRecord / 1000000 + " million records");
-                    }
-                }
+                logProgress(curRecord, 1000000, "MakeBarcodeCounts");
 
                 // Initialize filter parameters
                 boolean passesFilter = true;

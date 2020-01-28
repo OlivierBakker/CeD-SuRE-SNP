@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class IpcrFileReader implements IpcrRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(IpcrFileReader.class);
@@ -129,12 +131,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
         String line = reader.readLine();
         int i = 0;
         while (line != null) {
-            // Logging progress
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
-                }
-            }
+            logProgress(i, 1000000, "IpcrFileReader");
             i++;
 
             String[] data = line.split(sep);
@@ -163,7 +160,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
         if (data.length < 16) {
             LOGGER.error("Error parsing line:");
             LOGGER.error(line);
-            LOGGER.error("Needed 15 columns in IPCR file, found: " + data.length);
+            LOGGER.error("Needed 16 columns in IPCR file, found: " + data.length);
             throw new IllegalArgumentException("Needed 16 columns in IPCR file, found: " + data.length);
         }
         record.setBarcode(data[0]);

@@ -11,6 +11,8 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class MakeBarcodeComplexityCurve {
 
 
@@ -47,11 +49,7 @@ public class MakeBarcodeComplexityCurve {
         String line;
 
         while ((line = reader.readLine()) != null) {
-            if (curRecord > 0) {
-                if (curRecord % 1000000 == 0) {
-                    LOGGER.info("Read " + curRecord / 1000000 + " million records");
-                }
-            }
+            logProgress(curRecord, 1000000, "MakeBarcodeComplexityCurve");
 
             String bc = null;
             if (params.isSimpleReader()) {

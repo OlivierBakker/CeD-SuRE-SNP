@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class BarebonesInfoFileReader implements InfoFileReader {
     private static final Logger LOGGER = Logger.getLogger(BarebonesInfoFileReader.class);
     private int barcodeLengthFilter;
@@ -48,11 +50,8 @@ public class BarebonesInfoFileReader implements InfoFileReader {
         int curRecord = 0;
         String line;
         while ((line = reader.readLine()) != null) {
-            if (curRecord > 0) {
-                if (curRecord % 1000000 == 0) {
-                    LOGGER.info("Read " + curRecord / 1000000 + " million records");
-                }
-            }
+            logProgress(curRecord, 1000000, "BarebonesInfoFileReader");
+
             String[] cols = line.split("\t");
             // Initialize filter parameters
             if (cols.length == 11) {
@@ -89,11 +88,8 @@ public class BarebonesInfoFileReader implements InfoFileReader {
         int curRecord = 0;
         String line;
         while ((line = reader.readLine()) != null) {
-            if (curRecord > 0) {
-                if (curRecord % 1000000 == 0) {
-                    LOGGER.info("Read " + curRecord / 1000000 + " million records");
-                }
-            }
+            logProgress(curRecord, 1000000, "BarebonesInfoFileReader");
+
             String[] cols = line.split("\t");
 
             // Initialize filter parameters

@@ -6,12 +6,17 @@ import nl.umcg.suresnp.pipeline.io.infofilereader.BarebonesInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
+import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 public class MakeSummaries {
 
@@ -67,7 +72,49 @@ public class MakeSummaries {
     }
 
 
-    public void insertSizes() throws IOException {
+    public void getInsertSizes() throws IOException, IllegalArgumentException {
 
+        long insertSizeTotal = 0;
+        long totalIpcrCount = 0;
+
+        for (String file : params.getInputIpcr()) {
+            switch (params.getInputType()) {
+
+                case "IPCR":
+                    IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(file), true);
+                    IpcrRecord curRecord = ipcrRecordProvider.getNextRecord();
+                    long curRecordCount = 0;
+                    long curInsertSize = 0;
+                    long curInsertSize2 = 0;
+
+                    while (curRecord != null) {
+                        logProgress(curRecordCount, 1000000, "MakeSummaries");
+
+                        insertSizeTotal = insertSizeTotal + (curRecord.getOrientationIndependentEnd() - curRecord.getOrientationIndependentStart());
+                        curInsertSize = curInsertSize + (curRecord.getOrientationIndependentEnd() - curRecord.getOrientationIndependentStart());
+
+                        curRecordCount ++;
+                        totalIpcrCount ++;
+
+                        curRecord = ipcrRecordProvider.getNextRecord();
+                    }
+
+
+                    LOGGER.info("CurInsertSize: " + curInsertSize);
+                    LOGGER.info("CurInserSize2: " + curInsertSize2);
+                    LOGGER.info("CurRecordCount: " + curRecordCount);
+                    LOGGER.info(file + "\t" + Math.round((double)curInsertSize / (double)curRecordCount));
+                    LOGGER.info(file + "\t" + Math.round((double) curInsertSize2 / (double) curRecordCount));
+
+                    break;
+                default:
+                    throw new IllegalArgumentException("Insert Sizes only supports IPCR input");
+            }
+        }
+
+        LOGGER.info("Total insert size: "  + insertSizeTotal);
+        LOGGER.info("Total ipcr count size: "  + totalIpcrCount);
+
+        LOGGER.info("Average insert size: " + Math.round((double) insertSizeTotal / (double) totalIpcrCount));
     }
 }

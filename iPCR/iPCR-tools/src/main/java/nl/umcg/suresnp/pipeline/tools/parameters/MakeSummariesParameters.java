@@ -116,7 +116,7 @@ public class MakeSummariesParameters {
         if (cmd.hasOption('b')) {
             inputBarcodes = cmd.getOptionValue('b').trim();
         }
-        toolType = "MakeBarcodeStatsParameters";
+        toolType = "MakeSummaries";
 
         // Define the output writer, either stdout or to file
         if (cmd.hasOption('o')) {
@@ -124,7 +124,6 @@ public class MakeSummariesParameters {
         } else {
             outputPrefix = "ipcrtools";
         }
-
 
         // When writing to a file check if the correct options are specified
         if (!cmd.hasOption("o")) {

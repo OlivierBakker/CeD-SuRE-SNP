@@ -18,6 +18,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class MakeReadNucleotideDistribution {
 
     private static final Logger LOGGER = Logger.getLogger(MakeReadNucleotideDistribution.class);
@@ -49,12 +51,7 @@ public class MakeReadNucleotideDistribution {
 
         int i=0;
         for (FastqRecord curRecord : readOneReader) {
-            // Logging progress
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Processed " + i / 1000000 + " million fastq records");
-                }
-            }
+            logProgress(i, 1000000, "MakeReadNucleotideDistribution");
             i++;
 
             FastqRecord curRecordMate = readTwoReader.next();

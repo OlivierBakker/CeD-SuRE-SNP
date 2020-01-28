@@ -305,17 +305,21 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     public int getOrientationIndependentStart() {
         if (getPrimaryStrand() == '+') {
             return getPrimaryStart();
-        } else {
+        } else if (getPrimaryStrand() == '-') {
             return getMateStart();
+        } else {
+            throw new IllegalStateException("Strand must be either + or -");
         }
     }
 
     @Override
     public int getOrientationIndependentEnd() {
-        if (getPrimaryStrand() == '-') {
+        if (getPrimaryStrand() == '+') {
+            return getMateEnd();
+        } else if (getPrimaryStrand() == '-') {
             return getPrimaryEnd();
         } else {
-            return getMateEnd();
+            throw new IllegalStateException("Strand must be either + or -");
         }
     }
 

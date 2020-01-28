@@ -11,6 +11,8 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import java.io.*;
 import java.util.*;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class GenericInfoFileReader implements InfoFileReader {
     private static final Logger LOGGER = Logger.getLogger(GenericInfoFileReader.class);
     private String outputPrefix;
@@ -36,12 +38,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         int curRecord = 0;
         int discarded = 0;
         while ((line = reader.readNext(true)) != null) {
-            // Logging
-            if (curRecord > 0) {
-                if (curRecord % 1000000 == 0) {
-                    LOGGER.info("Read " + curRecord / 1000000 + " million records");
-                }
-            }
+            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
 
             // Initialize filter parameters
             boolean passesFilter = true;
@@ -101,12 +98,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         int curRecord = 0;
         int discarded = 0;
         while ((line = reader.readNext(true)) != null) {
-            // Logging
-            if (curRecord > 0) {
-                if (curRecord % 1000000 == 0) {
-                    LOGGER.info("Read " + curRecord / 1000000 + " million records");
-                }
-            }
+            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
 
             // Initialize filter parameters
             boolean passesFilter = true;
@@ -167,12 +159,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         LOGGER.info("Reading file: " + file.getBaseName());
 
         while ((line = reader.readNext(true)) != null) {
-            // Logging
-            if (curRecord > 0) {
-                if (curRecord % 1000000 == 0) {
-                    LOGGER.info("Read " + curRecord / 1000000 + " million records");
-                }
-            }
+            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
 
             // Initialize filter parameters
             boolean passesFilter = true;
@@ -242,12 +229,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         LOGGER.info("Reading file: " + inputBarcodes.getBaseName());
 
         while ((line = reader.readNext(false)) != null) {
-            // Logging progress
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Read " + i / 1000000 + " million records");
-                }
-            }
+            logProgress(i, 1000000, "GenericBarcodeFileReader");
             i++;
 
             if (line.length != 2) {

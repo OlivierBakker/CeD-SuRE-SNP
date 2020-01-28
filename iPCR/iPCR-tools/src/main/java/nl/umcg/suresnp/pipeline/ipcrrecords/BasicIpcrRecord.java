@@ -236,7 +236,7 @@ public class BasicIpcrRecord implements IpcrRecord {
 
     @Override
     public void flipPrimaryAndMate() {
-        String tmpPrimaryReadName = primaryReadName;
+        /*String tmpPrimaryReadName = primaryReadName;
         int tmpPrimaryStart = primaryStart;
         int tmpPrimaryEnd = primaryEnd;
         int tmpPrimarySamFlags = primarySamFlags;
@@ -258,7 +258,8 @@ public class BasicIpcrRecord implements IpcrRecord {
         mateSamFlags = tmpPrimarySamFlags;
         mateMappingQuality = tmpPrimaryMappingQual;
         mateCigar = tmpPrimaryCigar;
-        mateStrand = tmpPrimaryStrand;
+        mateStrand = tmpPrimaryStrand;*/
+        throw new UnsupportedOperationException("Temporarly disabled for sanity check");
     }
 
     @Override
@@ -284,27 +285,30 @@ public class BasicIpcrRecord implements IpcrRecord {
     @Override
     public int getOrientationIndependentStart() {
 
-        if (getPrimaryStrand() == 0) {
-            primaryStrand = '+';
-        }
-
+       // if (getPrimaryStrand() == 0) {
+        //    primaryStrand = '+';
+        //}
         if (getPrimaryStrand() == '+') {
             return getPrimaryStart();
-        } else {
+        } else if (getPrimaryStrand() == '-') {
             return getMateStart();
+        } else {
+            throw new IllegalStateException("Strand must be either + or -");
         }
     }
 
     @Override
     public int getOrientationIndependentEnd() {
-        if (getPrimaryStrand() == 0) {
-            primaryStrand = '+';
-        }
+        //if (getPrimaryStrand() == 0) {
+        //    primaryStrand = '+';
+        // }
         // Minus is correct here
-        if (getPrimaryStrand() == '-') {
+        if (getPrimaryStrand() == '+') {
+            return getMateEnd();
+        } else if (getPrimaryStrand() == '-') {
             return getPrimaryEnd();
         } else {
-            return getMateEnd();
+            throw new IllegalStateException("Strand must be either + or -");
         }
     }
 

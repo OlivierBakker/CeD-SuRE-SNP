@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.System.exit;
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 public class MakeIpcrFile {
 
@@ -91,12 +92,7 @@ public class MakeIpcrFile {
 
             // Loop over all records in SAM file
             while (samRecordIterator.hasNext()) {
-                // Logging progress
-                if (i > 0) {
-                    if (i % 1000000 == 0) {
-                        LOGGER.info("Processed " + i / 1000000 + " million SAM records");
-                    }
-                }
+                logProgress(i, 1000000, "MakeIpcrFile");
                 i++;
 
                 // Retrieve the current record

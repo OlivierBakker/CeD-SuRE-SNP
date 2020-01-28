@@ -8,6 +8,8 @@ import org.apache.commons.cli.UnrecognizedOptionException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static java.lang.System.exit;
 
@@ -25,39 +27,36 @@ public class IpcrTools {
             // Select which tool to run
             switch (params.getToolType()) {
                 case "AssignVariantAlleles":
-                    AssignVariantAllelesParameters varParams = new AssignVariantAllelesParameters(args);
-                    AssignVariantAlleles assignVariantAlleles = new AssignVariantAlleles(varParams);
+                    AssignVariantAlleles assignVariantAlleles = new AssignVariantAlleles(new AssignVariantAllelesParameters(args));
                     assignVariantAlleles.run();
                     break;
                 case "GenerateBarcodeComplexityCurve":
-                    MakeBarcodeComplexityCurveParameters barcodeCurveParams = new MakeBarcodeComplexityCurveParameters(args);
-                    MakeBarcodeComplexityCurve makeBarcodeComplexityCurve = new MakeBarcodeComplexityCurve(barcodeCurveParams);
+                    MakeBarcodeComplexityCurve makeBarcodeComplexityCurve = new MakeBarcodeComplexityCurve(new MakeBarcodeComplexityCurveParameters(args));
                     makeBarcodeComplexityCurve.run();
                     break;
                 case "MakeIpcrFile":
-                    MakeIpcrFileParameters barcodeCountParams = new MakeIpcrFileParameters(args);
-                    MakeIpcrFile makeIpcrFile = new MakeIpcrFile(barcodeCountParams);
+                    MakeIpcrFile makeIpcrFile = new MakeIpcrFile(new MakeIpcrFileParameters(args));
                     makeIpcrFile.run();
                     break;
                 case "CollapseIpcr":
-                    CollapseIpcrParameters normalizeParams = new CollapseIpcrParameters(args);
-                    CollapseIpcr collapseIpcr = new CollapseIpcr(normalizeParams);
+                    CollapseIpcr collapseIpcr = new CollapseIpcr(new CollapseIpcrParameters(args));
                     collapseIpcr.run();
                     break;
                 case "MakeReadNucleotideDistribution":
-                    MakeReadNucleotideDistributionParameters nucParams = new MakeReadNucleotideDistributionParameters(args);
-                    MakeReadNucleotideDistribution nucDist = new MakeReadNucleotideDistribution(nucParams);
+                    MakeReadNucleotideDistribution nucDist = new MakeReadNucleotideDistribution(new MakeReadNucleotideDistributionParameters(args));
                     nucDist.run();
                     break;
                 case "MakeBarcodeCounts":
-                    MakeBarcodeCountsParameters parameters = new MakeBarcodeCountsParameters(args);
-                    MakeBarcodeCounts makeBarcodeCounts = new MakeBarcodeCounts(parameters);
+                    MakeBarcodeCounts makeBarcodeCounts = new MakeBarcodeCounts(new MakeBarcodeCountsParameters(args));
                     makeBarcodeCounts.run();
                     break;
                 case "MakeBarcodeStats":
-                    MakeSummariesParameters bcParams = new MakeSummariesParameters(args);
-                    MakeSummaries makeSummaries = new MakeSummaries(bcParams);
-                    makeSummaries.barcodeOverlap();
+                    MakeSummaries makeBcStats = new MakeSummaries(new MakeSummariesParameters(args));
+                    makeBcStats.barcodeOverlap();
+                    break;
+                case "GetInsertSizes":
+                    MakeSummaries getInsertSizes = new MakeSummaries(new MakeSummariesParameters(args));
+                    getInsertSizes.getInsertSizes();
                     break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
@@ -65,16 +64,21 @@ public class IpcrTools {
                     exit(1);
             }
 
-        } catch (UnrecognizedOptionException e) {
+        } catch (UnrecognizedOptionException | IllegalArgumentException e) {
             IpcrToolParameters.printHelp();
             e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (IpcrParseException e) {
+        } catch (ParseException | IpcrParseException | IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+    public static void logProgress(long curCount, long interval, String classname) {
+        if (curCount > 0) {
+            if (curCount % interval == 0) {
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss,SSS ");
+                System.out.print(formatter.format(new Date()) + " INFO [" + classname + "] Processed " + curCount / interval + " million records\r");
+            }
+        }
     }
 }
