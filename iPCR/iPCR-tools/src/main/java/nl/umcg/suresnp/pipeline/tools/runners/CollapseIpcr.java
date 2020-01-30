@@ -117,6 +117,7 @@ public class CollapseIpcr {
 
     }
 
+    @Deprecated
     private List<IpcrRecord> makePileup(List<IpcrRecord> records, String sample, int fragmentSize) {
         // assumes records are sorted on position
         // TODO: does not handle the ends of contigs properly, fix this
@@ -197,7 +198,6 @@ public class CollapseIpcr {
         LOGGER.info("Made pileup of " + outputPileup.size() + " fragments");
         return outputPileup;
     }
-
 
     private IpcrRecord createConsensusRecord(List<IpcrRecord> records) throws IOException {
 

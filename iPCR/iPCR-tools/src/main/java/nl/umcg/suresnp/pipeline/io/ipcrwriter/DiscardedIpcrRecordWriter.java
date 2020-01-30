@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 import java.io.*;
 import java.util.zip.GZIPOutputStream;
@@ -161,12 +161,12 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public String[] getBarcodeCountFilesSampleNames() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
 }

@@ -8,11 +8,10 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
+import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -71,40 +70,39 @@ public class MakeSummaries {
 
     }
 
-
     public void getInsertSizes() throws IOException, IllegalArgumentException {
 
         long insertSizeTotal = 0;
         long totalIpcrCount = 0;
+        StreamingHistogram hist = new StreamingHistogram(10, 20);
 
         for (String file : params.getInputIpcr()) {
             switch (params.getInputType()) {
-
                 case "IPCR":
                     IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(file), true);
                     IpcrRecord curRecord = ipcrRecordProvider.getNextRecord();
                     long curRecordCount = 0;
-                    long curInsertSize = 0;
-                    long curInsertSize2 = 0;
+                    long curInsertSizeTotal = 0;
 
                     while (curRecord != null) {
                         logProgress(curRecordCount, 1000000, "MakeSummaries");
 
-                        insertSizeTotal = insertSizeTotal + (curRecord.getOrientationIndependentEnd() - curRecord.getOrientationIndependentStart());
-                        curInsertSize = curInsertSize + (curRecord.getOrientationIndependentEnd() - curRecord.getOrientationIndependentStart());
+                        int curInsertSize = curRecord.getOrientationIndependentEnd() - curRecord.getOrientationIndependentStart();
+                        hist.addPostiveValue(curInsertSize);
+
+                        insertSizeTotal = insertSizeTotal + curInsertSize;
+                        curInsertSizeTotal = curInsertSizeTotal + curInsertSize ;
 
                         curRecordCount ++;
                         totalIpcrCount ++;
 
                         curRecord = ipcrRecordProvider.getNextRecord();
                     }
+                    System.out.print("\n"); // Flush progress bar
 
-
-                    LOGGER.info("CurInsertSize: " + curInsertSize);
-                    LOGGER.info("CurInserSize2: " + curInsertSize2);
+                    LOGGER.info("CurInsertSize: " + curInsertSizeTotal);
                     LOGGER.info("CurRecordCount: " + curRecordCount);
-                    LOGGER.info(file + "\t" + Math.round((double)curInsertSize / (double)curRecordCount));
-                    LOGGER.info(file + "\t" + Math.round((double) curInsertSize2 / (double) curRecordCount));
+                    LOGGER.info(file + "\t" + Math.round((double)curInsertSizeTotal / (double)curRecordCount));
 
                     break;
                 default:
@@ -114,7 +112,10 @@ public class MakeSummaries {
 
         LOGGER.info("Total insert size: "  + insertSizeTotal);
         LOGGER.info("Total ipcr count size: "  + totalIpcrCount);
-
         LOGGER.info("Average insert size: " + Math.round((double) insertSizeTotal / (double) totalIpcrCount));
+        LOGGER.info("Histrogram:");
+
+        System.out.print(hist.getHistAsString());
+
     }
 }

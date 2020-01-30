@@ -180,6 +180,7 @@ public class MakeIpcrFile {
                     }
                 }
             }
+            System.out.print("\n"); // Flush progress bar
 
             // Log some info
             LOGGER.info("Processed a total of " + i + " reads, " + i / 2 + " pairs" );

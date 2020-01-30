@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 import java.io.File;
 import java.io.IOException;

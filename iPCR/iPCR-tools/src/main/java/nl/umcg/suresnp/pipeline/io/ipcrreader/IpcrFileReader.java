@@ -138,6 +138,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
             barcodeSet.add(data[0]);
             line = reader.readLine();
         }
+        System.out.print("\n"); // Flush progress bar
         LOGGER.info("Read " + i + " records");
 
         return barcodeSet;

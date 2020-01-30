@@ -102,6 +102,8 @@ public class MakeBarcodeCounts {
                 }
                 curRecord++;
             }
+            System.out.print("\n"); // Flush progress bar
+
             reader.close();
             LOGGER.info("Done, Read " + curRecord + " records");
             totalCount += curRecord;

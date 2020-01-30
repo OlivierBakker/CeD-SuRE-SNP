@@ -76,6 +76,7 @@ public class MakeBarcodeComplexityCurve {
 
             curRecord++;
         }
+        System.out.print("\n"); // Flush progress bar
 
         reader.close();
 

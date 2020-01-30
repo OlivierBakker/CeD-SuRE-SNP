@@ -68,8 +68,8 @@ public class MakeReadNucleotideDistribution {
                 LOGGER.error("Mismatched fastq's");
                 System.exit(-1);
             }
-
         }
+        System.out.print("\n"); // Flush progress bar
 
         LOGGER.info("Output:");
         System.out.println("N" + nucsToString(nucN));

@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 import htsjdk.samtools.SAMRecord;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 import java.util.Map;
 
@@ -88,7 +88,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setContig(String contig) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -98,7 +98,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimaryReadName(String name) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -112,7 +112,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateReadName(String name) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
 
@@ -123,7 +123,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimaryStart(int start) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -133,7 +133,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimaryEnd(int end) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -147,7 +147,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateStart(int start) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -161,7 +161,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateEnd(int end) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -175,7 +175,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimaryStrand(char strand) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -193,7 +193,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateStrand(char strand) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -203,7 +203,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimarySamFlags(int flag) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -217,7 +217,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateSamFlags(int flag) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -227,7 +227,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimaryMappingQuality(int quality) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -241,7 +241,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateMappingQuality(int quality) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -251,7 +251,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setPrimaryCigar(String cigar) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -265,7 +265,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public void setMateCigar(String cigar) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -325,11 +325,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getMappingQualitySum() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public int getMappedBaseCount() {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 }

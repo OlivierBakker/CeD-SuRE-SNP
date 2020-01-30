@@ -76,8 +76,8 @@ public class IpcrTools {
     public static void logProgress(long curCount, long interval, String classname) {
         if (curCount > 0) {
             if (curCount % interval == 0) {
-                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss,SSS ");
-                System.out.print(formatter.format(new Date()) + " INFO [" + classname + "] Processed " + curCount / interval + " million records\r");
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss,SSS");
+                System.out.print(formatter.format(new Date()) + " INFO  [" + classname + "] Processed " + curCount / interval + " million records\r");
             }
         }
     }

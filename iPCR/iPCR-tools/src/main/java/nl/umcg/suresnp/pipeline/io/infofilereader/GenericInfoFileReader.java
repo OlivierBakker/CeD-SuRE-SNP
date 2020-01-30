@@ -6,7 +6,7 @@ import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 import java.io.*;
 import java.util.*;
@@ -71,6 +71,7 @@ public class GenericInfoFileReader implements InfoFileReader {
             curRecord++;
 
         }
+        System.out.print("\n"); // Flush progress bar
         reader.close();
         LOGGER.info("Done, Read " + curRecord + " records");
 
@@ -131,6 +132,7 @@ public class GenericInfoFileReader implements InfoFileReader {
             curRecord++;
 
         }
+        System.out.print("\n"); // Flush progress bar
         reader.close();
         LOGGER.info("Done, Read " + curRecord + " records");
 
@@ -192,6 +194,7 @@ public class GenericInfoFileReader implements InfoFileReader {
 
             curRecord++;
         }
+        System.out.print("\n"); // Flush progress bar
         reader.close();
         LOGGER.info("Done, Read " + curRecord + " records");
 
@@ -238,6 +241,7 @@ public class GenericInfoFileReader implements InfoFileReader {
                 readBarcodePairs.put(line[0], Integer.parseInt(line[1]));
             }
         }
+        System.out.print("\n"); // Flush progress bar
         reader.close();
 
         return readBarcodePairs;
@@ -245,6 +249,6 @@ public class GenericInfoFileReader implements InfoFileReader {
 
     @Override
     public Set<String> getBarcodeSet(GenericFile file) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 }

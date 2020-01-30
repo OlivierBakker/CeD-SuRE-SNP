@@ -8,7 +8,7 @@ version '1.0-SNAPSHOT'
 apply plugin: 'java'
 apply plugin:'application'
 mainClassName = "nl.umcg.suresnp.pipeline.IpcrTools"
-sourceCompatibility = 1.8
+sourceCompatibility = 1.11
 
 repositories {
     mavenCentral()

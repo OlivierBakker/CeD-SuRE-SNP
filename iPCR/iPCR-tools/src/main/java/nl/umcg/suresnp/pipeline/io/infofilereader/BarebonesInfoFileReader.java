@@ -4,7 +4,7 @@ import nl.umcg.suresnp.pipeline.barcodes.InfoRecord;
 import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.log4j.Logger;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,22 +23,22 @@ public class BarebonesInfoFileReader implements InfoFileReader {
 
     @Override
     public List<InfoRecord> readBarcodeFileAsList(GenericFile file) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public List<InfoRecord> readBarcodeFileAsList(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -62,6 +62,7 @@ public class BarebonesInfoFileReader implements InfoFileReader {
             }
             curRecord++;
         }
+        System.out.print("\n"); // Flush progress bar
         reader.close();
         LOGGER.info("Done read: " + barcodeRecordMap.size() + " read barcode records");
         return barcodeRecordMap;
