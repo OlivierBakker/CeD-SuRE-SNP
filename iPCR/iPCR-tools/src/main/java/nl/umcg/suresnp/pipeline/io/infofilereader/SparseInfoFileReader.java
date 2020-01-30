@@ -2,7 +2,7 @@ package nl.umcg.suresnp.pipeline.io.infofilereader;
 
 import nl.umcg.suresnp.pipeline.barcodes.InfoRecord;
 
-import java.io.*;
+import java.io.IOException;
 
 
 public class SparseInfoFileReader extends GenericInfoFileReader {

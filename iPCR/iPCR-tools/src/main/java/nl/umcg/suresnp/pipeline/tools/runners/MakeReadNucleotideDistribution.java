@@ -8,7 +8,6 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.filters.HasBarcodeCountGreaterEqualsFilter;
 import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeReadNucleotideDistributionParameters;
-import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -134,12 +133,7 @@ public class MakeReadNucleotideDistribution {
 
         int i = 0;
         while (curRecord != null) {
-            // Logging progress
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
-                }
-            }
+            logProgress(i, 1000000, "MakeReadNucleotideDistribution");
             i++;
 
             for (IpcrRecordFilter filter : filters) {
@@ -149,6 +143,8 @@ public class MakeReadNucleotideDistribution {
             }
             curRecord = provider.getNextRecord();
         }
+        System.out.print("\n"); // Flush progressbar
+
         LOGGER.info("Read " + i + " records");
         LOGGER.info(readNamesToKeep.size() + " records passed filters");
 

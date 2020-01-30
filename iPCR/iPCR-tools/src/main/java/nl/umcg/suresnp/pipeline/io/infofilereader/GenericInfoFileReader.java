@@ -7,7 +7,6 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
-
 import java.io.*;
 import java.util.*;
 

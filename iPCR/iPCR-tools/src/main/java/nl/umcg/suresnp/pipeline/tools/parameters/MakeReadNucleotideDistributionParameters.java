@@ -1,11 +1,8 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
-
-import java.util.ArrayList;
 
 import static java.lang.System.exit;
 

@@ -6,14 +6,6 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import java.io.*;
 import java.util.zip.GZIPOutputStream;
 
-import htsjdk.samtools.SAMRecord;
-import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-
-import java.io.*;
-import java.util.zip.GZIPOutputStream;
-
 
 public class BedGraphIpcrRecordWriter implements IpcrOutputWriter {
 

@@ -2,8 +2,8 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import nl.umcg.suresnp.pipeline.barcodes.BarcodeConsumer;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.BarebonesInfoFileReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeComplexityCurveParameters;
 import org.apache.log4j.Logger;
 

@@ -1,8 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
-import htsjdk.samtools.SAMRecord;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;

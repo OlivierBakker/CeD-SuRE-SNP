@@ -2,7 +2,6 @@ package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 import htsjdk.samtools.SAMRecord;
 
-
 import java.util.Map;
 
 public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
