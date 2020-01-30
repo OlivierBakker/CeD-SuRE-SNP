@@ -22,10 +22,23 @@ public class CollapseIpcr {
     private IpcrOutputWriter outputWriter;
     private IpcrOutputWriter discardedOutputWriter;
 
+    // Distance in bp to consider the same alignment
+    // Allows for some minor issues with mapping, if distance is bigger then this, discard read
+    private int maxDistance;
+    private boolean writeOutMismatchingRecords;
+
     public CollapseIpcr(CollapseIpcrParameters params) throws IOException {
         this.params = params;
         this.outputWriter = params.getOutputWriter();
-        this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".collapsed.discarded.reads.txt"), false);
+        this.maxDistance = 100;
+        this.writeOutMismatchingRecords = true;
+
+        if (writeOutMismatchingRecords) {
+            this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".collapsed.discarded.reads.txt"), false);
+        } else {
+            this.discardedOutputWriter = null;
+        }
+
     }
 
     public void run() throws IOException {
@@ -66,7 +79,7 @@ public class CollapseIpcr {
                     outputList.add(tmp);
                 } else if (duplicateRecordCache.size() > 1) {
                     // Collapse previous records;
-                    outputList.add(createConsensusRecord(duplicateRecordCache));
+                    outputList.add(createConsensusRecord2(duplicateRecordCache));
                 }
 
                 // Set new record
@@ -84,7 +97,7 @@ public class CollapseIpcr {
             outputList.add(tmp);
         } else if (duplicateRecordCache.size() > 1) {
             // Collapse previous records;
-            outputList.add(createConsensusRecord(duplicateRecordCache));
+            outputList.add(createConsensusRecord2(duplicateRecordCache));
         }
 
         LOGGER.info("Done, collapsed " + outputList.size() + " valid records");
@@ -110,7 +123,10 @@ public class CollapseIpcr {
         }
 
         outputWriter.flushAndClose();
-        discardedOutputWriter.flushAndClose();
+
+        if (writeOutMismatchingRecords) {
+            discardedOutputWriter.flushAndClose();
+        }
 
         LOGGER.info("Done, writing " + outputList.size() + " ipcr records");
 
@@ -198,11 +214,8 @@ public class CollapseIpcr {
         return outputPileup;
     }
 
+    @Deprecated
     private IpcrRecord createConsensusRecord(List<IpcrRecord> records) throws IOException {
-
-        // Distance in bp to consider the same alignment
-        // Allows for some minor issues with mapping, if distance is bigger then this, discard read
-        int maxDistance = 100;
 
         // Select the best aligning record as the top one
         records.sort(Comparator
@@ -240,6 +253,94 @@ public class CollapseIpcr {
         return consensusRecord;
     }
 
+    private IpcrRecord createConsensusRecord2(List<IpcrRecord> records) throws IOException {
+        // Assumes ipcrDuplicateCount is 0 for all records
+        List<IpcrRecord> consensusCandidates = new ArrayList<>();
+
+        // Ensures that the candidate is always the best aligning one, rather then the first to occur.
+        // It can happen that a slightly less optimal alignment at the same position is first. This ensures
+        // that the most optimal alignment is the reference one.
+        // This is slightly less efficient as this requires an additional sorting step
+        records.sort(Comparator
+                .comparing(IpcrRecord::getMappingQualitySum)
+                .thenComparing(IpcrRecord::getMappedBaseCount));
+
+        // Select the best aligning record as the first consensus candidate
+        IpcrRecord curConsensusRecord = records.get(records.size() - 1);
+        //records.remove(curConsensusRecord);
+        //curConsensusRecord.setIpcrDuplicateCount(1);
+        consensusCandidates.add(curConsensusRecord);
+
+        for (IpcrRecord curRecord : records) {
+            for (IpcrRecord consensusCandidate : consensusCandidates) {
+
+                if (doRecordsMatch(curRecord, consensusCandidate)) {
+                    consensusCandidate.setIpcrDuplicateCount(consensusCandidate.getIpcrDuplicateCount() + 1);
+                    break;
+                } else {
+                    curRecord.setIpcrDuplicateCount(1);
+                    consensusCandidates.add(curRecord);
+                    break;
+                }
+
+            }
+        }
+
+        // Select the best aligning record that appears the most in the iPCR
+        consensusCandidates.sort(Comparator
+                .comparing(IpcrRecord::getMappingQualitySum)
+                .thenComparing(IpcrRecord::getIpcrDuplicateCount)
+                .thenComparing(IpcrRecord::getMappedBaseCount));
+        curConsensusRecord = consensusCandidates.get(records.size() - 1);
+
+        // This can be removed at a later date is purely for logging, adds another loop
+        if (writeOutMismatchingRecords) {
+            writeOutMismatchingRecords(records, curConsensusRecord);
+        }
+
+        return curConsensusRecord;
+    }
+
+    private void writeOutMismatchingRecords(List<IpcrRecord> records, IpcrRecord consensusRecord) throws IOException {
+
+        for (IpcrRecord curRecord : records) {
+            curRecord.setMateReadName(consensusRecord.getPrimaryReadName());
+
+            if (!curRecord.getContig().equals(consensusRecord.getContig())) {
+                discardedOutputWriter.writeRecord(curRecord, "ContigMismatch");
+                continue;
+            }
+            if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
+                discardedOutputWriter.writeRecord(curRecord, "PrimaryStrandMistmatch");
+                continue;
+            }
+            if (!isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+                discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR1Start");
+                continue;
+            }
+            if (!isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
+                discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR2End");
+                continue;
+            }
+        }
+    }
+
+    private boolean doRecordsMatch(IpcrRecord curRecord, IpcrRecord consensusRecord) {
+        if (!curRecord.getContig().equals(consensusRecord.getContig())) {
+            return false;
+        }
+        if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
+            return false;
+        }
+        if (!isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+            return false;
+        }
+        if (!isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
+            return false;
+        }
+
+        return true;
+    }
 
     private boolean isInWindow(int x, int start, int end) {
         if (x > start && x < end) {
