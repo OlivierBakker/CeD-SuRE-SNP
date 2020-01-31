@@ -30,8 +30,8 @@ public class CollapseIpcr {
     public CollapseIpcr(CollapseIpcrParameters params) throws IOException {
         this.params = params;
         this.outputWriter = params.getOutputWriter();
-        this.maxDistance = 100;
-        this.writeOutMismatchingRecords = true;
+        this.maxDistance = 50;
+        this.writeOutMismatchingRecords = params.isWriteDiscardedReads();
 
         if (writeOutMismatchingRecords) {
             this.discardedOutputWriter = new DiscardedIpcrRecordWriter(new File(params.getOutputPrefix() + ".collapsed.discarded.reads.txt"), false);
@@ -72,7 +72,6 @@ public class CollapseIpcr {
             if (record.getBarcode().equals(cachedBarcode)) {
                 duplicateRecordCache.add(record);
             } else {
-
                 if (duplicateRecordCache.size() == 1) {
                     IpcrRecord tmp = duplicateRecordCache.get(0);
                     tmp.setIpcrDuplicateCount(1);
@@ -267,13 +266,10 @@ public class CollapseIpcr {
 
         // Select the best aligning record as the first consensus candidate
         IpcrRecord curConsensusRecord = records.get(records.size() - 1);
-        //records.remove(curConsensusRecord);
-        //curConsensusRecord.setIpcrDuplicateCount(1);
         consensusCandidates.add(curConsensusRecord);
 
         for (IpcrRecord curRecord : records) {
             for (IpcrRecord consensusCandidate : consensusCandidates) {
-
                 if (doRecordsMatch(curRecord, consensusCandidate)) {
                     consensusCandidate.setIpcrDuplicateCount(consensusCandidate.getIpcrDuplicateCount() + 1);
                     break;
@@ -282,16 +278,19 @@ public class CollapseIpcr {
                     consensusCandidates.add(curRecord);
                     break;
                 }
-
             }
         }
 
         // Select the best aligning record that appears the most in the iPCR
-        consensusCandidates.sort(Comparator
-                .comparing(IpcrRecord::getMappingQualitySum)
-                .thenComparing(IpcrRecord::getIpcrDuplicateCount)
-                .thenComparing(IpcrRecord::getMappedBaseCount));
-        curConsensusRecord = consensusCandidates.get(records.size() - 1);
+        if (consensusCandidates.size() > 1) {
+            consensusCandidates.sort(Comparator
+                    .comparing(IpcrRecord::getMappingQualitySum)
+                    .thenComparing(IpcrRecord::getIpcrDuplicateCount)
+                    .thenComparing(IpcrRecord::getMappedBaseCount));
+            curConsensusRecord = consensusCandidates.get(consensusCandidates.size() - 1);
+        } else {
+            curConsensusRecord = consensusCandidates.get(0);
+        }
 
         // This can be removed at a later date is purely for logging, adds another loop
         if (writeOutMismatchingRecords) {

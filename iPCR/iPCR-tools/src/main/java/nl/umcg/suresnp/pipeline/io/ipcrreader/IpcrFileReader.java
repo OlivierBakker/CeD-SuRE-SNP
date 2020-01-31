@@ -81,16 +81,12 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
         int i = 0;
         while (curRecord != null) {
-            // Logging progress
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
-                }
-            }
+            logProgress(i, 1000000, "IpcrFileReader");
             i++;
             records.add(curRecord);
             curRecord = getNextRecord();
         }
+        System.out.print("\n"); // Flush progress bar
         LOGGER.info("Read " + i + " records");
 
         return records;
@@ -103,12 +99,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
         int i = 0;
         while (curRecord != null) {
-            // Logging progress
-            if (i > 0) {
-                if (i % 1000000 == 0) {
-                    LOGGER.info("Processed " + i / 1000000 + " million IPCR records");
-                }
-            }
+            logProgress(i, 1000000, "IpcrFileReader");
             i++;
 
             for (IpcrRecordFilter filter : filters) {
@@ -118,6 +109,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
             }
             curRecord = getNextRecord();
         }
+        System.out.print("\n"); // Flush progress bar
         LOGGER.info("Read " + i + " records");
         LOGGER.info(records.size() + " records passed filters");
 

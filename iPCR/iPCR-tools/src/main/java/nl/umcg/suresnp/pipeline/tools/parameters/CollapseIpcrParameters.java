@@ -23,6 +23,8 @@ public class CollapseIpcrParameters {
     private String outputType;
     private IpcrOutputWriter outputWriter;
 
+    private boolean writeDiscardedReads;
+
     private boolean noHeader;
 
     // General arguments
@@ -68,6 +70,13 @@ public class CollapseIpcrParameters {
                 .longOpt("no-header")
                 .hasArg(false)
                 .desc("Don't write the header")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("d")
+                .longOpt("no-discarded-output")
+                .hasArg(false)
+                .desc("Don't discared output")
                 .build();
         OPTIONS.addOption(option);
 
@@ -161,6 +170,7 @@ public class CollapseIpcrParameters {
 
         boolean zipped = cmd.hasOption("z");
         noHeader = cmd.hasOption("n");
+        writeDiscardedReads = cmd.hasOption("d");
 
         switch (outputType) {
             case "BEDPE":
@@ -209,6 +219,10 @@ public class CollapseIpcrParameters {
 
     public boolean isNoHeader() {
         return noHeader;
+    }
+
+    public boolean isWriteDiscardedReads() {
+        return writeDiscardedReads;
     }
 
     public CommandLine getCmd() {

@@ -1,9 +1,10 @@
 package nl.umcg.suresnp.pipeline.ipcrrecords;
 
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class BasicIpcrRecord implements IpcrRecord {
+public class BasicIpcrRecord implements IpcrRecord, Serializable {
 
     private String barcode;
     private String primaryReadName;

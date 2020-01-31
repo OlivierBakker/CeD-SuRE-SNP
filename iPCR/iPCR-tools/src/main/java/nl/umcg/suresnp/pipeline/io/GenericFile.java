@@ -2,10 +2,8 @@ package nl.umcg.suresnp.pipeline.io;
 
 import org.apache.commons.io.FilenameUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.Buffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;
@@ -50,9 +48,9 @@ public class GenericFile {
 
     public InputStream getAsInputStream() throws IOException {
         if (isGzipped()) {
-            return new GZIPInputStream(new FileInputStream(new File(path)));
+            return new BufferedInputStream(new GZIPInputStream(new FileInputStream(new File(path))));
         } else {
-            return new FileInputStream(new File(path));
+            return new BufferedInputStream(new FileInputStream(new File(path)));
 
         }
     }

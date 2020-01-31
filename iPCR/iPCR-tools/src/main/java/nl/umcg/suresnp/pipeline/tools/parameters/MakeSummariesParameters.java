@@ -1,6 +1,7 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.tools.runners.MakeSummaries;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -21,9 +22,6 @@ public class MakeSummariesParameters {
 
     private String outputPrefix;
     private String outputSuffix;
-
-    private boolean isStdoutput;
-    private AlleleSpecificIpcrOutputWriter outputWriter;
 
     // General arguments
     private String toolType;
@@ -128,7 +126,7 @@ public class MakeSummariesParameters {
         // When writing to a file check if the correct options are specified
         if (!cmd.hasOption("o")) {
             LOGGER.error("-o not specified");
-            MakeBarcodeComplexityCurveParameters.printHelp();
+            MakeSummariesParameters.printHelp();
             exit(1);
         }
 
@@ -162,16 +160,8 @@ public class MakeSummariesParameters {
         return outputSuffix;
     }
 
-    public boolean isStdoutput() {
-        return isStdoutput;
-    }
-
     public static Options getOPTIONS() {
         return OPTIONS;
-    }
-
-    public AlleleSpecificIpcrOutputWriter getOutputWriter() {
-        return outputWriter;
     }
 
     public String getToolType() {

@@ -23,7 +23,6 @@ public class MakeSummaries {
     private static final Logger LOGGER = Logger.getLogger(MakeSummaries.class);
     private static MakeSummariesParameters params;
 
-
     public MakeSummaries(MakeSummariesParameters parameters) {
         this.params = parameters;
     }
@@ -56,6 +55,10 @@ public class MakeSummaries {
             ipcrBarcodes.addAll(currentBarcodes);
         }
 
+        LOGGER.info("Trimming barcode sets");
+        cdnaBarcodes = trimBarcodesFivePrime(cdnaBarcodes, 2);
+        ipcrBarcodes = trimBarcodesFivePrime(ipcrBarcodes, 2);
+
         LOGGER.info("cDNA: " + cdnaBarcodes.size());
         LOGGER.info("iPCR: " + ipcrBarcodes.size());
 
@@ -68,6 +71,18 @@ public class MakeSummaries {
                 cdnaBarcodes.size() +
                 " (" + (cdnaBarcodes.size() / inputCdnaCount) * 100 + "%) could be found in iPCR");
 
+    }
+
+    // TODO: Not the most efficient thing, if trimming becomes standard, will implement it in the file readers
+    // For testing this will suffice
+    private Set<String> trimBarcodesFivePrime(Set<String> input, int trimLength) {
+        Set<String> output = new HashSet<>(input.size());
+
+        for (String curBarcode : input) {
+            output.add(curBarcode.substring(trimLength));
+        }
+
+        return output;
     }
 
     public void getInsertSizes() throws IOException, IllegalArgumentException {

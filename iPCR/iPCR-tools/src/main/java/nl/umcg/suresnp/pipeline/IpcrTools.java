@@ -58,6 +58,10 @@ public class IpcrTools {
                     MakeSummaries getInsertSizes = new MakeSummaries(new MakeSummariesParameters(args));
                     getInsertSizes.getInsertSizes();
                     break;
+                case "Recode":
+                    Recode recode = new Recode(new RecodeParameters(args));
+                    recode.run();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();
