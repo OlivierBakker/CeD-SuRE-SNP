@@ -17,21 +17,27 @@ import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 public class IpcrFileReader implements IpcrRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(IpcrFileReader.class);
-    private BufferedReader reader;
+    private BufferedReader coreReader;
+    private BufferedReader barcodeReader;
     private String sep;
     private String[] header;
     private String[] cdnaSamples;
 
     public IpcrFileReader(GenericFile file, boolean hasHeader) throws IOException {
-        reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
-        sep = "\t";
+        String suffix = "";
+        if (file.isGzipped()) {
+            suffix = ".gz";
+        }
+        this.barcodeReader = new GenericFile(file.getFolder() + "/" + file.getBaseName() + ".barcodes" + suffix).getAsBufferedReader();
+        this.coreReader = file.getAsBufferedReader();
+        this.sep = "\t";
         if (hasHeader) {
             setHeader();
         }
     }
 
     public IpcrFileReader(GenericFile file, boolean hasHeader, String sep) throws IOException {
-        reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
+        coreReader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
         this.sep = sep;
         if (hasHeader) {
             setHeader();
@@ -39,7 +45,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
     }
 
     private void setHeader() throws IOException {
-        String line = reader.readLine();
+        String line = coreReader.readLine();
         header = line.split(sep);
         if (header.length < 16) {
             LOGGER.error("Error parsing line:");
@@ -66,7 +72,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     @Override
     public IpcrRecord getNextRecord() throws IOException {
-        String line = reader.readLine();
+        String line = coreReader.readLine();
         if (line != null) {
             return parseIpcrRecord(line);
         } else {
@@ -76,6 +82,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     @Override
     public List<IpcrRecord> getRecordsAsList() throws IOException {
+        // Uses TreeList for faster sorting
         IpcrRecord curRecord = getNextRecord();
         List<IpcrRecord> records = new TreeList<>();
 
@@ -94,6 +101,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     @Override
     public List<IpcrRecord> getRecordsAsList(List<IpcrRecordFilter> filters) throws IOException {
+        // Uses TreeList for faster sorting
         IpcrRecord curRecord = getNextRecord();
         List<IpcrRecord> records = new TreeList<>();
 
@@ -120,15 +128,13 @@ public class IpcrFileReader implements IpcrRecordProvider {
     public Set<String> getBarcodeSet() throws IOException {
 
         Set<String> barcodeSet = new HashSet<>();
-        String line = reader.readLine();
+        String line = barcodeReader.readLine();
         int i = 0;
         while (line != null) {
             logProgress(i, 1000000, "IpcrFileReader");
             i++;
-
-            String[] data = line.split(sep);
-            barcodeSet.add(data[0]);
-            line = reader.readLine();
+            barcodeSet.add(line);
+            line = barcodeReader.readLine();
         }
         System.out.print("\n"); // Flush progress bar
         LOGGER.info("Read " + i + " records");
@@ -143,7 +149,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     @Override
     public void close() throws IOException {
-        reader.close();
+        coreReader.close();
     }
 
     private IpcrRecord parseIpcrRecord(String line) {

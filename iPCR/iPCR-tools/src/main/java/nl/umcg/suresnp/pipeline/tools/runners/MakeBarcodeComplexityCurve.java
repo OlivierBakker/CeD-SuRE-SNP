@@ -73,7 +73,6 @@ public class MakeBarcodeComplexityCurve {
             curRecord++;
         }
         System.out.print("\n"); // Flush progress bar
-
         reader.close();
 
 
@@ -81,13 +80,6 @@ public class MakeBarcodeComplexityCurve {
             writer.write("iteration" + i);
             for (int randomReadCount : intervals) {
                 LOGGER.info("Running iteration: " + i + " interval: " + randomReadCount);
-                //Set<String> currentUniqueBarcodes = new HashSet<>(pickNRandomElements(barcodeList, randomReadCount));
-                // Set<String> currentUniqueBarcodes = new HashSet<>();
-/*                int[] rand = new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).toArray();
-                // Pick random indices
-                for (int k : rand) {
-                    currentUniqueBarcodes.add(barcodeList.get(k));
-                }*/
 
                 if (randomReadCount == barcodeList.size()) {
                     writer.write("\t" + new HashSet<>(barcodeList).size());

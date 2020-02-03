@@ -3,6 +3,8 @@ package nl.umcg.suresnp.pipeline.io;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;
@@ -14,12 +16,19 @@ import java.util.zip.GZIPOutputStream;
 public class GenericFile {
 
     protected String path;
+    private Charset charset;
 
     public GenericFile() {
     }
 
     public GenericFile(String path) {
         this.path = path.trim();
+        this.charset = StandardCharsets.UTF_8;
+    }
+
+    public GenericFile(String path, Charset charset) {
+        this.path = path.trim();
+        this.charset = charset;
     }
 
     public Path getPath() {
@@ -38,12 +47,20 @@ public class GenericFile {
         return (FilenameUtils.getBaseName(this.path));
     }
 
+    public String getFolder() {
+        return FilenameUtils.getPath(this.path);
+    }
+
     public String getExtention() {
         return (FilenameUtils.getExtension(this.path));
     }
 
     public boolean isGzipped() {
         return (getExtention().endsWith("gz"));
+    }
+
+    public Charset getCharset() {
+        return charset;
     }
 
     public InputStream getAsInputStream() throws IOException {
@@ -55,6 +72,10 @@ public class GenericFile {
         }
     }
 
+    public BufferedReader getAsBufferedReader() throws IOException {
+        return new BufferedReader(new InputStreamReader(getAsInputStream()));
+    }
+
     public OutputStream getAsOutputStream() throws IOException {
         if (isGzipped()) {
             return new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(new File(path))));
@@ -62,4 +83,10 @@ public class GenericFile {
             return new BufferedOutputStream(new FileOutputStream(new File(path)));
         }
     }
+
+    public BufferedWriter getAsBufferedWriter() throws IOException {
+        return new BufferedWriter(new OutputStreamWriter(getAsOutputStream(), charset));
+    }
+
+
 }

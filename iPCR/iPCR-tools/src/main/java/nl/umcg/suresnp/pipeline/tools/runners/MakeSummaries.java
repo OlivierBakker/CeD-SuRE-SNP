@@ -108,32 +108,34 @@ public class MakeSummaries {
 
     public void barcodeOverlapWriteOut() throws IOException {
 
-        // Quick and ugly implementation as it is redundant with duplicated cDNA reading, does work fine tough
         // How many of the cDNA barcodes come back in the iPCR
         Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
         // Write overlapping barcodes
         List<InfoRecordFilter> filters =  new ArrayList<>();
         filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
-        filters.add(new BarcodeContainedInFilter(ipcrBarcodes, false));
 
         InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
         List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
         cdnaBarcodeReader.flushAndClose();
 
-        writeBarcodeCollection(cdnaBarcodes, new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes"));
+        BufferedWriter overlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes").getAsOutputStream()));
+        BufferedWriter nonOverlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes").getAsOutputStream()));
 
-        // Write non-overlapping barcodes
-        filters =  new ArrayList<>();
-        filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
-        filters.add(new BarcodeContainedInFilter(ipcrBarcodes, true));
+        for (String curBarcode: cdnaBarcodes) {
+            if (ipcrBarcodes.contains(curBarcode)) {
+                overlappingOutputWriter.write(curBarcode);
+                overlappingOutputWriter.newLine();
+            } else {
+                nonOverlappingOutputWriter.write(curBarcode);
+                nonOverlappingOutputWriter.newLine();
+            }
+        }
 
-        cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
-        cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
-        cdnaBarcodeReader.flushAndClose();
-
-        writeBarcodeCollection(cdnaBarcodes, new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes"));
-
+        overlappingOutputWriter.flush();
+        overlappingOutputWriter.close();
+        nonOverlappingOutputWriter.flush();
+        nonOverlappingOutputWriter.close();
     }
 
 

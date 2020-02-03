@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
+import nl.umcg.suresnp.pipeline.tools.runners.MakeSummaries;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -83,7 +84,7 @@ public class MakeSummariesParameters {
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MakeBarcodeComplexityCurveParameters.printHelp();
+            MakeSummariesParameters.printHelp();
             exit(0);
         }
 

@@ -5,22 +5,23 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPOutputStream;
 
 public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
-    protected OutputStream outputStream;
-    protected BufferedWriter writer;
+    private BufferedWriter barcodeWriter;
+    private BufferedWriter coreWriter;
     private String[] barcodeCountFilesSampleNames;
     private final String sep = "\t";
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".ipcr"));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".ipcr.gz"));
+        String suffix = "";
+        if (isZipped) {
+            suffix = ".gz";
         }
+        coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
+        barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
+
 
         if (barcodeCountFilesSampleNames != null) {
             this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
@@ -36,17 +37,15 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
             }
         }
 
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII));
     }
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix+ ".ipcr"));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".ipcr.gz"));
+        String suffix = "";
+        if (isZipped) {
+            suffix = ".gz";
         }
-
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII));
+        coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
+        barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }
 
     @Override
@@ -56,57 +55,60 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
+        // Write barcode
+        barcodeWriter.write(record.getBarcode());
+        barcodeWriter.newLine();
+
         // Alignment info
-        writer.write(record.getBarcode());
-        writer.write(sep);
-        writer.write(record.getPrimaryReadName());
-        writer.write(sep);
-        writer.write(record.getContig());
-        writer.write(sep);
+        coreWriter.write(record.getBarcode());
+        coreWriter.write(sep);
+        coreWriter.write(record.getPrimaryReadName());
+        coreWriter.write(sep);
+        coreWriter.write(record.getContig());
+        coreWriter.write(sep);
 
-        writer.write(Integer.toString(record.getPrimaryStart()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getPrimaryEnd()));
-        writer.write(sep);
+        coreWriter.write(Integer.toString(record.getPrimaryStart()));
+        coreWriter.write(sep);
+        coreWriter.write(Integer.toString(record.getPrimaryEnd()));
+        coreWriter.write(sep);
 
-        writer.write(Integer.toString(record.getMateStart()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getMateEnd()));
-        writer.write(sep);
+        coreWriter.write(Integer.toString(record.getMateStart()));
+        coreWriter.write(sep);
+        coreWriter.write(Integer.toString(record.getMateEnd()));
+        coreWriter.write(sep);
 
-        writer.write(Integer.toString(record.getPrimarySamFlags()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getMateSamFlags()));
-        writer.write(sep);
+        coreWriter.write(Integer.toString(record.getPrimarySamFlags()));
+        coreWriter.write(sep);
+        coreWriter.write(Integer.toString(record.getMateSamFlags()));
+        coreWriter.write(sep);
 
-        writer.write(Integer.toString(record.getPrimaryMappingQuality()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getMateMappingQuality()));
-        writer.write(sep);
+        coreWriter.write(Integer.toString(record.getPrimaryMappingQuality()));
+        coreWriter.write(sep);
+        coreWriter.write(Integer.toString(record.getMateMappingQuality()));
+        coreWriter.write(sep);
 
-        writer.write(record.getPrimaryCigar());
-        writer.write(sep);
-        writer.write(record.getMateCigar());
-        writer.write(sep);
+        coreWriter.write(record.getPrimaryCigar());
+        coreWriter.write(sep);
+        coreWriter.write(record.getMateCigar());
+        coreWriter.write(sep);
 
-        writer.write(record.getPrimaryStrand());
-        writer.write(sep);
+        coreWriter.write(record.getPrimaryStrand());
+        coreWriter.write(sep);
 
-        writer.write(record.getMateStrand());
-        writer.write(sep);
+        coreWriter.write(record.getMateStrand());
+        coreWriter.write(sep);
 
-        writer.write(Integer.toString(record.getIpcrDuplicateCount()));
-        writer.write(sep);
-
+        coreWriter.write(Integer.toString(record.getIpcrDuplicateCount()));
+        coreWriter.write(sep);
 
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
-                writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
-                writer.write(sep);
+                coreWriter.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
+                coreWriter.write(sep);
             }
         }
 
-        writer.newLine();
+        coreWriter.newLine();
     }
 
     @Override
@@ -116,58 +118,58 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeHeader(String reason) throws IOException {
-        writer.write("barcode");
-        writer.write(sep);
-        writer.write("readName");
-        writer.write(sep);
-        writer.write("chromosome");
-        writer.write(sep);
-        writer.write("readOneStart");
-        writer.write(sep);
-        writer.write("readOneEnd");
-        writer.write(sep);
-        writer.write("readTwoStart");
-        writer.write(sep);
-        writer.write("readTwoEnd");
-        writer.write(sep);
-        writer.write("readOneFlag");
-        writer.write(sep);
-        writer.write("readTwoFlag");
-        writer.write(sep);
-        writer.write("readOneMQ");
-        writer.write(sep);
-        writer.write("readTwoMQ");
-        writer.write(sep);
-        writer.write("readOneCigar");
-        writer.write(sep);
-        writer.write("readTwoCigar");
-        writer.write(sep);
-        writer.write("readOneStrand");
-        writer.write(sep);
-        writer.write("readTwoStrand");
-        writer.write(sep);
-        writer.write("ipcrCount");
-        writer.write(sep);
+        coreWriter.write("barcode");
+        coreWriter.write(sep);
+        coreWriter.write("readName");
+        coreWriter.write(sep);
+        coreWriter.write("chromosome");
+        coreWriter.write(sep);
+        coreWriter.write("readOneStart");
+        coreWriter.write(sep);
+        coreWriter.write("readOneEnd");
+        coreWriter.write(sep);
+        coreWriter.write("readTwoStart");
+        coreWriter.write(sep);
+        coreWriter.write("readTwoEnd");
+        coreWriter.write(sep);
+        coreWriter.write("readOneFlag");
+        coreWriter.write(sep);
+        coreWriter.write("readTwoFlag");
+        coreWriter.write(sep);
+        coreWriter.write("readOneMQ");
+        coreWriter.write(sep);
+        coreWriter.write("readTwoMQ");
+        coreWriter.write(sep);
+        coreWriter.write("readOneCigar");
+        coreWriter.write(sep);
+        coreWriter.write("readTwoCigar");
+        coreWriter.write(sep);
+        coreWriter.write("readOneStrand");
+        coreWriter.write(sep);
+        coreWriter.write("readTwoStrand");
+        coreWriter.write(sep);
+        coreWriter.write("ipcrCount");
+        coreWriter.write(sep);
         if (barcodeCountFilesSampleNames != null) {
             for (String key: barcodeCountFilesSampleNames) {
                 int idx = key.indexOf('.');
                 if (idx < 0) {
-                    writer.write(key);
+                    coreWriter.write(key);
                 } else {
-                    writer.write(key.substring(0, idx));
+                    coreWriter.write(key.substring(0, idx));
                 }
-                writer.write(sep);
+                coreWriter.write(sep);
             }
         }
 
-        writer.newLine();
-
+        coreWriter.newLine();
     }
 
     public void flushAndClose() throws IOException {
-        writer.flush();
-        writer.close();
-        outputStream.close();
+        barcodeWriter.flush();
+        barcodeWriter.close();
+        coreWriter.flush();
+        coreWriter.close();
     }
 
     @Override
