@@ -27,7 +27,11 @@ public interface InfoFileReader {
 
     Set<String> getBarcodeSet(GenericFile file) throws IOException;
 
+    Set<String> getBarcodeSet(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
+
     List<String> getBarcodeList(GenericFile file) throws IOException;
+
+    List<String> getBarcodeList(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
 
     void flushAndClose() throws IOException;
 }

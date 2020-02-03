@@ -6,11 +6,9 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;

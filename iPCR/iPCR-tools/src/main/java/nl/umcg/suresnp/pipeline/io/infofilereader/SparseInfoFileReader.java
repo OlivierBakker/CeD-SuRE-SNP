@@ -11,6 +11,10 @@ public class SparseInfoFileReader extends GenericInfoFileReader {
         super(outputPrefix);
     }
 
+    public SparseInfoFileReader(String outputPrefix, boolean writeDiscardedOutput) throws IOException {
+        super(outputPrefix, writeDiscardedOutput);
+    }
+
     @Override
     public InfoRecord parseBarcodeRecord(String[] line) throws NumberFormatException {
         InfoRecord curRec = new InfoRecord(line[0].split(" ")[0],

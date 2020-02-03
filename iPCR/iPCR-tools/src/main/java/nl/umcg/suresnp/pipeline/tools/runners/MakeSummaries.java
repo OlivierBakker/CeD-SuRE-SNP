@@ -1,7 +1,9 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
+import nl.umcg.suresnp.pipeline.inforecords.filters.BarcodeContainedInFilter;
+import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.infofilereader.BarebonesInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
@@ -12,12 +14,9 @@ import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
@@ -36,32 +35,13 @@ public class MakeSummaries {
         InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
 
         Set<String> cdnaBarcodes = new HashSet<>(cdnaBarcodeReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes())).keySet());
-        Set<String> ipcrBarcodes = new HashSet<>();
+        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
         int inputCdnaCount = cdnaBarcodes.size();
 
-        for (String file : params.getInputIpcr()) {
-
-            Set<String> currentBarcodes;
-            switch (params.getInputType()) {
-                case "INFO":
-                    InfoFileReader ipcrBarcodeReader = new BarebonesInfoFileReader(20);
-                    currentBarcodes = ipcrBarcodeReader.getBarcodeSet(new GenericFile(file));
-                    break;
-                case "IPCR":
-                    IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(file), true);
-                    currentBarcodes = ipcrRecordProvider.getBarcodeSet();
-                    break;
-                default:
-                    throw new IllegalArgumentException("No valid input type provided");
-            }
-
-            ipcrBarcodes.addAll(currentBarcodes);
-        }
-
         LOGGER.info("Trimming barcode sets");
-        cdnaBarcodes = trimBarcodesFivePrime(cdnaBarcodes, 2);
-        ipcrBarcodes = trimBarcodesFivePrime(ipcrBarcodes, 2);
+        cdnaBarcodes = (Set<String>) trimBarcodesFivePrime(cdnaBarcodes, new HashSet<>(), 2);
+        ipcrBarcodes = (Set<String>) trimBarcodesFivePrime(ipcrBarcodes, new HashSet<>(), 2);
 
         LOGGER.info("cDNA: " + cdnaBarcodes.size());
         LOGGER.info("iPCR: " + ipcrBarcodes.size());
@@ -75,18 +55,6 @@ public class MakeSummaries {
                 cdnaBarcodes.size() +
                 " (" + (cdnaBarcodes.size() / inputCdnaCount) * 100 + "%) could be found in iPCR");
 
-    }
-
-    // TODO: Not the most efficient thing, if trimming becomes standard, will implement it in the file readers
-    // For testing this will suffice
-    private Set<String> trimBarcodesFivePrime(Set<String> input, int trimLength) {
-        Set<String> output = new HashSet<>(input.size());
-
-        for (String curBarcode : input) {
-            output.add(curBarcode.substring(trimLength));
-        }
-
-        return output;
     }
 
     public void getInsertSizes() throws IOException, IllegalArgumentException {
@@ -139,20 +107,45 @@ public class MakeSummaries {
     }
 
     public void barcodeOverlapWriteOut() throws IOException {
+
+        // Quick and ugly implementation as it is redundant with duplicated cDNA reading, does work fine tough
         // How many of the cDNA barcodes come back in the iPCR
-        InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
+        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
-        List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()))
+        // Write overlapping barcodes
+        List<InfoRecordFilter> filters =  new ArrayList<>();
+        filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
+        filters.add(new BarcodeContainedInFilter(ipcrBarcodes, false));
+
+        InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
+        List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
+        cdnaBarcodeReader.flushAndClose();
+
+        writeBarcodeCollection(cdnaBarcodes, new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes"));
+
+        // Write non-overlapping barcodes
+        filters =  new ArrayList<>();
+        filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
+        filters.add(new BarcodeContainedInFilter(ipcrBarcodes, true));
+
+        cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
+        cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
+        cdnaBarcodeReader.flushAndClose();
+
+        writeBarcodeCollection(cdnaBarcodes, new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes"));
+
+    }
+
+
+    private Set<String> readIpcrBarcodesAsSet() throws IOException {
         Set<String> ipcrBarcodes = new HashSet<>();
-
-        int inputCdnaCount = cdnaBarcodes.size();
 
         for (String file : params.getInputIpcr()) {
 
             Set<String> currentBarcodes;
             switch (params.getInputType()) {
                 case "INFO":
-                    InfoFileReader ipcrBarcodeReader = new BarebonesInfoFileReader(20);
+                    InfoFileReader ipcrBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
                     currentBarcodes = ipcrBarcodeReader.getBarcodeSet(new GenericFile(file));
                     break;
                 case "IPCR":
@@ -166,27 +159,11 @@ public class MakeSummaries {
             ipcrBarcodes.addAll(currentBarcodes);
         }
 
-        LOGGER.info("Trimming barcode sets");
-        cdnaBarcodes = trimBarcodesFivePrime(cdnaBarcodes, 2);
-        ipcrBarcodes = trimBarcodesFivePrime(ipcrBarcodes, 2);
-
-        LOGGER.info("cDNA: " + cdnaBarcodes.size());
-        LOGGER.info("iPCR: " + ipcrBarcodes.size());
-
-        cdnaBarcodes.retainAll(ipcrBarcodes);
-
-        LOGGER.info("Overlap: " + cdnaBarcodes.size());
-
-        LOGGER.info(inputCdnaCount +
-                " cDNA barcodes  of which " +
-                cdnaBarcodes.size() +
-                " (" + (cdnaBarcodes.size() / inputCdnaCount) * 100 + "%) could be found in iPCR");
-
+        return ipcrBarcodes;
     }
 
 
-
-    private void writeBarcodeSet(Set<String> output, GenericFile file) throws IOException {
+    private void writeBarcodeCollection(Collection<String> output, GenericFile file) throws IOException {
         BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(file.getAsOutputStream()));
 
         for (String barcode : output) {
@@ -196,6 +173,16 @@ public class MakeSummaries {
 
         outputWriter.flush();
         outputWriter.close();
-
     }
+
+
+    // TODO: Not the most efficient thing, if trimming becomes standard, will implement it in the file readers
+    // For testing this will suffice
+    private Collection<String> trimBarcodesFivePrime(Collection<String> input, Collection<String> output,  int trimLength) {
+        for (String curBarcode : input) {
+            output.add(curBarcode.substring(trimLength));
+        }
+        return output;
+    }
+
 }

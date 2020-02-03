@@ -20,4 +20,5 @@ public class FivePrimeFragmentLengthEqualsFilter implements InfoRecordFilter {
     public String getFilterName() {
         return filtername;
     }
+
 }

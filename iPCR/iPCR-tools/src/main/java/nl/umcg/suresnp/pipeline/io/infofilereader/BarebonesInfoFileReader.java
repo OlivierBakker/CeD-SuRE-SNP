@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
@@ -107,6 +108,11 @@ public class BarebonesInfoFileReader implements InfoFileReader {
     }
 
     @Override
+    public Set<String> getBarcodeSet(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
+        throw new UnsupportedEncodingException();
+    }
+
+    @Override
     public List<String> getBarcodeList(GenericFile file) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
         List<String> barcodeList = new ArrayList<>();
@@ -130,6 +136,11 @@ public class BarebonesInfoFileReader implements InfoFileReader {
         reader.close();
         LOGGER.info("Done read: " + barcodeList.size() + " barcodes");
         return barcodeList;    }
+
+    @Override
+    public List<String> getBarcodeList(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
+        throw new UnsupportedEncodingException();
+    }
 
     @Override
     public void flushAndClose() throws IOException {

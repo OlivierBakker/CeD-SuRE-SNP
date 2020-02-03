@@ -3,7 +3,6 @@ package nl.umcg.suresnp.pipeline.io;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
-import java.nio.Buffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;

@@ -1,9 +1,7 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
-import nl.umcg.suresnp.pipeline.inforecords.consumers.BarcodeListInfoRecordConsumer;
+import nl.umcg.suresnp.pipeline.inforecords.consumers.BarcodeConsumer;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.infofilereader.BarebonesInfoFileReader;
-import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeComplexityCurveParameters;
 import org.apache.log4j.Logger;
 
@@ -18,13 +16,11 @@ public class MakeBarcodeComplexityCurve {
 
     private static final Logger LOGGER = Logger.getLogger(MakeBarcodeComplexityCurve.class);
     private MakeBarcodeComplexityCurveParameters params;
-    private InfoFileReader infoFileReader;
     private OutputStream outputStream;
     private BufferedWriter writer;
 
     public MakeBarcodeComplexityCurve(MakeBarcodeComplexityCurveParameters params) throws IOException {
         this.params = params;
-        this.infoFileReader = new BarebonesInfoFileReader(params.getBarcodeLength());
         this.outputStream = new BufferedOutputStream(new FileOutputStream(params.getOutputPrefix() + ".uniqueBarcodeCounts"));
         this.writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
@@ -97,7 +93,7 @@ public class MakeBarcodeComplexityCurve {
                     writer.write("\t" + new HashSet<>(barcodeList).size());
                 } else {
                     // Sample a random barcode without replacement
-                    BarcodeListInfoRecordConsumer consumer = new BarcodeListInfoRecordConsumer(new HashSet<>(), barcodeList);
+                    BarcodeConsumer consumer = new BarcodeConsumer(new HashSet<>(), barcodeList);
                     new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).forEach(consumer);
                     writer.write("\t" + consumer.getSize());
                     writer.flush();

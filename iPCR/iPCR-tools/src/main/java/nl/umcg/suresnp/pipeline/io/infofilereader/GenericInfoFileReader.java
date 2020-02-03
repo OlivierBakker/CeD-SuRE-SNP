@@ -5,12 +5,10 @@ import nl.umcg.suresnp.pipeline.inforecords.consumers.*;
 import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
-import java.util.List;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
@@ -18,11 +16,22 @@ public class GenericInfoFileReader implements InfoFileReader {
     private static final Logger LOGGER = Logger.getLogger(GenericInfoFileReader.class);
     private String outputPrefix;
     private BufferedWriter writer;
+    private boolean writeDiscardedOutput;
 
-    // TODO: cleanup duplicated code
     public GenericInfoFileReader(String outputPrefix) throws IOException {
         this.writer = new BufferedWriter(new FileWriter(outputPrefix + ".discarded.barcodes.txt"));
         this.outputPrefix = outputPrefix;
+        this.writeDiscardedOutput = true;
+    }
+
+    public GenericInfoFileReader(String outputPrefix, boolean writeDiscardedOutput) throws IOException {
+        this.outputPrefix = outputPrefix;
+        this.writeDiscardedOutput = writeDiscardedOutput;
+        if (this.writeDiscardedOutput) {
+            this.writer = new BufferedWriter(new FileWriter(outputPrefix + ".discarded.barcodes.txt"));
+        } else {
+            this.writer = null;
+        }
     }
 
     @Override
@@ -69,6 +78,13 @@ public class GenericInfoFileReader implements InfoFileReader {
     }
 
     @Override
+    public Set<String> getBarcodeSet(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
+        BarcodeSetInfoRecordConsumer consumer = new BarcodeSetInfoRecordConsumer();
+        readInfoFile(file, filters, consumer);
+        return consumer.getOutput();
+    }
+
+    @Override
     public List<String> getBarcodeList(GenericFile file) throws IOException {
         BarcodeListInfoRecordConsumer consumer = new BarcodeListInfoRecordConsumer();
         readInfoFile(file, new ArrayList<>(), consumer);
@@ -76,9 +92,18 @@ public class GenericInfoFileReader implements InfoFileReader {
     }
 
     @Override
+    public List<String> getBarcodeList(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
+        BarcodeListInfoRecordConsumer consumer = new BarcodeListInfoRecordConsumer();
+        readInfoFile(file, filters, consumer);
+        return consumer.getOutput();
+    }
+
+    @Override
     public void flushAndClose() throws IOException {
-        writer.flush();
-        writer.close();
+        if (writer != null) {
+            writer.flush();
+            writer.close();
+        }
     }
 
     @Override
@@ -117,7 +142,7 @@ public class GenericInfoFileReader implements InfoFileReader {
 
     }
 
-    private void readInfoFile(GenericFile file, List<InfoRecordFilter> filters,  InfoRecordConsumer outputConsumer) throws IOException {
+    private void readInfoFile(GenericFile file, List<InfoRecordFilter> filters, InfoRecordConsumer outputConsumer) throws IOException {
         CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(file.getAsInputStream())), "\t");
         String[] line;
         int curRecord = 0;
@@ -148,22 +173,26 @@ public class GenericInfoFileReader implements InfoFileReader {
             if (passesFilter) {
                 outputConsumer.proccesInfoRecord(curInfoRecord);
             } else {
-                writer.write(reason + "\t");
-                writer.write(String.join("\t", line));
-                writer.newLine();
+                if (writeDiscardedOutput) {
+                    writer.write(reason + "\t");
+                    writer.write(String.join("\t", line));
+                    writer.newLine();
+                }
                 discarded++;
             }
-
             curRecord++;
         }
 
         System.out.print("\n"); // Flush progress bar
         reader.close();
         LOGGER.info("Done, Read " + curRecord + " records");
+        LOGGER.warn(discarded + " lines discarded");
 
-        if (discarded > 0) {
-            LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
+        if (discarded > 0 && writeDiscardedOutput) {
+            LOGGER.warn("Discard lines have been written to file: ");
             LOGGER.warn(outputPrefix + "/" + file.getBaseName() + ".discarded.barcodes.txt");
+            writer.flush();
+            writer.close();
         }
 
     }
