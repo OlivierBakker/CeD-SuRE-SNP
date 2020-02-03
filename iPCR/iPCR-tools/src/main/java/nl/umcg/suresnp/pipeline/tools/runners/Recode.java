@@ -23,8 +23,8 @@ public class Recode {
 
     public void run() throws IOException {
 
+        // TODO: Implement filters (already done for reader class so its just adding some commandline arguments)
         GenericFile inputFile = new GenericFile(params.getInputIpcr()[0]);
-
 
         IpcrRecordProvider provider;
         switch (params.getInputType()) {

@@ -22,6 +22,8 @@ public class BinaryIpcrReader implements IpcrRecordProvider {
     private static final Logger LOGGER = Logger.getLogger(BinaryIpcrReader.class);
     private ObjectInputStream inputStream;
 
+    // This is a bit of a fail, I was expecting the java serialization to be pretty decent, but a zipped text file
+    // Is much quicker and more space efficient. If I have some spare time I might implement a custom binary format.
     public BinaryIpcrReader(GenericFile file) throws IOException {
         inputStream = new ObjectInputStream(file.getAsInputStream());
     }

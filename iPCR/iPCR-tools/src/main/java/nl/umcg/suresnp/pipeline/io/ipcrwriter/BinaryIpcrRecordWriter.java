@@ -8,11 +8,10 @@ import java.util.zip.GZIPOutputStream;
 public class BinaryIpcrRecordWriter implements IpcrOutputWriter {
 
     private ObjectOutputStream outputStream;
-
-
+    // This is a bit of a fail, I was expecting the java serialization to be pretty decent, but a zipped text file
+    // Is much quicker and more space efficient. If I have some spare time I might implement a custom binary format.
     public BinaryIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
         if (!isZipped) {
-
             RandomAccessFile file = new RandomAccessFile(outputPrefix + ".dat", "rw");
             outputStream = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file.getFD())));
         } else {

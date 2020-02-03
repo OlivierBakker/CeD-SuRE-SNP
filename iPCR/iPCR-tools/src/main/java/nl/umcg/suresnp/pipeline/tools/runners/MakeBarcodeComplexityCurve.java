@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
-import nl.umcg.suresnp.pipeline.barcodes.BarcodeConsumer;
+import nl.umcg.suresnp.pipeline.inforecords.consumers.BarcodeListInfoRecordConsumer;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.BarebonesInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
@@ -97,7 +97,7 @@ public class MakeBarcodeComplexityCurve {
                     writer.write("\t" + new HashSet<>(barcodeList).size());
                 } else {
                     // Sample a random barcode without replacement
-                    BarcodeConsumer consumer = new BarcodeConsumer(new HashSet<>(), barcodeList);
+                    BarcodeListInfoRecordConsumer consumer = new BarcodeListInfoRecordConsumer(new HashSet<>(), barcodeList);
                     new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).forEach(consumer);
                     writer.write("\t" + consumer.getSize());
                     writer.flush();

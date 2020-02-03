@@ -7,6 +7,7 @@ import java.nio.Buffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Created by olivier on 07/12/2017.
@@ -52,6 +53,14 @@ public class GenericFile {
         } else {
             return new BufferedInputStream(new FileInputStream(new File(path)));
 
+        }
+    }
+
+    public OutputStream getAsOutputStream() throws IOException {
+        if (isGzipped()) {
+            return new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(new File(path))));
+        } else {
+            return new BufferedOutputStream(new FileOutputStream(new File(path)));
         }
     }
 }

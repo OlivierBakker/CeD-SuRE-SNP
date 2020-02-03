@@ -4,6 +4,7 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 
 public class GenericIpcrRecordWriter implements IpcrOutputWriter {
@@ -35,7 +36,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
             }
         }
 
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII));
     }
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
@@ -45,7 +46,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
             outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".ipcr.gz"));
         }
 
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII));
     }
 
     @Override

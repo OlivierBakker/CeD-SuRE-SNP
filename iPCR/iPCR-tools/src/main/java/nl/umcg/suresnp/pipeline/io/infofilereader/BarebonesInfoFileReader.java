@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.infofilereader;
 
-import nl.umcg.suresnp.pipeline.barcodes.InfoRecord;
-import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.inforecords.InfoRecord;
+import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.log4j.Logger;
 
@@ -12,6 +12,7 @@ import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
+@Deprecated
 public class BarebonesInfoFileReader implements InfoFileReader {
     private static final Logger LOGGER = Logger.getLogger(BarebonesInfoFileReader.class);
     private int barcodeLengthFilter;
@@ -81,7 +82,6 @@ public class BarebonesInfoFileReader implements InfoFileReader {
 
     @Override
     public Set<String> getBarcodeSet(GenericFile file) throws IOException {
-        // May seem excessive, but allows for easy change to zipped files if needed
         BufferedReader reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
         Set<String> barcodeSet = new HashSet<>();
 
@@ -102,9 +102,34 @@ public class BarebonesInfoFileReader implements InfoFileReader {
             curRecord++;
         }
         reader.close();
-        LOGGER.info("Done read: " + barcodeSet.size() + " read barcodes");
+        LOGGER.info("Done read: " + barcodeSet.size() + " barcodes");
         return barcodeSet;
     }
+
+    @Override
+    public List<String> getBarcodeList(GenericFile file) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
+        List<String> barcodeList = new ArrayList<>();
+
+        int curRecord = 0;
+        String line;
+        while ((line = reader.readLine()) != null) {
+            logProgress(curRecord, 1000000, "BarebonesInfoFileReader");
+
+            String[] cols = line.split("\t");
+
+            // Initialize filter parameters
+            if (cols.length == 11) {
+                String bc =  cols[4];
+                if (bc.length() == barcodeLengthFilter) {
+                    barcodeList.add(bc);
+                }
+            }
+            curRecord++;
+        }
+        reader.close();
+        LOGGER.info("Done read: " + barcodeList.size() + " barcodes");
+        return barcodeList;    }
 
     @Override
     public void flushAndClose() throws IOException {

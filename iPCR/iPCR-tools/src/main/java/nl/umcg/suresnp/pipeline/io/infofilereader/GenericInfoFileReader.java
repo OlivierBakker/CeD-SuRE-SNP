@@ -1,7 +1,8 @@
 package nl.umcg.suresnp.pipeline.io.infofilereader;
 
-import nl.umcg.suresnp.pipeline.barcodes.InfoRecord;
-import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.inforecords.InfoRecord;
+import nl.umcg.suresnp.pipeline.inforecords.consumers.*;
+import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.commons.collections4.list.TreeList;
@@ -9,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
+import java.util.List;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
@@ -30,56 +32,9 @@ public class GenericInfoFileReader implements InfoFileReader {
 
     @Override
     public List<InfoRecord> readBarcodeFileAsList(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
-        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(file.getAsInputStream())), "\t");
-        List<InfoRecord> barcodeList = new TreeList<>();
-
-        String[] line;
-        int curRecord = 0;
-        int discarded = 0;
-        while ((line = reader.readNext(true)) != null) {
-            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
-
-            // Initialize filter parameters
-            boolean passesFilter = true;
-            String reason = null;
-            InfoRecord curInfoRecord = null;
-
-            if (line.length == 11) {
-                curInfoRecord = parseBarcodeRecord(line);
-                for (InfoRecordFilter filter : filters) {
-                    if (!filter.passesFilter(curInfoRecord)) {
-                        passesFilter = false;
-                        reason = filter.getFilterName();
-                        break;
-                    }
-                }
-            } else {
-                reason = "ColumnCountFilter";
-                passesFilter = false;
-            }
-
-            if (passesFilter) {
-                barcodeList.add(curInfoRecord);
-            } else {
-                writer.write(reason + "\t");
-                writer.write(String.join("\t", line));
-                writer.newLine();
-                discarded++;
-            }
-
-            curRecord++;
-
-        }
-        System.out.print("\n"); // Flush progress bar
-        reader.close();
-        LOGGER.info("Done, Read " + curRecord + " records");
-
-        if (discarded > 0) {
-            LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
-            LOGGER.warn(outputPrefix + "/" + file.getBaseName() + ".discarded.barcodes.txt");
-        }
-
-        return barcodeList;
+        ListInfoRecordConsumer consumer = new ListInfoRecordConsumer();
+        readInfoFile(file, filters, consumer);
+        return consumer.getOutput();
     }
 
     @Override
@@ -89,58 +44,9 @@ public class GenericInfoFileReader implements InfoFileReader {
 
     @Override
     public Map<String, InfoRecord> readBarcodeFileAsMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
-
-        // May seem excessive, but allows for easy change to zipped files if needed
-        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(file.getAsInputStream())), "\t");
-        Map<String, InfoRecord> barcodeRecordMap = new HashMap<>();
-
-        String[] line;
-        int curRecord = 0;
-        int discarded = 0;
-        while ((line = reader.readNext(true)) != null) {
-            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
-
-            // Initialize filter parameters
-            boolean passesFilter = true;
-            String reason = null;
-            InfoRecord curInfoRecord = null;
-
-            if (line.length == 11) {
-                curInfoRecord = parseBarcodeRecord(line);
-                for (InfoRecordFilter filter : filters) {
-                    if (!filter.passesFilter(curInfoRecord)) {
-                        passesFilter = false;
-                        reason = filter.getFilterName();
-                        break;
-                    }
-                }
-            } else {
-                reason = "ColumnCountFilter";
-                passesFilter = false;
-            }
-
-            if (passesFilter) {
-                barcodeRecordMap.put(curInfoRecord.getReadId(), curInfoRecord);
-            } else {
-                writer.write(reason + "\t");
-                writer.write(String.join("\t", line));
-                writer.newLine();
-                discarded++;
-            }
-
-            curRecord++;
-
-        }
-        System.out.print("\n"); // Flush progress bar
-        reader.close();
-        LOGGER.info("Done, Read " + curRecord + " records");
-
-        if (discarded > 0) {
-            LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
-            LOGGER.warn(outputPrefix + "/" + file.getBaseName() + ".discarded.barcodes.txt");
-        }
-
-        return barcodeRecordMap;
+        MapInfoRecordConsumer consumer = new MapInfoRecordConsumer();
+        readInfoFile(file, filters, consumer);
+        return consumer.getOutput();
     }
 
     @Override
@@ -150,74 +56,29 @@ public class GenericInfoFileReader implements InfoFileReader {
 
     @Override
     public Map<String, String> readBarcodeFileAsStringMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException {
-        // May seem excessive, but allows for easy change to zipped files if needed
-        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(file.getAsInputStream())), "\t");
-        Map<String, String> barcodeRecordMap = new HashMap<>();
+        StringMapInfoRecordConsumer consumer = new StringMapInfoRecordConsumer();
+        readInfoFile(file, filters, consumer);
+        return consumer.getOutput();
+    }
 
-        String[] line;
-        int curRecord = 0;
-        int discarded = 0;
-        LOGGER.info("Reading file: " + file.getBaseName());
+    @Override
+    public Set<String> getBarcodeSet(GenericFile file) throws IOException {
+        BarcodeSetInfoRecordConsumer consumer = new BarcodeSetInfoRecordConsumer();
+        readInfoFile(file, new ArrayList<>(), consumer);
+        return consumer.getOutput();
+    }
 
-        while ((line = reader.readNext(true)) != null) {
-            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
-
-            // Initialize filter parameters
-            boolean passesFilter = true;
-            String reason = null;
-            InfoRecord curInfoRecord = null;
-
-            if (line.length == 11) {
-                curInfoRecord = parseBarcodeRecord(line);
-
-                for (InfoRecordFilter filter : filters) {
-                    if (!filter.passesFilter(curInfoRecord)) {
-                        passesFilter = false;
-                        reason = filter.getFilterName();
-                        break;
-                    }
-                }
-            } else {
-                reason = "ColumnCountFilter";
-                passesFilter = false;
-            }
-
-            if (passesFilter) {
-                barcodeRecordMap.put(curInfoRecord.getReadId(), curInfoRecord.getBarcode());
-            } else {
-                writer.write(reason + "\t");
-                writer.write(String.join("\t", line));
-                writer.newLine();
-                discarded++;
-            }
-
-            curRecord++;
-        }
-        System.out.print("\n"); // Flush progress bar
-        reader.close();
-        LOGGER.info("Done, Read " + curRecord + " records");
-
-        if (discarded > 0) {
-            LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
-            LOGGER.warn(outputPrefix + "/" + file.getBaseName() + ".discarded.barcodes.txt");
-        }
-        return barcodeRecordMap;
+    @Override
+    public List<String> getBarcodeList(GenericFile file) throws IOException {
+        BarcodeListInfoRecordConsumer consumer = new BarcodeListInfoRecordConsumer();
+        readInfoFile(file, new ArrayList<>(), consumer);
+        return consumer.getOutput();
     }
 
     @Override
     public void flushAndClose() throws IOException {
         writer.flush();
         writer.close();
-    }
-
-    public InfoRecord parseBarcodeRecord(String[] line) throws NumberFormatException {
-        InfoRecord curRec = new InfoRecord(line[0].split(" ")[0],
-                Integer.parseInt(line[1]),
-                Integer.parseInt(line[2]),
-                Integer.parseInt(line[3]),
-                line[4], line[8], line[5], line[9], line[6], line[10]);
-        return curRec;
-
     }
 
     @Override
@@ -246,8 +107,64 @@ public class GenericInfoFileReader implements InfoFileReader {
         return readBarcodePairs;
     }
 
-    @Override
-    public Set<String> getBarcodeSet(GenericFile file) throws IOException {
-        throw new UnsupportedOperationException();
+    public InfoRecord parseBarcodeRecord(String[] line) throws NumberFormatException {
+        InfoRecord curRec = new InfoRecord(line[0].split(" ")[0],
+                Integer.parseInt(line[1]),
+                Integer.parseInt(line[2]),
+                Integer.parseInt(line[3]),
+                line[4], line[8], line[5], line[9], line[6], line[10]);
+        return curRec;
+
+    }
+
+    private void readInfoFile(GenericFile file, List<InfoRecordFilter> filters,  InfoRecordConsumer outputConsumer) throws IOException {
+        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(file.getAsInputStream())), "\t");
+        String[] line;
+        int curRecord = 0;
+        int discarded = 0;
+
+        while ((line = reader.readNext(true)) != null) {
+            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
+
+            // Initialize filter parameters
+            boolean passesFilter = true;
+            String reason = null;
+            InfoRecord curInfoRecord = null;
+
+            if (line.length == 11) {
+                curInfoRecord = parseBarcodeRecord(line);
+                for (InfoRecordFilter filter : filters) {
+                    if (!filter.passesFilter(curInfoRecord)) {
+                        passesFilter = false;
+                        reason = filter.getFilterName();
+                        break;
+                    }
+                }
+            } else {
+                reason = "ColumnCountFilter";
+                passesFilter = false;
+            }
+
+            if (passesFilter) {
+                outputConsumer.proccesInfoRecord(curInfoRecord);
+            } else {
+                writer.write(reason + "\t");
+                writer.write(String.join("\t", line));
+                writer.newLine();
+                discarded++;
+            }
+
+            curRecord++;
+        }
+
+        System.out.print("\n"); // Flush progress bar
+        reader.close();
+        LOGGER.info("Done, Read " + curRecord + " records");
+
+        if (discarded > 0) {
+            LOGGER.warn(discarded + " lines discarded. Discard lines have been written to file: ");
+            LOGGER.warn(outputPrefix + "/" + file.getBaseName() + ".discarded.barcodes.txt");
+        }
+
     }
 }

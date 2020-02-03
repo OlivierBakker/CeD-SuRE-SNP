@@ -1,9 +1,9 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import htsjdk.samtools.*;
-import nl.umcg.suresnp.pipeline.barcodes.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.barcodes.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.barcodes.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.inforecords.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
