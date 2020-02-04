@@ -168,4 +168,9 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void setSampleToWrite(String sample) {
+
+    }
+
 }

@@ -54,4 +54,9 @@ public class BinaryIpcrRecordWriter implements IpcrOutputWriter {
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
         throw new UnsupportedOperationException("Not implemented as not relevant here");
     }
+
+    @Override
+    public void setSampleToWrite(String sample) {
+
+    }
 }
