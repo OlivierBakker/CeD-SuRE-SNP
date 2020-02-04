@@ -76,12 +76,6 @@ public class BarebonesInfoFileReader implements InfoFileReader {
     }
 
     @Override
-    public Map<String, Integer> readBarcodeCountFile(GenericFile file) throws IOException {
-        LOGGER.warn("Not implemented in BarebonesBarcodeFileReader. Returning null");
-        return null;
-    }
-
-    @Override
     public Set<String> getBarcodeSet(GenericFile file) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
         Set<String> barcodeSet = new HashSet<>();

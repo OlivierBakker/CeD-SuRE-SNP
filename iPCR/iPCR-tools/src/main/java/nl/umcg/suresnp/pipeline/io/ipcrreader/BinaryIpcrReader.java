@@ -96,7 +96,7 @@ public class BinaryIpcrReader implements IpcrRecordProvider {
     }
 
     @Override
-    public String[] getSamples() {
+    public String[] getCdnaSamples() {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 

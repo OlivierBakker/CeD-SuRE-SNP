@@ -23,8 +23,6 @@ public interface InfoFileReader {
 
     Map<String, String> readBarcodeFileAsStringMap(GenericFile file, List<InfoRecordFilter> filters) throws IOException;
 
-    Map<String, Integer> readBarcodeCountFile(GenericFile file) throws IOException;
-
     Set<String> getBarcodeSet(GenericFile file) throws IOException;
 
     Set<String> getBarcodeSet(GenericFile file, List<InfoRecordFilter> filters) throws IOException;

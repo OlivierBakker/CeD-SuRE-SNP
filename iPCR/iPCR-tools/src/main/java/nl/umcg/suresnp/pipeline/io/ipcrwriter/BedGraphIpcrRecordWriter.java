@@ -7,44 +7,36 @@ import java.io.*;
 import java.util.zip.GZIPOutputStream;
 
 
+@Deprecated
 public class BedGraphIpcrRecordWriter implements IpcrOutputWriter {
 
     protected OutputStream outputStream;
     protected BufferedWriter writer;
     private String[] barcodeCountFilesSampleNames;
+    private String sampleToWrite;
 
     private final String sep = "\t";
 
     public BedGraphIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bedGraph"));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bedGraph.gz"));
-        }
-        this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix.getPath()  + ".bedGraph" + suffix).getAsBufferedWriter();
 
+        this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
         // Clean filenames, trim all .
         int i = 0;
         for (String curFile : barcodeCountFilesSampleNames) {
             String tmp = new GenericFile(curFile).getBaseName();
-            //int idx = tmp.indexOf('.');
-            // this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
-            this.barcodeCountFilesSampleNames[i] = tmp;
+            int idx = tmp.indexOf('.');
+            this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
             i++;
         }
 
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
     public BedGraphIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bedGraph"));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bedGraph.gz"));
-        }
-
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix.getPath()  + ".bedGraph" + suffix).getAsBufferedWriter();
     }
 
     @Override
@@ -160,6 +152,11 @@ public class BedGraphIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
+
+    @Override
+    public void setSampleToWrite(String sample) {
+        this.sampleToWrite = sample;
     }
 }
 

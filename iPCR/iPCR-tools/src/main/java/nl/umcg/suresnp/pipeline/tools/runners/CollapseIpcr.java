@@ -111,7 +111,7 @@ public class CollapseIpcr {
         LOGGER.info("Done sorting. Took: " + ((stop - start) / 1000) + " seconds");
 
         // Write the output
-        outputWriter.setBarcodeCountFilesSampleNames(provider.getSamples());
+        outputWriter.setBarcodeCountFilesSampleNames(provider.getCdnaSamples());
 
         if (!params.isNoHeader()) {
             outputWriter.writeHeader();

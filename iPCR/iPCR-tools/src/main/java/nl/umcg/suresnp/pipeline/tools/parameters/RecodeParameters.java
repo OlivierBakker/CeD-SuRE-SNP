@@ -16,6 +16,8 @@ public class RecodeParameters {
 
     // IO arguments
     private String[] inputIpcr;
+    private String[] inputCdna;
+
     // Yes, should be an enum, but I couldn't be bothered
     private String inputType;
 
@@ -23,7 +25,6 @@ public class RecodeParameters {
     private String outputPrefix;
     private String outputType;
     private IpcrOutputWriter outputWriter;
-    private String[] barcodeCountFiles;
     private boolean isStdoutput;
 
     // General arguments
@@ -65,6 +66,14 @@ public class RecodeParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("b")
+                .longOpt("input-barcodes")
+                .hasArg(true)
+                .desc("Barcode counts to add to the iPCR file")
+                .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("o")
                 .longOpt("output")
                 .hasArg(true)
@@ -91,11 +100,17 @@ public class RecodeParameters {
             exit(0);
         }
 
-        // Input files
+        // Input iPCR files
         if (cmd.hasOption('i')) {
             inputIpcr = cmd.getOptionValues('i');
         }
 
+        // Input barcode count files
+        if (cmd.hasOption('b')) {
+            inputCdna = cmd.getOptionValues('b');
+        }
+
+        // Input type
         if (cmd.hasOption('k')) {
             inputType = cmd.getOptionValue('k');
             switch (inputType) {
@@ -111,8 +126,6 @@ public class RecodeParameters {
         } else {
             inputType = "IPCR";
         }
-
-        toolType = "Recode";
 
         // Define the output writer, either stdout or to file
         if (cmd.hasOption('o')) {
@@ -133,36 +146,36 @@ public class RecodeParameters {
 
         switch (outputType) {
             case "BEDPE":
-                if (barcodeCountFiles != null) {
-                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                if (inputCdna != null) {
+                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
                 } else {
                     outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
             case "BED":
-                if (barcodeCountFiles != null) {
-                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                if (inputCdna != null) {
+                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
                 } else {
                     outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
             case "BEDGRAPH":
-                if (barcodeCountFiles != null) {
-                    outputWriter = new BedGraphIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                if (inputCdna != null) {
+                    outputWriter = new BedGraphIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
                 } else {
                     outputWriter = new BedGraphIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
             case "IPCR":
-                if (barcodeCountFiles != null) {
-                    outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                if (inputCdna != null) {
+                    outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
                 } else {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
             case "MACS":
-                if (barcodeCountFiles != null) {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                if (inputCdna != null) {
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
                 } else {
                     outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
@@ -175,6 +188,8 @@ public class RecodeParameters {
                 printHelp();
                 exit(1);
         }
+
+        toolType = "Recode";
 
     }
 
@@ -202,8 +217,8 @@ public class RecodeParameters {
         return outputWriter;
     }
 
-    public String[] getBarcodeCountFiles() {
-        return barcodeCountFiles;
+    public String[] getInputCdna() {
+        return inputCdna;
     }
 
     public boolean isStdoutput() {

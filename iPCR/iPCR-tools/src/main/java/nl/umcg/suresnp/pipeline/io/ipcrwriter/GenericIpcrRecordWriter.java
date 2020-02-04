@@ -14,36 +14,25 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     private final String sep = "\t";
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
-
-        String suffix = "";
-        if (isZipped) {
-            suffix = ".gz";
-        }
+        String suffix = ""; if (isZipped) suffix = ".gz";
         coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
         barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
 
-
         if (barcodeCountFilesSampleNames != null) {
             this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
-
             // Clean filenames, trim all .
             int i = 0;
             for (String curFile: barcodeCountFilesSampleNames) {
                 String tmp = new GenericFile(curFile).getBaseName();
-                //int idx = tmp.indexOf('.');
-                //this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
-                this.barcodeCountFilesSampleNames[i] = tmp;
+                int idx = tmp.indexOf('.');
+                this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
                 i++;
             }
         }
-
     }
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        String suffix = "";
-        if (isZipped) {
-            suffix = ".gz";
-        }
+        String suffix = ""; if (isZipped) suffix = ".gz";
         coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
         barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }
@@ -180,5 +169,9 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
+
+    @Override
+    public void setSampleToWrite(String sample) {
     }
 }

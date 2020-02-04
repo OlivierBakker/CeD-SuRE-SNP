@@ -225,6 +225,11 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
+    public void addBarcodeCount(String sample, Integer count) {
+        barcodeCountPerSample.put(sample, count);
+    }
+
+    @Override
     public int getIpcrDuplicateCount() {
         return ipcrDuplicateCount;
     }

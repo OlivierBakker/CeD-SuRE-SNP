@@ -71,6 +71,11 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
+    public void addBarcodeCount(String sample, Integer count) {
+        this.barcodeCountPerSample.put(sample, count);
+    }
+
+    @Override
     public int getIpcrDuplicateCount() {
         return ipcrDuplicateCount;
     }

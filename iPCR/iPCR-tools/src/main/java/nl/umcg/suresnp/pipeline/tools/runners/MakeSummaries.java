@@ -4,6 +4,7 @@ import nl.umcg.suresnp.pipeline.inforecords.filters.BarcodeContainedInFilter;
 import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
@@ -34,7 +35,7 @@ public class MakeSummaries {
         // How many of the cDNA barcodes come back in the iPCR
         InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
 
-        Set<String> cdnaBarcodes = new HashSet<>(cdnaBarcodeReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes())).keySet());
+        Set<String> cdnaBarcodes = new HashSet<>(GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes())).keySet());
         Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
         int inputCdnaCount = cdnaBarcodes.size();

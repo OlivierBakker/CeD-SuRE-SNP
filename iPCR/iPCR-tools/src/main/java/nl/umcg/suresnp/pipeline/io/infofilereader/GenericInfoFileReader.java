@@ -106,10 +106,9 @@ public class GenericInfoFileReader implements InfoFileReader {
         }
     }
 
-    @Override
-    public Map<String, Integer> readBarcodeCountFile(GenericFile inputBarcodes) throws IOException {
+    public static Map<String, Integer> readBarcodeCountFile(GenericFile inputBarcodes) throws IOException {
         // Open a new CSV reader
-        CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(inputBarcodes.getAsInputStream())), "\t");
+        CsvReader reader = new CsvReader(inputBarcodes.getAsBufferedReader(), "\t");
         Map<String, Integer> readBarcodePairs = new HashMap<>();
         String[] line;
         int i = 0;
@@ -117,7 +116,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         LOGGER.info("Reading file: " + inputBarcodes.getBaseName());
 
         while ((line = reader.readNext(false)) != null) {
-            logProgress(i, 1000000, "GenericBarcodeFileReader");
+            logProgress(i, 1000000, "GenericInfoFileReader");
             i++;
 
             if (line.length != 2) {

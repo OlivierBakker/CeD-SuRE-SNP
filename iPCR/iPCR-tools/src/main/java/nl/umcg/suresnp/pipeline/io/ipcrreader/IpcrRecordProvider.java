@@ -12,6 +12,6 @@ public interface IpcrRecordProvider {
     List<IpcrRecord> getRecordsAsList() throws IOException;
     List<IpcrRecord> getRecordsAsList(List<IpcrRecordFilter> filters) throws IOException;
     Set<String> getBarcodeSet() throws IOException;
-    String[] getSamples();
+    String[] getCdnaSamples();
     void close() throws IOException;
 }

@@ -4,52 +4,37 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 
 public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
-    protected OutputStream outputStream;
     protected BufferedWriter writer;
-    private int sampleIndexToWrite;
+    private String sampleToWrite;
     private String[] barcodeCountFilesSampleNames;
 
     private final String sep = "\t";
 
     public BedIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix + ".bed" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
 
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bed"));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bed.gz"));
-        }
         this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
-
         // Clean filenames, trim all.
         int i = 0;
         for (String curFile: barcodeCountFilesSampleNames) {
             String tmp = new GenericFile(curFile).getBaseName();
-            //int idx = tmp.indexOf('.');
-           // this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
-            this.barcodeCountFilesSampleNames[i] = tmp;
+            int idx = tmp.indexOf('.');
+            this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
             i++;
         }
-        sampleIndexToWrite = 0;
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
     public BedIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix + ".bed"));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".bed.gz"));
-        }
-        sampleIndexToWrite = -1;
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix + ".bed" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }
 
-    public void setSampleIndexToWrite(int index) {
-        this.sampleIndexToWrite = index;
-    }
 
     @Override
     public void writeRecord(IpcrRecord record) throws IOException {
@@ -60,9 +45,9 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
         int count;
-        if (sampleIndexToWrite >= 0) {
+        if (sampleToWrite != null) {
             if (record.getBarcodeCountPerSample() != null) {
-                count = record.getBarcodeCountPerSample().get(barcodeCountFilesSampleNames[sampleIndexToWrite]);
+                count = record.getBarcodeCountPerSample().get(sampleToWrite);
             } else {
                 count=0;
             }
@@ -72,7 +57,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
 
         if (record.getBarcodeCountPerSample() != null) {
             int i = 0;
-
             if (count > 0) {
                 while (i < count) {
                     writeBedRecord(record);
@@ -98,23 +82,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(Integer.toString(record.getOrientationIndependentEnd()));
         writer.write(sep);
 
-        // name
-        writer.write(record.getBarcode());
-        //writer.write(sep);
-
-        // score
-/*        if (record.getBarcodeCountPerSample() != null) {
-            for (String key: record.getBarcodeCountPerSample().keySet()) {
-                writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
-                writer.write(";");
-            }
-        }*/
-        //writer.write(".");
-        //writer.write(sep);
-
-        // Strand
-       // writer.write(record.getPrimaryStrand());
-
         writer.newLine();
     }
 
@@ -130,10 +97,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write("start");
         writer.write(sep);
         writer.write("end");
-        writer.write(sep);
-        writer.write("barcode");
-        writer.write(sep);
-        writer.write("readName");
         writer.write(sep);
 
 /*
@@ -153,7 +116,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     public void flushAndClose() throws IOException {
         writer.flush();
         writer.close();
-        outputStream.close();
     }
 
     @Override
@@ -165,4 +127,10 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
     }
+
+    @Override
+    public void setSampleToWrite(String sample) {
+        this.sampleToWrite = sample;
+    }
+
 }

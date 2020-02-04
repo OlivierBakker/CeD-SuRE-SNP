@@ -73,6 +73,8 @@ public interface IpcrRecord {
 
     void setBarcodeCountPerSample(Map<String, Integer> barcodeCountPerSample);
 
+    void addBarcodeCount(String sample, Integer count);
+
     int getIpcrDuplicateCount();
 
     void setIpcrDuplicateCount(int ipcrDuplicateCount);

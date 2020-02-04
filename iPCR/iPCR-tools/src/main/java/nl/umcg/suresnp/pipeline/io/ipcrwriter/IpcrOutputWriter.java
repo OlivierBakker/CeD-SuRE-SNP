@@ -14,4 +14,5 @@ public interface IpcrOutputWriter {
     void flushAndClose() throws IOException;
     String[] getBarcodeCountFilesSampleNames();
     void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames);
+    void setSampleToWrite(String sample);
 }

@@ -165,7 +165,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
     }
 
     @Override
-    public String[] getSamples() {
+    public String[] getCdnaSamples() {
         return cdnaSamples;
     }
 
