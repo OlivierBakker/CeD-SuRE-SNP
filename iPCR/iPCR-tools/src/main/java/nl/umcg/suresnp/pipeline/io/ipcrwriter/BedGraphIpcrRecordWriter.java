@@ -154,7 +154,6 @@ public class BedGraphIpcrRecordWriter implements IpcrOutputWriter {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
     }
 
-    @Override
     public void setSampleToWrite(String sample) {
         this.sampleToWrite = sample;
     }

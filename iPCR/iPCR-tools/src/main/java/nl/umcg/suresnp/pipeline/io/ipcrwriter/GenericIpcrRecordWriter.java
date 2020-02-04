@@ -171,7 +171,4 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
     }
 
-    @Override
-    public void setSampleToWrite(String sample) {
-    }
 }

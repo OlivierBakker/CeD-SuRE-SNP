@@ -11,7 +11,6 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
     protected BufferedWriter writer;
     private String[] barcodeCountFilesSampleNames;
     private final String sep = "\t";
-    private String sampleToWrite;
 
     public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
@@ -118,10 +117,5 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
-    }
-
-    @Override
-    public void setSampleToWrite(String sample) {
-        this.sampleToWrite = sample;
     }
 }

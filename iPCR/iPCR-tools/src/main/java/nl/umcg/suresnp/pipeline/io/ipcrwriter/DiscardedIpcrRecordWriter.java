@@ -1,8 +1,10 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 
 public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
@@ -12,13 +14,8 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
     private final String sep = "\t";
 
     public DiscardedIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        if (!isZipped) {
-            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
-        } else {
-            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
-        }
-
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix + ".bed" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }
 
     @Override
@@ -168,9 +165,5 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public void setSampleToWrite(String sample) {
-
-    }
 
 }

@@ -70,9 +70,8 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
         cdnaBedWriter.setBarcodeCountFilesSampleNames(barcodeCountFilesSampleNames);
     }
 
-    @Override
     public void setSampleToWrite(String sample) {
-        ipcrBedWriter.setSampleToWrite(null);
+        ipcrBedWriter.setSampleToWrite("IPCR");
         cdnaBedWriter.setSampleToWrite(sample);
     }
 }
