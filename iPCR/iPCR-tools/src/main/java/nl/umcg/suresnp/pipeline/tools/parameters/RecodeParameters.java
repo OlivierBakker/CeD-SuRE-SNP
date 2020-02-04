@@ -49,7 +49,7 @@ public class RecodeParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("f")
+        option = Option.builder("k")
                 .longOpt("input-type")
                 .hasArg(true)
                 .desc("The input type")
@@ -96,8 +96,8 @@ public class RecodeParameters {
             inputIpcr = cmd.getOptionValues('i');
         }
 
-        if (cmd.hasOption('f')) {
-            inputType = cmd.getOptionValue('f');
+        if (cmd.hasOption('k')) {
+            inputType = cmd.getOptionValue('k');
             switch (inputType) {
                 case "IPCR":
                     break;

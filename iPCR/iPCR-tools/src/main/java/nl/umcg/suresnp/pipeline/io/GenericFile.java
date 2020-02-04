@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io;
 
+import org.apache.commons.compress.compressors.FileNameUtil;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
@@ -45,6 +46,10 @@ public class GenericFile {
 
     public String getBaseName() {
         return (FilenameUtils.getBaseName(this.path));
+    }
+
+    public String getFileName() {
+        return FilenameUtils.getName(this.path);
     }
 
     public String getFolder() {

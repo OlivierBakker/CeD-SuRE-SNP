@@ -10,6 +10,7 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeCountsParameters;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
+import org.molgenis.genotype.variant.GenotypeRecord;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -25,14 +26,17 @@ public class MakeBarcodeCounts {
     private MakeBarcodeCountsParameters params;
     private BufferedWriter discardedWriter;
     private BufferedWriter outputWriter;
+    private BufferedWriter barcodeWriter;
 
     public MakeBarcodeCounts(MakeBarcodeCountsParameters params) throws IOException {
         this.params = params;
-        this.discardedWriter = new BufferedWriter(new FileWriter(params.getOutputPrefix() + ".discarded.barcodes.txt"));
-        this.outputWriter = new BufferedWriter(new FileWriter(params.getOutputPrefix() + ".barcode.counts"));
+        this.discardedWriter = new GenericFile(params.getOutputPrefix() + ".discarded.barcodes.txt").getAsBufferedWriter();
+        this.outputWriter = new GenericFile(params.getOutputPrefix() + ".barcode.counts").getAsBufferedWriter();
+        this.barcodeWriter = new GenericFile(params.getOutputPrefix() + ".barcodes").getAsBufferedWriter();
     }
 
     public void run() throws IOException {
+
         List<InfoRecordFilter> filters = new ArrayList<>();
         filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
         filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
@@ -48,8 +52,7 @@ public class MakeBarcodeCounts {
         // So the algo can be streaming, otherwise need to refactor to provider type pattern
         for (String curFile : params.getInputBarcodes()) {
 
-            CsvReader reader = new CsvReader(new BufferedReader(new InputStreamReader(new GenericFile(curFile).getAsInputStream())), "\t");
-            List<InfoRecord> barcodeList = new TreeList<>();
+            CsvReader reader = new CsvReader(new GenericFile(curFile).getAsBufferedReader(), "\t");
 
             String[] line;
             int curRecord = 0;
@@ -94,6 +97,11 @@ public class MakeBarcodeCounts {
                         barcodeCounts.put(curInfoRecord.getBarcode(), 1);
                     }
 
+                    if (params.isWriteBarcodeFile()) {
+                        barcodeWriter.write(curInfoRecord.getBarcode());
+                        barcodeWriter.newLine();
+                    }
+
                 } else {
                     discardedWriter.write(reason + "\t");
                     discardedWriter.write(String.join("\t", line));
@@ -117,7 +125,6 @@ public class MakeBarcodeCounts {
 
         discardedWriter.flush();
         discardedWriter.close();
-
         LOGGER.info(barcodeCounts.size() + " unique barcodes");
 
         int sanityCheckSum = 0;
@@ -133,6 +140,10 @@ public class MakeBarcodeCounts {
 
         outputWriter.flush();
         outputWriter.close();
+
+        barcodeWriter.flush();
+        barcodeWriter.close();
+
     }
 
     public InfoRecord parseBarcodeRecord(String[] line) throws NumberFormatException {

@@ -8,6 +8,7 @@ import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
@@ -24,11 +25,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
     private String[] cdnaSamples;
 
     public IpcrFileReader(GenericFile file, boolean hasHeader) throws IOException {
-        String suffix = "";
-        if (file.isGzipped()) {
-            suffix = ".gz";
-        }
-        this.barcodeReader = new GenericFile(file.getFolder() + "/" + file.getBaseName() + ".barcodes" + suffix).getAsBufferedReader();
+        setBarcodeReader(file);
         this.coreReader = file.getAsBufferedReader();
         this.sep = "\t";
         if (hasHeader) {
@@ -37,10 +34,26 @@ public class IpcrFileReader implements IpcrRecordProvider {
     }
 
     public IpcrFileReader(GenericFile file, boolean hasHeader, String sep) throws IOException {
+        setBarcodeReader(file);
         coreReader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
         this.sep = sep;
         if (hasHeader) {
             setHeader();
+        }
+    }
+
+    private void setBarcodeReader(GenericFile file) throws IOException {
+        try {
+            String suffix = "";
+            if (file.isGzipped()) {
+                suffix = ".gz";
+            }
+            String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.gz$", "") + ".barcodes" + suffix;
+            LOGGER.info("Reading barcodes from: " + curPath);
+            this.barcodeReader = new GenericFile(curPath).getAsBufferedReader();
+        } catch (FileNotFoundException e) {
+            LOGGER.warn("No barcode file found, certain functionality will be slower");
+            this.barcodeReader = null;
         }
     }
 
@@ -93,7 +106,6 @@ public class IpcrFileReader implements IpcrRecordProvider {
             records.add(curRecord);
             curRecord = getNextRecord();
         }
-        System.out.print("\n"); // Flush progress bar
         LOGGER.info("Read " + i + " records");
 
         return records;
@@ -117,7 +129,6 @@ public class IpcrFileReader implements IpcrRecordProvider {
             }
             curRecord = getNextRecord();
         }
-        System.out.print("\n"); // Flush progress bar
         LOGGER.info("Read " + i + " records");
         LOGGER.info(records.size() + " records passed filters");
 
@@ -126,19 +137,30 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     @Override
     public Set<String> getBarcodeSet() throws IOException {
-
         Set<String> barcodeSet = new HashSet<>();
-        String line = barcodeReader.readLine();
         int i = 0;
-        while (line != null) {
-            logProgress(i, 1000000, "IpcrFileReader");
-            i++;
-            barcodeSet.add(line);
-            line = barcodeReader.readLine();
-        }
-        System.out.print("\n"); // Flush progress bar
-        LOGGER.info("Read " + i + " records");
 
+        if (barcodeReader != null) {
+            String line = barcodeReader.readLine();
+            while (line != null) {
+                logProgress(i, 1000000, "IpcrFileReader");
+                i++;
+                barcodeSet.add(line);
+                line = barcodeReader.readLine();
+            }
+        } else {
+            String line = coreReader.readLine();
+            while (line != null) {
+                logProgress(i, 1000000, "IpcrFileReader");
+                i++;
+
+                String[] data = line.split(sep);
+                barcodeSet.add(data[0]);
+                line = coreReader.readLine();
+            }
+        }
+
+        LOGGER.info("Read " + i + " records");
         return barcodeSet;
     }
 

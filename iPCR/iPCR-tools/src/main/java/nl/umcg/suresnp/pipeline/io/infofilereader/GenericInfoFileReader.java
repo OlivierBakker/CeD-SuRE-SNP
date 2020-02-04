@@ -149,7 +149,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         int discarded = 0;
 
         while ((line = reader.readNext(true)) != null) {
-            logProgress(curRecord, 1000000, "GenericBarcodeFileReader");
+            logProgress(curRecord, 1000000, "GenericInfoFileReader");
 
             // Initialize filter parameters
             boolean passesFilter = true;

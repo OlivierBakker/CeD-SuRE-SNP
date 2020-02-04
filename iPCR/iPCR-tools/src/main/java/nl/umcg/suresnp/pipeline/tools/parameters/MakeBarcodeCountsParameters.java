@@ -13,7 +13,7 @@ public class MakeBarcodeCountsParameters {
     // IO arguments
     private String[] inputBarcodes;
     private String outputPrefix;
-
+    private boolean writeBarcodeFile;
 
     // General arguments
     private String toolType;
@@ -48,6 +48,14 @@ public class MakeBarcodeCountsParameters {
                 .hasArg(true)
                 .desc("Output prefix")
                 .argName("path/to/output")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("b")
+                .longOpt("no-barcode-file")
+                .hasArg(false)
+                .desc("Don't write a file containing all (non-unique) valid barcodes. " +
+                        "Can be used for BC overlapping or determining the complexity curve")
                 .build();
         OPTIONS.addOption(option);
 
@@ -90,12 +98,18 @@ public class MakeBarcodeCountsParameters {
             exit(1);
         }
 
+        writeBarcodeFile = !cmd.hasOption("b");
+
         // Hardcoded arguments for testing
         barcodeLength = 20;
         adapterMaxMismatch = 3;
         trimFivePrimeToBarcodeLength = true;
     }
 
+
+    public boolean isWriteBarcodeFile() {
+        return writeBarcodeFile;
+    }
 
     public String[] getInputBarcodes() {
         return inputBarcodes;

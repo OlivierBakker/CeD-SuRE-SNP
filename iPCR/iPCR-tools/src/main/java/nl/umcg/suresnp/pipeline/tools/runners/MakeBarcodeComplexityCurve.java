@@ -13,7 +13,6 @@ import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 public class MakeBarcodeComplexityCurve {
 
-
     private static final Logger LOGGER = Logger.getLogger(MakeBarcodeComplexityCurve.class);
     private MakeBarcodeComplexityCurveParameters params;
     private OutputStream outputStream;
@@ -25,20 +24,57 @@ public class MakeBarcodeComplexityCurve {
         this.writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
-
     public void run() throws IOException {
 
-        // Read barcode data
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new GenericFile(params.getInputBarcodes()).getAsInputStream()));
-        List<String> barcodeList = new ArrayList<>(params.getIntervalMax());
         int[] intervals = generateIntervals(0, params.getIntervalMax(), params.getnDownSampleIntervals());
         LOGGER.info("Calculating unique barcode counts for following intervals: " + Arrays.toString(intervals));
 
+        // Read barcode file
+        List<String> barcodeList = readBarcodes();
+
+        // Write header line
         writer.write("iteration");
         for (int interval : intervals) {
             writer.write("\t" + interval);
         }
         writer.newLine();
+
+        // Calculate # of unique barcodes
+        for (int i = 0; i < params.getnIterations(); i++) {
+            writer.write("iteration" + i);
+            for (int randomReadCount : intervals) {
+                LOGGER.info("Running iteration: " + i + " interval: " + randomReadCount);
+
+                if (randomReadCount == barcodeList.size()) {
+                    writer.write("\t" + new HashSet<>(barcodeList).size());
+                } else {
+                    // Sample a random barcode without replacement
+                    BarcodeConsumer consumer = new BarcodeConsumer(new HashSet<>(), barcodeList);
+                    new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).forEach(consumer);
+                    writer.write("\t" + consumer.getSize());
+                    writer.flush();
+                }
+
+            }
+            writer.newLine();
+            writer.flush();
+        }
+
+        writer.flush();
+        writer.close();
+        outputStream.flush();
+        outputStream.close();
+
+        LOGGER.debug("Debug point");
+    }
+
+
+    private List<String> readBarcodes() throws IOException {
+
+        List<String> barcodeList = new ArrayList<>(params.getIntervalMax());
+
+        // Read barcode data
+        BufferedReader reader = new GenericFile(params.getInputBarcodes()).getAsBufferedReader();
 
         int curRecord = 0;
         int savedRecods = 0;
@@ -76,34 +112,8 @@ public class MakeBarcodeComplexityCurve {
         reader.close();
 
 
-        for (int i = 0; i < params.getnIterations(); i++) {
-            writer.write("iteration" + i);
-            for (int randomReadCount : intervals) {
-                LOGGER.info("Running iteration: " + i + " interval: " + randomReadCount);
-
-                if (randomReadCount == barcodeList.size()) {
-                    writer.write("\t" + new HashSet<>(barcodeList).size());
-                } else {
-                    // Sample a random barcode without replacement
-                    BarcodeConsumer consumer = new BarcodeConsumer(new HashSet<>(), barcodeList);
-                    new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).forEach(consumer);
-                    writer.write("\t" + consumer.getSize());
-                    writer.flush();
-                }
-
-            }
-            writer.newLine();
-            writer.flush();
-        }
-
-        writer.flush();
-        writer.close();
-        outputStream.flush();
-        outputStream.close();
-
-        LOGGER.debug("Debug point");
+        return barcodeList;
     }
-
 
     private static int[] generateIntervals(int start, int end, int nValues) {
 
