@@ -12,7 +12,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     protected BufferedWriter writer;
     private String sampleToWrite;
     private String[] barcodeCountFilesSampleNames;
-
     private final String sep = "\t";
 
     public BedIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
@@ -37,7 +36,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer = new GenericFile(outputPrefix + ".bed" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }
 
-
     @Override
     public void writeRecord(IpcrRecord record) throws IOException {
         this.writeRecord(record, "");
@@ -55,6 +53,8 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
                     count = record.getBarcodeCountPerSample().get(sampleToWrite);
                 }
             }
+        } else {
+            count = 1;
         }
 
         int i = 0;
@@ -96,9 +96,7 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write("start");
         writer.write(sep);
         writer.write("end");
-        writer.write(sep);
         writer.newLine();
-
     }
 
     public void flushAndClose() throws IOException {

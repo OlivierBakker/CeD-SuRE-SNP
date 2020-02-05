@@ -75,7 +75,7 @@ public class IpcrTools {
         } catch (UnrecognizedOptionException | IllegalArgumentException e) {
             IpcrToolParameters.printHelp();
             e.printStackTrace();
-        } catch (ParseException | IpcrParseException | IOException e) {
+        } catch (ParseException | IOException | java.text.ParseException e) {
             e.printStackTrace();
         }
 

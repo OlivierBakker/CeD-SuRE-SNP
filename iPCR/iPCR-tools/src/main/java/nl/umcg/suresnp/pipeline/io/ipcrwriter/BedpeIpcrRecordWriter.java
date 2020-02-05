@@ -42,11 +42,9 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
-        // Flip arround so that the primary read is the first position
         writer.write(record.getContig());
         writer.write(sep);
 
-        // Make the positions 0 based
         writer.write(Integer.toString(record.getOrientationIndependentStart()));
         writer.write(sep);
 

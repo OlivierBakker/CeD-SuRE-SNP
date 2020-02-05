@@ -12,6 +12,7 @@ import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeIpcrFileParameters;
+import nl.umcg.suresnp.pipeline.utils.B37GenomeInfo;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -242,7 +243,7 @@ public class MakeIpcrFile {
             return false;
         }
         // Discard non chromosomal reads
-        if (!isChromosome(record.getContig())) {
+        if (!B37GenomeInfo.isChromosome(record.getContig())) {
             discardedOutputWriter.writeRecord(new SamBasedIpcrRecord(readBarcodePairs.get(record.getReadName()), record), "nonChromosomalRead");
             return false;
         }
@@ -262,11 +263,6 @@ public class MakeIpcrFile {
             return false;
         }
         return true;
-    }
-
-    // TODO: very ugly fix this
-    public static boolean isChromosome(String contig) {
-        return (MakeIpcrFileParameters.getChromosomes().contains(contig));
     }
 
 

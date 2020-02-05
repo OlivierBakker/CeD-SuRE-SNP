@@ -8,6 +8,7 @@ import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.ipcrrecords.BasicIpcrRecord;
 import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.CollapseIpcrParameters;
+import nl.umcg.suresnp.pipeline.utils.B37GenomeInfo;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
@@ -139,7 +140,7 @@ public class CollapseIpcr {
         List<IpcrRecord> pileupCache = new ArrayList<>();
 
         String cachedContig = records.get(0).getContig();
-        int contigStop = CollapseIpcrParameters.getChromSize(cachedContig);
+        int contigStop = B37GenomeInfo.getChromSize(cachedContig);
         int windowStart = 0;
         int windowEnd = fragmentSize;
         IpcrRecord tmpRecord;

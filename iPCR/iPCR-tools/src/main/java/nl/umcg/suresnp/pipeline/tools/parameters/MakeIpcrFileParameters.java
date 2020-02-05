@@ -44,8 +44,6 @@ public class MakeIpcrFileParameters {
 
     private String[] barcodeCountFiles;
 
-    private static final ArrayList<String> chromosomes;
-
     private static final Options OPTIONS;
 
     static {
@@ -135,60 +133,6 @@ public class MakeIpcrFileParameters {
                 .build();
         OPTIONS.addOption(option);*/
 
-        chromosomes = new ArrayList<String>() {{
-            add("1");
-            add("2");
-            add("3");
-            add("4");
-            add("5");
-            add("6");
-            add("7");
-            add("8");
-            add("9");
-            add("10");
-            add("11");
-            add("12");
-            add("13");
-            add("14");
-            add("15");
-            add("16");
-            add("17");
-            add("18");
-            add("19");
-            add("20");
-            add("21");
-            add("22");
-            add("x");
-            add("y");
-            add("X");
-            add("Y");
-            add("chr1");
-            add("chr2");
-            add("chr3");
-            add("chr4");
-            add("chr5");
-            add("chr6");
-            add("chr7");
-            add("chr8");
-            add("chr9");
-            add("chr10");
-            add("chr11");
-            add("chr12");
-            add("chr13");
-            add("chr14");
-            add("chr15");
-            add("chr16");
-            add("chr17");
-            add("chr18");
-            add("chr19");
-            add("chr20");
-            add("chr21");
-            add("chr22");
-            add("chrx");
-            add("chry");
-            add("chrX");
-            add("chrY");
-        }};
     }
 
     public MakeIpcrFileParameters(String[] args) throws ParseException, IOException {
@@ -293,7 +237,6 @@ public class MakeIpcrFileParameters {
         return barcodeCountFiles != null;
     }
 
-
     public String[] getBarcodeCountFiles() {
         return barcodeCountFiles;
     }
@@ -352,10 +295,6 @@ public class MakeIpcrFileParameters {
 
     public static Options getOptions() {
         return OPTIONS;
-    }
-
-    public static ArrayList<String> getChromosomes() {
-        return chromosomes;
     }
 
     public GenericFile getRegionFilterFile() {

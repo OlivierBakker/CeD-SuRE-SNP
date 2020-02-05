@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
@@ -17,6 +18,7 @@ public class RecodeParameters {
     // IO arguments
     private String[] inputIpcr;
     private String[] inputCdna;
+    private GenericFile regionFilterFile;
 
     // Yes, should be an enum, but I couldn't be bothered
     private String inputType;
@@ -26,6 +28,7 @@ public class RecodeParameters {
     private String outputType;
     private IpcrOutputWriter outputWriter;
     private boolean isStdoutput;
+    private String sampleToWrite;
 
     // General arguments
     private String toolType;
@@ -62,7 +65,15 @@ public class RecodeParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("The output type")
-                .argName("IPCR|IPCR_BIN|MACS|BED|BEDPE|BEDGRAPH")
+                .argName("IPCR|IPCR_BIN|MACS|BED|BEDPE")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("f")
+                .longOpt("region-filter")
+                .hasArg(true)
+                .desc("BED file to only output records overlapping those regions")
+                .argName("path/to/file")
                 .build();
         OPTIONS.addOption(option);
 
@@ -79,6 +90,14 @@ public class RecodeParameters {
                 .hasArg(true)
                 .desc("Output prefix")
                 .argName("path/to/output")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("s")
+                .longOpt("sample-to-write")
+                .hasArg(true)
+                .desc("cDNA sample to use to write MACS output")
+                .argName("sample")
                 .build();
         OPTIONS.addOption(option);
 
@@ -110,6 +129,11 @@ public class RecodeParameters {
             inputCdna = cmd.getOptionValues('b');
         }
 
+        // BED file containing regions to include
+        if (cmd.hasOption("f")) {
+            regionFilterFile = new GenericFile(cmd.getOptionValue("f"));
+        }
+
         // Input type
         if (cmd.hasOption('k')) {
             inputType = cmd.getOptionValue('k');
@@ -132,7 +156,7 @@ public class RecodeParameters {
             outputPrefix = cmd.getOptionValue("o").trim();
         } else {
             LOGGER.error("-o not specified");
-            RecodeParameters.printHelp();
+            printHelp();
             exit(1);
         }
 
@@ -140,6 +164,12 @@ public class RecodeParameters {
             outputType = cmd.getOptionValue('t').trim();
         } else {
             outputType = "IPCR";
+        }
+
+        if (cmd.hasOption('s')) {
+            sampleToWrite = cmd.getOptionValue('s').trim();
+        } else {
+            sampleToWrite = null;
         }
 
         boolean zipped = cmd.hasOption("z");
@@ -159,13 +189,6 @@ public class RecodeParameters {
                     outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped);
                 }
                 break;
-            case "BEDGRAPH":
-                if (inputCdna != null) {
-                    outputWriter = new BedGraphIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
-                } else {
-                    outputWriter = new BedGraphIpcrRecordWriter(new File(outputPrefix), zipped);
-                }
-                break;
             case "IPCR":
                 if (inputCdna != null) {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
@@ -174,10 +197,16 @@ public class RecodeParameters {
                 }
                 break;
             case "MACS":
+                if (sampleToWrite == null) {
+                    LOGGER.error("No sample provided but output type is MACS. Please specify which cDNA sample should be used");
+                    printHelp();
+                    exit(1);
+                }
+
                 if (inputCdna != null) {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, sampleToWrite);
                 } else {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite);
                 }
                 break;
             case "IPCR_BIN":
@@ -191,6 +220,14 @@ public class RecodeParameters {
 
         toolType = "Recode";
 
+    }
+
+    public GenericFile getRegionFilterFile() {
+        return regionFilterFile;
+    }
+
+    public void setRegionFilterFile(GenericFile regionFilterFile) {
+        this.regionFilterFile = regionFilterFile;
     }
 
     public CommandLine getCmd() {

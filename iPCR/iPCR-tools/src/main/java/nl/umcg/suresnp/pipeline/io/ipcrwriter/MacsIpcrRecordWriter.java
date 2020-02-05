@@ -9,21 +9,22 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
     private BedIpcrRecordWriter ipcrBedWriter;
     private BedIpcrRecordWriter cdnaBedWriter;
 
-    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
+    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String sampleToWrite) throws IOException {
         // Fixed writers
         ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".ipcr"), isZipped);
         cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".cdna"), isZipped);
-        ipcrBedWriter.setSampleToWrite(null);
+        ipcrBedWriter.setSampleToWrite("IPCR");
+        cdnaBedWriter.setSampleToWrite(sampleToWrite);
         //ipcrBedWriter.setSampleIndexToWrite(-1);
         //cdnaBedWriter.setSampleIndexToWrite(0);
     }
 
-    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleName) throws IOException {
+    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleName, String sampleToWrite) throws IOException {
         // Fixed writers
         ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".ipcr"), isZipped);
         cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".cdna"), isZipped, barcodeCountFilesSampleName);
-        ipcrBedWriter.setSampleToWrite(null);
-
+        ipcrBedWriter.setSampleToWrite("IPCR");
+        cdnaBedWriter.setSampleToWrite(sampleToWrite);
         //TODO: Hardcoded to first sample
         //ipcrBedWriter.setSampleIndexToWrite(-1);
         //cdnaBedWriter.setSampleIndexToWrite(0);
