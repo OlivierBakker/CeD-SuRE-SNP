@@ -90,7 +90,7 @@ public class MakeReadNucleotideDistributionParameters {
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MakeReadNucleotideDistributionParameters.printHelp();
+            printHelp();
             exit(0);
         }
 

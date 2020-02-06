@@ -135,6 +135,7 @@ public class CollapseIpcr {
     @Deprecated
     private List<IpcrRecord> makePileup(List<IpcrRecord> records, String sample, int fragmentSize) {
         // assumes records are sorted on position
+        // TODO: re-write this at some point. Not sure it actually works properly but it is not used
         // TODO: does not handle the ends of contigs properly, fix this
         List<IpcrRecord> outputPileup = new TreeList<>();
         List<IpcrRecord> pileupCache = new ArrayList<>();
@@ -216,7 +217,7 @@ public class CollapseIpcr {
 
     @Deprecated
     private IpcrRecord createConsensusRecord(List<IpcrRecord> records) throws IOException {
-
+        // Here for legacy reasons
         // Select the best aligning record as the top one
         records.sort(Comparator
                 .comparing(IpcrRecord::getMappingQualitySum)

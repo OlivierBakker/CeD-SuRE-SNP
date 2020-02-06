@@ -45,6 +45,7 @@ public class AssignVariantAlleles {
     }
 
     public void run() throws IOException, IpcrParseException {
+        // TODO: need to re-write to fit updated pipeline
 
         LOGGER.warn("Currently assigns any read in BAM file if possible, does not do filtering of alignment quality" +
                 ",duplicates etc. so make sure you filter your BAM beforehand if needed.");

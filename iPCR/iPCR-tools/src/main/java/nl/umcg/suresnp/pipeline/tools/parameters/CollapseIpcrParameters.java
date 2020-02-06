@@ -97,11 +97,11 @@ public class CollapseIpcrParameters {
 
     public CollapseIpcrParameters(String[] args) throws IOException, ParseException {
         CommandLineParser parser = new DefaultParser();
-        cmd = parser.parse(CollapseIpcrParameters.getOptions(), args);
+        cmd = parser.parse(OPTIONS, args);
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MakeIpcrFileParameters.printHelp();
+            printHelp();
             exit(0);
         }
 

@@ -128,11 +128,11 @@ public class AssignVariantAllelesParameters {
     public AssignVariantAllelesParameters(String[] args) throws ParseException, IOException {
 
         CommandLineParser parser = new DefaultParser();
-        cmd = parser.parse(AssignVariantAllelesParameters.getOptions(), args);
+        cmd = parser.parse(OPTIONS, args);
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            AssignVariantAllelesParameters.printHelp();
+            printHelp();
             exit(0);
         }
 

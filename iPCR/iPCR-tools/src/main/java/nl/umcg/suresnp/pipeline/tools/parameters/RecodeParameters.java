@@ -115,7 +115,7 @@ public class RecodeParameters {
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MakeBarcodeComplexityCurveParameters.printHelp();
+            printHelp();
             exit(0);
         }
 

@@ -138,11 +138,11 @@ public class MakeIpcrFileParameters {
     public MakeIpcrFileParameters(String[] args) throws ParseException, IOException {
 
         CommandLineParser parser = new DefaultParser();
-        cmd = parser.parse(MakeIpcrFileParameters.getOptions(), args);
+        cmd = parser.parse(OPTIONS, args);
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MakeIpcrFileParameters.printHelp();
+            printHelp();
             exit(0);
         }
 
@@ -185,7 +185,7 @@ public class MakeIpcrFileParameters {
             // When writing to a file check if the correct options are specified
             if (!cmd.hasOption("o")) {
                 LOGGER.error("-o not specified");
-                MakeIpcrFileParameters.printHelp();
+                printHelp();
                 exit(1);
             }
 

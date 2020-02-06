@@ -73,7 +73,7 @@ public class MakeBarcodeCountsParameters {
 
         // Print help and exit
         if (cmd.hasOption("h")) {
-            MakeBarcodeCountsParameters.printHelp();
+            printHelp();
             exit(0);
         }
 
@@ -94,7 +94,7 @@ public class MakeBarcodeCountsParameters {
         // When writing to a file check if the correct options are specified
         if (!cmd.hasOption("o")) {
             LOGGER.error("-o not specified");
-            MakeBarcodeCountsParameters.printHelp();
+            printHelp();
             exit(1);
         }
 
