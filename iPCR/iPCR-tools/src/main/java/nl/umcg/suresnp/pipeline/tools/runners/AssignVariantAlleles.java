@@ -2,17 +2,17 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 
 import htsjdk.samtools.*;
-import nl.umcg.suresnp.pipeline.inforecords.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;
-import nl.umcg.suresnp.pipeline.ipcrrecords.AlleleSpecificSamBasedIpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.VariantType;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.AlleleSpecificSamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.VariantType;
 import nl.umcg.suresnp.pipeline.tools.parameters.AssignVariantAllelesParameters;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
@@ -24,7 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-import static nl.umcg.suresnp.pipeline.ipcrrecords.VariantType.INSERTION;
+import static nl.umcg.suresnp.pipeline.records.ipcrrecords.VariantType.INSERTION;
 
 public class AssignVariantAlleles {
 

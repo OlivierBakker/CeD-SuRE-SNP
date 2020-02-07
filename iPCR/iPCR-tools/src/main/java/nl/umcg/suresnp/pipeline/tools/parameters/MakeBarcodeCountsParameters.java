@@ -14,6 +14,7 @@ public class MakeBarcodeCountsParameters {
     private String[] inputBarcodes;
     private String outputPrefix;
     private boolean writeBarcodeFile;
+    private boolean zipped;
 
     // General arguments
     private String toolType;
@@ -59,6 +60,13 @@ public class MakeBarcodeCountsParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("z")
+                .longOpt("zip-output")
+                .hasArg(false)
+                .desc("Use Gzipped output stream")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
@@ -100,12 +108,17 @@ public class MakeBarcodeCountsParameters {
 
         writeBarcodeFile = !cmd.hasOption("b");
 
+        zipped = cmd.hasOption('z');
+
         // Hardcoded arguments for testing
         barcodeLength = 20;
         adapterMaxMismatch = 3;
         trimFivePrimeToBarcodeLength = true;
     }
 
+    public boolean isZipped() {
+        return zipped;
+    }
 
     public boolean isWriteBarcodeFile() {
         return writeBarcodeFile;

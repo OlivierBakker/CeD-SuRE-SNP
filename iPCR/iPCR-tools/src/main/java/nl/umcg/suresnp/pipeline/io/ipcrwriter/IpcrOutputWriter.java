@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
 
 import java.io.IOException;
 

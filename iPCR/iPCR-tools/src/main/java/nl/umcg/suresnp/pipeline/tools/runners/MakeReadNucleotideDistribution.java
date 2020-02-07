@@ -4,9 +4,9 @@ import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.fastq.FastqRecord;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.HasBarcodeCountGreaterEqualsFilter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.HasBarcodeCountGreaterEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeReadNucleotideDistributionParameters;
 import org.apache.log4j.Logger;
 

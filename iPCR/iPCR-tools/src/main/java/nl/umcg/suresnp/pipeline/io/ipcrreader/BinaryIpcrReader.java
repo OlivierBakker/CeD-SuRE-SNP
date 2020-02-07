@@ -1,8 +1,8 @@
 package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.IpcrRecordFilter;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 

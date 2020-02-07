@@ -1,18 +1,17 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 
-import nl.umcg.suresnp.pipeline.inforecords.InfoRecord;
-import nl.umcg.suresnp.pipeline.inforecords.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.InfoRecord;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeCountsParameters;
-import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
-import org.molgenis.genotype.variant.GenotypeRecord;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,9 +29,11 @@ public class MakeBarcodeCounts {
 
     public MakeBarcodeCounts(MakeBarcodeCountsParameters params) throws IOException {
         this.params = params;
-        this.discardedWriter = new GenericFile(params.getOutputPrefix() + ".discarded.barcodes.txt").getAsBufferedWriter();
-        this.outputWriter = new GenericFile(params.getOutputPrefix() + ".barcode.counts").getAsBufferedWriter();
-        this.barcodeWriter = new GenericFile(params.getOutputPrefix() + ".barcodes").getAsBufferedWriter();
+
+        String suffix = ""; if (params.isZipped()) suffix=".gz";
+        this.discardedWriter = new GenericFile(params.getOutputPrefix() + ".discarded.barcodes.txt" + suffix).getAsBufferedWriter();
+        this.outputWriter = new GenericFile(params.getOutputPrefix() + ".barcode.counts" + suffix).getAsBufferedWriter();
+        this.barcodeWriter = new GenericFile(params.getOutputPrefix() + ".barcodes" + suffix).getAsBufferedWriter();
     }
 
     public void run() throws IOException {

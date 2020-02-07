@@ -5,18 +5,14 @@ import htsjdk.samtools.util.SortingCollection;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.SubsetBamParameters;
-import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.*;
 import java.text.ParseException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
@@ -35,8 +31,8 @@ public class SubsetBam {
     }
 
     public void run() throws IOException, ParseException {
-        //TODO: For now only accepts one BAM
-        LOGGER.warn("Make sure you have run CollapseIpcr first so that barcodes are unique");
+        LOGGER.warn("Make sure you have run CollapseIpcr first so that barcodes are unique when using this " +
+                "as a replacement for Picard's MarkDuplicates");
         Set<String> ipcrUniqueReads = getIpcrReadNameSet();
 
         if (params.isSortAndIndex()) {
@@ -95,9 +91,9 @@ public class SubsetBam {
             }
 
             logProgress(i, 1000000, "SubsetBam");
-            String name = record.getReadName();
-            name = name.split(" ")[0];
 
+            // Strip the PE specifc part from the readname so it matched the iPCR
+            String name = record.getReadName().split(" ")[0];
             if (ipcrUniqueReads.contains(name)) {
                 testing.add(record);
             }

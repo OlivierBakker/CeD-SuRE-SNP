@@ -1,8 +1,8 @@
 package nl.umcg.suresnp.pipeline.io.infofilereader;
 
-import nl.umcg.suresnp.pipeline.inforecords.InfoRecord;
-import nl.umcg.suresnp.pipeline.inforecords.consumers.*;
-import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.InfoRecord;
+import nl.umcg.suresnp.pipeline.records.inforecords.consumers.*;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.log4j.Logger;
@@ -113,7 +113,7 @@ public class GenericInfoFileReader implements InfoFileReader {
         String[] line;
         int i = 0;
 
-        LOGGER.info("Reading file: " + inputBarcodes.getBaseName());
+        LOGGER.info("Reading file: " + inputBarcodes.getFileName());
 
         while ((line = reader.readNext(false)) != null) {
             logProgress(i, 1000000, "GenericInfoFileReader");

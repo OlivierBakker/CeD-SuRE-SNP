@@ -1,6 +1,5 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
-import nl.umcg.suresnp.pipeline.tools.runners.MakeSummaries;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -98,6 +97,8 @@ public class MakeSummariesParameters {
 
             switch (inputType) {
                 case "IPCR":
+                    break;
+                case "BC_COUNT":
                     break;
                 case "INFO":
                     break;

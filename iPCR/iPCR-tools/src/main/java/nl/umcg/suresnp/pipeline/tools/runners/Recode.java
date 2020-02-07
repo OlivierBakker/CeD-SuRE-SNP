@@ -6,9 +6,9 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.BinaryIpcrReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.InRegionFilter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.InRegionFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.RecodeParameters;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
@@ -33,6 +33,10 @@ public class Recode {
     public void run() throws IOException, ParseException {
 
         LOGGER.warn("All input iPCR files must have the same cDNA samples available, otherwise unexpected behavior might occur.");
+        // Read additional cDNA data
+        Map<String, Map<String, Integer>> inputCdna = readCdnaCounts();
+
+        // Read iPCR data
         List<IpcrRecord> inputIpcr = readIpcrRecords();
 
         // Writing output. Concat the sample names form the existing file and the new ones
@@ -40,8 +44,6 @@ public class Recode {
         writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), provider.getCdnaSamples()));
         writer.writeHeader();
 
-        // Read additional cDNA data
-        Map<String, Map<String, Integer>> inputCdna = readCdnaCounts();
 
         long start = System.currentTimeMillis();
         for (IpcrRecord rec : inputIpcr) {
@@ -76,15 +78,25 @@ public class Recode {
 
             for (String file : params.getInputCdna()) {
                 GenericFile inputFile = new GenericFile(file);
-                LOGGER.info("Reading file: " + inputFile.getBaseName());
+                LOGGER.info("Reading sample: " + inputFile.getBaseName());
                 inputCdna.put(inputFile.getBaseName(), GenericInfoFileReader.readBarcodeCountFile(inputFile));
             }
 
             long stop = System.currentTimeMillis();
             LOGGER.info("Done reading. Took: " + ((stop - start) / 1000) + " seconds");
+
+            LOGGER.info("Adding the following samples to the iPCR records");
+            StringBuilder logLine = new StringBuilder();
+            for (String file: inputCdna.keySet()) {
+                logLine.append(file).append(", ");
+            }
+            LOGGER.info(logLine.toString());
+
         } else {
             inputCdna = null;
         }
+
+
         return inputCdna;
     }
 

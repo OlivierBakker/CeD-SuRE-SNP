@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline;
 
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;
+import com.itextpdf.text.DocumentException;
 import nl.umcg.suresnp.pipeline.tools.parameters.*;
 import nl.umcg.suresnp.pipeline.tools.runners.*;
 import org.apache.commons.cli.ParseException;
@@ -62,6 +62,14 @@ public class IpcrTools {
                     MakeSummaries getOverlappingBarcodes = new MakeSummaries(new MakeSummariesParameters(args));
                     getOverlappingBarcodes.barcodeOverlapWriteOut();
                     break;
+                case "MakeBarcodeCountHist":
+                    MakeSummaries barcodeCountHist = new MakeSummaries(new MakeSummariesParameters(args));
+                    barcodeCountHist.makeBarcodeCountHist();
+                    break;
+                case "cdnaCorrelations":
+                    MakeSummaries cdnaCorrelations = new MakeSummaries(new MakeSummariesParameters(args));
+                    cdnaCorrelations.cdnaCorrelations();
+                    break;
                 case "Recode":
                     Recode recode = new Recode(new RecodeParameters(args));
                     recode.run();
@@ -80,6 +88,8 @@ public class IpcrTools {
             IpcrToolParameters.printHelp();
             e.printStackTrace();
         } catch (ParseException | IOException | java.text.ParseException e) {
+            e.printStackTrace();
+        } catch (DocumentException e) {
             e.printStackTrace();
         }
 

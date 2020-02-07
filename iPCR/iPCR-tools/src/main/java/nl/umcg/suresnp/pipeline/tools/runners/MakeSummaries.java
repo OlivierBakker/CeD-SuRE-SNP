@@ -1,18 +1,21 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
-import nl.umcg.suresnp.pipeline.inforecords.filters.BarcodeContainedInFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
+import com.itextpdf.text.DocumentException;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
 import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.Logger;
+import umcg.genetica.graphics.Grid;
+import umcg.genetica.graphics.panels.ScatterplotPanel;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -23,7 +26,7 @@ import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 public class MakeSummaries {
 
-
+    // Collection of small utils to check certain things
     private static final Logger LOGGER = Logger.getLogger(MakeSummaries.class);
     private static MakeSummariesParameters params;
 
@@ -56,6 +59,38 @@ public class MakeSummaries {
                 cdnaBarcodes.size() +
                 " (" + (cdnaBarcodes.size() / inputCdnaCount) * 100 + "%) could be found in iPCR");
 
+    }
+
+    public void barcodeOverlapWriteOut() throws IOException {
+
+        // How many of the cDNA barcodes come back in the iPCR
+        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
+
+        // Write overlapping barcodes
+        List<InfoRecordFilter> filters =  new ArrayList<>();
+        filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
+
+        InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
+        List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
+        cdnaBarcodeReader.flushAndClose();
+
+        BufferedWriter overlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes").getAsOutputStream()));
+        BufferedWriter nonOverlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes").getAsOutputStream()));
+
+        for (String curBarcode: cdnaBarcodes) {
+            if (ipcrBarcodes.contains(curBarcode)) {
+                overlappingOutputWriter.write(curBarcode);
+                overlappingOutputWriter.newLine();
+            } else {
+                nonOverlappingOutputWriter.write(curBarcode);
+                nonOverlappingOutputWriter.newLine();
+            }
+        }
+
+        overlappingOutputWriter.flush();
+        overlappingOutputWriter.close();
+        nonOverlappingOutputWriter.flush();
+        nonOverlappingOutputWriter.close();
     }
 
     public void getInsertSizes() throws IOException, IllegalArgumentException {
@@ -107,38 +142,85 @@ public class MakeSummaries {
 
     }
 
-    public void barcodeOverlapWriteOut() throws IOException {
+    public void makeBarcodeCountHist() throws IOException {
+        Map<String, Integer> barcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputIpcr()[0]));
 
-        // How many of the cDNA barcodes come back in the iPCR
-        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
+        StreamingHistogram histogram = new StreamingHistogram(1, 20);
 
-        // Write overlapping barcodes
-        List<InfoRecordFilter> filters =  new ArrayList<>();
-        filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
+        int i = 0;
+        for (int curCount : barcodeCounts.values()) {
+            logProgress(i, 1000000, "MakeSummaries");
+            histogram.addPostiveValue(curCount);
+            i++;
+        }
+        LOGGER.info("");
 
-        InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
-        List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
-        cdnaBarcodeReader.flushAndClose();
 
-        BufferedWriter overlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes").getAsOutputStream()));
-        BufferedWriter nonOverlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes").getAsOutputStream()));
+        System.out.print(histogram.getHistAsString());
+    }
 
-        for (String curBarcode: cdnaBarcodes) {
-            if (ipcrBarcodes.contains(curBarcode)) {
-                overlappingOutputWriter.write(curBarcode);
-                overlappingOutputWriter.newLine();
+    public void cdnaCorrelations() throws IOException, DocumentException {
+
+        List<Map<String, Integer>> input = new ArrayList<>(params.getInputIpcr().length);
+        Set<String> overlappingBarcodes = new HashSet<>();
+        int i = 0;
+        for (String file : params.getInputIpcr()) {
+            Map<String, Integer> barcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(file));
+
+            if (i == 0 ){
+                overlappingBarcodes.addAll(barcodeCounts.keySet());
             } else {
-                nonOverlappingOutputWriter.write(curBarcode);
-                nonOverlappingOutputWriter.newLine();
+                overlappingBarcodes.retainAll(barcodeCounts.keySet());
+            }
+
+            input.add(barcodeCounts);
+            i++;
+        }
+        LOGGER.info("Done reading, " + overlappingBarcodes.size() + " overlapping barcodes");
+
+/*        Set<String> filteredBarcodes = new HashSet<>();
+        for (String barcode : overlappingBarcodes) {
+            for (Map<String, Integer> data : input) {
+               if (data.get(barcode) > 3) {
+                   filteredBarcodes.add(barcode);
+               }
             }
         }
 
-        overlappingOutputWriter.flush();
-        overlappingOutputWriter.close();
-        nonOverlappingOutputWriter.flush();
-        nonOverlappingOutputWriter.close();
-    }
+        LOGGER.info(filteredBarcodes.size() + " barcodes remain after filtering");*/
 
+        // Convert to double matrix
+        LOGGER.info("Converting to 2d double array");
+        double[][]x = new double[params.getInputIpcr().length][overlappingBarcodes.size()];
+
+        i = 0;
+        for (String barcode : overlappingBarcodes) {
+            int j=0;
+            for (Map<String, Integer> data : input) {
+                x[j][i] = Math.log((double)data.get(barcode)) / Math.log(2);
+                j++;
+            }
+            i++;
+        }
+
+        LOGGER.info("Calculating pearson R");
+        PearsonsCorrelation test = new PearsonsCorrelation();
+        //RealMatrix out = test.computeCorrelationMatrix(x);
+        //LOGGER.info("Pearson R: " + out.getColumn(0)[1]);
+        LOGGER.info("Pearson R: " + test.correlation(x[0], x[1]));
+
+
+        Grid grid = new Grid(500,500,1,1,100,100);
+        ScatterplotPanel p = new ScatterplotPanel(1,1);
+        p.setData(x[0],x[1]);
+        //p.setDataRange(new Range(0, 0, 500, 500));
+        p.setAlpha((float)0.5);
+        p.setLabels("X", "y");
+        p.setPlotElems(true, false);
+        grid.addPanel(p);
+        grid.draw("output.png");
+
+    }
 
     private Set<String> readIpcrBarcodesAsSet() throws IOException {
         Set<String> ipcrBarcodes = new HashSet<>();
@@ -165,7 +247,6 @@ public class MakeSummaries {
         return ipcrBarcodes;
     }
 
-
     private void writeBarcodeCollection(Collection<String> output, GenericFile file) throws IOException {
         BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(file.getAsOutputStream()));
 
@@ -177,7 +258,6 @@ public class MakeSummaries {
         outputWriter.flush();
         outputWriter.close();
     }
-
 
     // TODO: Not the most efficient thing, if trimming becomes standard, will implement it in the file readers
     // For testing this will suffice

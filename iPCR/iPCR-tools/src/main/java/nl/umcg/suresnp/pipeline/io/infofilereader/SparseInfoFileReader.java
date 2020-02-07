@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.infofilereader;
 
-import nl.umcg.suresnp.pipeline.inforecords.InfoRecord;
+import nl.umcg.suresnp.pipeline.records.inforecords.InfoRecord;
 
 import java.io.IOException;
 

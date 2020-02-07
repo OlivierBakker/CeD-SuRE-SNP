@@ -1,6 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
-import nl.umcg.suresnp.pipeline.inforecords.consumers.BarcodeConsumer;
+import nl.umcg.suresnp.pipeline.records.inforecords.consumers.BarcodeConsumer;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeComplexityCurveParameters;
 import org.apache.log4j.Logger;

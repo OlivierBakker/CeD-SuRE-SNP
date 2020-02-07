@@ -46,6 +46,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
+    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
     compile group: 'org.utgenome.thirdparty', name: 'picard', version: '1.102.0'
@@ -55,4 +56,10 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.testng', name: 'testng', version: '6.4'
     compile files("libs/Genotype-IO-1.0.6-SNAPSHOT.jar")
+    compile files("libs/genetica-libraries-1.0.10-SNAPSHOT.jar")
+
+    // for genetica libraries
+    compile group: 'com.itextpdf', name: 'itextpdf', version: '5.0.6'
+    compile group: 'net.sf.jsci', name: 'jsci', version: '1.2'
+
 }

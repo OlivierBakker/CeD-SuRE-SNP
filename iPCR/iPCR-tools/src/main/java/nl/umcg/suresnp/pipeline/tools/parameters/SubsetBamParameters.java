@@ -1,12 +1,7 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
-import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
-
-import java.io.File;
-import java.io.IOException;
 
 import static java.lang.System.exit;
 

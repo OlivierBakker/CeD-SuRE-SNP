@@ -1,7 +1,5 @@
 package nl.umcg.suresnp.pipeline.utils;
 
-import nl.umcg.suresnp.pipeline.tools.parameters.MakeIpcrFileParameters;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

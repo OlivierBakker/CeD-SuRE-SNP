@@ -1,16 +1,16 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import htsjdk.samtools.*;
-import nl.umcg.suresnp.pipeline.inforecords.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.SamBasedIpcrRecord;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.InRegionFilter;
-import nl.umcg.suresnp.pipeline.ipcrrecords.filters.IpcrRecordFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.SamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.InRegionFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecords.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeIpcrFileParameters;
 import nl.umcg.suresnp.pipeline.utils.B37GenomeInfo;
 import org.apache.log4j.Logger;
