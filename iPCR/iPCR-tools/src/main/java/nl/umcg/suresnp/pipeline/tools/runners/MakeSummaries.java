@@ -1,15 +1,15 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import com.itextpdf.text.DocumentException;
-import nl.umcg.suresnp.pipeline.records.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
 import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;

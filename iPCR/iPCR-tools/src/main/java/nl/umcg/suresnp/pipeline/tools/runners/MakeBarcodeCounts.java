@@ -1,10 +1,10 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 
-import nl.umcg.suresnp.pipeline.records.inforecords.InfoRecord;
-import nl.umcg.suresnp.pipeline.records.inforecords.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.records.inforecords.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.InfoRecord;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.CsvReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeCountsParameters;

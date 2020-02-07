@@ -134,4 +134,18 @@ public class B37GenomeInfo {
         return (chromosomes.contains(contig));
     }
 
+    public static boolean isInWindow(int x, int start, int end) {
+        if (x >= start && x <= end) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isInWindowDistance(int x, int y, int distance) {
+        if (x > (y - distance) && x < (y + distance)) {
+            return true;
+        }
+
+        return false;
+    }
 }

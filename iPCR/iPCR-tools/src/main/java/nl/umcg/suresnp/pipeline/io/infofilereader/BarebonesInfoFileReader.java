@@ -1,7 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.infofilereader;
 
-import nl.umcg.suresnp.pipeline.records.inforecords.InfoRecord;
-import nl.umcg.suresnp.pipeline.records.inforecords.filters.InfoRecordFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.InfoRecord;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import org.apache.log4j.Logger;
 

@@ -5,8 +5,8 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
-import nl.umcg.suresnp.pipeline.records.ipcrrecords.BasicIpcrRecord;
-import nl.umcg.suresnp.pipeline.records.ipcrrecords.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.BasicIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.CollapseIpcrParameters;
 import nl.umcg.suresnp.pipeline.utils.B37GenomeInfo;
 import org.apache.commons.collections4.list.TreeList;
@@ -239,11 +239,11 @@ public class CollapseIpcr {
                 discardedOutputWriter.writeRecord(curRecord, "PrimaryStrandMistmatch");
                 continue;
             }
-            if (!isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+            if (!B37GenomeInfo.isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR1Start");
                 continue;
             }
-            if (!isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
+            if (!B37GenomeInfo.isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR2End");
                 continue;
             }
@@ -315,11 +315,11 @@ public class CollapseIpcr {
                 discardedOutputWriter.writeRecord(curRecord, "PrimaryStrandMistmatch");
                 continue;
             }
-            if (!isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+            if (!B37GenomeInfo.isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR1Start");
                 continue;
             }
-            if (!isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
+            if (!B37GenomeInfo.isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR2End");
                 continue;
             }
@@ -333,29 +333,15 @@ public class CollapseIpcr {
         if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
             return false;
         }
-        if (!isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+        if (!B37GenomeInfo.isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
             return false;
         }
-        if (!isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
+        if (!B37GenomeInfo.isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {
             return false;
         }
 
         return true;
     }
 
-    private boolean isInWindow(int x, int start, int end) {
-        if (x > start && x < end) {
-            return true;
-        }
-        return false;
-    }
 
-
-    private boolean isInWindowDistance(int x, int y, int distance) {
-        if (x > (y - distance) && x < (y + distance)) {
-            return true;
-        }
-
-        return false;
-    }
 }
