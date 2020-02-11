@@ -5,6 +5,7 @@ import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BinaryIpcrReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileIpcrReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
@@ -20,11 +21,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
+
 public class Recode {
 
     private static final Logger LOGGER = Logger.getLogger(Recode.class);
     private RecodeParameters params;
-    private IpcrRecordProvider provider;
 
     public Recode(RecodeParameters params) {
         this.params = params;
@@ -36,17 +38,41 @@ public class Recode {
         // Read additional cDNA data
         Map<String, Map<String, Integer>> inputCdna = readCdnaCounts();
 
-        // Read iPCR data
-        List<IpcrRecord> inputIpcr = readIpcrRecords();
+        // Define input reader, needs to be done here as to know which samples are available.
+        IpcrRecordProvider multiFileIpcrReader = new MultiFileIpcrReader(params.getInputIpcr());
 
         // Writing output. Concat the sample names form the existing file and the new ones
         IpcrOutputWriter writer = params.getOutputWriter();
-        writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), provider.getCdnaSamples()));
+        writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), multiFileIpcrReader.getCdnaSamples()));
         writer.writeHeader();
 
-
         long start = System.currentTimeMillis();
-        for (IpcrRecord rec : inputIpcr) {
+
+        // Read iPCR data
+
+        IpcrRecord rec = multiFileIpcrReader.getNextRecord();
+
+        // Region filter
+        List<IpcrRecordFilter> filters = new ArrayList<>();
+        if (params.getRegionFilterFile() != null) {
+            filters.add(new InRegionFilter(params.getRegionFilterFile()));
+        }
+        int totalRecords = 1;
+        int filteredRecords = 0;
+        int writtenRecords = 0;
+
+        while (rec != null) {
+            totalRecords ++;
+            logProgress(totalRecords, 1000000, "Recode");
+
+            // Apply filters
+            for (IpcrRecordFilter filter : filters) {
+                if (!filter.passesFilter(rec)) {
+                    rec = multiFileIpcrReader.getNextRecord();
+                    filteredRecords ++;
+                    continue;
+                }
+            }
 
             // If provided, add additional cDNA data to ipcr records
             if (inputCdna != null) {
@@ -61,13 +87,21 @@ public class Recode {
                     }
                 }
             }
+
             // Write output
             writer.writeRecord(rec);
+            rec = multiFileIpcrReader.getNextRecord();
+            writtenRecords ++;
         }
 
         writer.flushAndClose();
         long stop = System.currentTimeMillis();
         LOGGER.info("Done writing. Took: " + ((stop - start) / 1000) + " seconds");
+
+        LOGGER.info("Processed  " + totalRecords + " records");
+        LOGGER.info("Wrote  " + writtenRecords + " records");
+        LOGGER.info("Removed  " + filteredRecords + " records");
+
     }
 
     private Map<String, Map<String, Integer>> readCdnaCounts() throws IOException {
@@ -100,7 +134,8 @@ public class Recode {
         return inputCdna;
     }
 
-    private List<IpcrRecord> readIpcrRecords() throws IOException, ParseException {
+    //TODO: remove this
+/*    private List<IpcrRecord> readIpcrRecords() throws IOException, ParseException {
 
         // Region filter
         List<IpcrRecordFilter> filters = new ArrayList<>();
@@ -138,5 +173,7 @@ public class Recode {
         LOGGER.info("Done reading. Took: " + ((stop - start) / 1000) + " seconds");
 
         return inputIpcr;
-    }
+    }*/
+
+
 }

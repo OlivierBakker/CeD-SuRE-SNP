@@ -35,7 +35,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     public IpcrFileReader(GenericFile file, boolean hasHeader, String sep) throws IOException {
         setBarcodeReader(file);
-        coreReader = new BufferedReader(new InputStreamReader(file.getAsInputStream()));
+        coreReader = file.getAsBufferedReader();
         this.sep = sep;
         if (hasHeader) {
             setHeader();
