@@ -1,6 +1,9 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import com.itextpdf.text.DocumentException;
+import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
+import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
+import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
@@ -11,6 +14,7 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
+import nl.umcg.suresnp.pipeline.utils.BedUtils;
 import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.Logger;
@@ -213,6 +217,55 @@ public class MakeSummaries {
         Grid grid = new Grid(500,500,1,1,100,100);
         ScatterplotPanel p = new ScatterplotPanel(1,1);
         p.setData(x[0],x[1]);
+        //p.setDataRange(new Range(0, 0, 500, 500));
+        p.setAlpha((float)0.5);
+        p.setLabels("X", "y");
+        p.setPlotElems(true, false);
+        grid.addPanel(p);
+        grid.draw("output.png");
+
+    }
+
+    public void narrowPeakCorrelations() throws IOException, DocumentException {
+
+
+        List<NarrowPeakRecord>[] inputFiles = new List[params.getInputIpcr().length];
+        int i = 0;
+        for (String file : params.getInputIpcr()) {
+            NarrowPeakReader reader = new NarrowPeakReader(new GenericFile(file));
+            inputFiles[i] = reader.getBedRecordAsList();
+            reader.close();
+            i++;
+        }
+        LOGGER.info("Done reading");
+
+        List<BedRecord>[] output = BedUtils.intersectSortedBedRecords(inputFiles[0], inputFiles[1]);
+        LOGGER.info("Output " + output.length);
+
+        i =0;
+        double[] x = new double[output[0].size()];
+        double[] y = new double[output[1].size()];
+
+        while (i < output[0].size()) {
+
+            NarrowPeakRecord cur = (NarrowPeakRecord) output[0].get(i);
+            x[i] = cur.getSignalValue();
+            cur = (NarrowPeakRecord) output[1].get(i);
+            y[i] = cur.getSignalValue();
+
+            i++;
+        }
+
+        LOGGER.info("Calculating pearson R");
+        PearsonsCorrelation test = new PearsonsCorrelation();
+        //RealMatrix out = test.computeCorrelationMatrix(x);
+        //LOGGER.info("Pearson R: " + out.getColumn(0)[1]);
+        LOGGER.info("Pearson R: " + test.correlation(x, y));
+
+
+        Grid grid = new Grid(500,500,1,1,100,100);
+        ScatterplotPanel p = new ScatterplotPanel(1,1);
+        p.setData(x,y);
         //p.setDataRange(new Range(0, 0, 500, 500));
         p.setAlpha((float)0.5);
         p.setLabels("X", "y");

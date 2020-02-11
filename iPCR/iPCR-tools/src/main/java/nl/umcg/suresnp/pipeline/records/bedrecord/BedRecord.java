@@ -42,7 +42,24 @@ public class BedRecord {
         if (!contig.equals(other.getContig())) {
             return false;
         }
-        return B37GenomeInfo.isInWindow(other.getStart(), start, stop) || B37GenomeInfo.isInWindow(other.getStop(), start, stop);
+
+        if (B37GenomeInfo.isInWindow(other.getStart(), start, stop)) {
+            return  true;
+        }
+
+        if (B37GenomeInfo.isInWindow(other.getStop(), start, stop)) {
+            return true;
+        }
+
+        if (B37GenomeInfo.isInWindow(start, other.getStart(), other.getStop())) {
+            return  true;
+        }
+
+        if (B37GenomeInfo.isInWindow(stop, other.getStart(), other.getStop())) {
+            return true;
+        }
+
+        return false;
     }
 
     public boolean isFullyOverlapping(BedRecord other) {

@@ -101,6 +101,13 @@ public class RecodeParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("z")
+                .longOpt("zipped")
+                .hasArg(false)
+                .desc("Should output be zipped")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")

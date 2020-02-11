@@ -70,6 +70,10 @@ public class IpcrTools {
                     MakeSummaries cdnaCorrelations = new MakeSummaries(new MakeSummariesParameters(args));
                     cdnaCorrelations.cdnaCorrelations();
                     break;
+                case "correlatePeaks":
+                    MakeSummaries correlatePeaks = new MakeSummaries(new MakeSummariesParameters(args));
+                    correlatePeaks.narrowPeakCorrelations();
+                    break;
                 case "Recode":
                     Recode recode = new Recode(new RecodeParameters(args));
                     recode.run();
