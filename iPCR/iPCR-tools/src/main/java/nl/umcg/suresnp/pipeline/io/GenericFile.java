@@ -46,7 +46,11 @@ public class GenericFile {
     public String getBaseName() {
         String cur = FilenameUtils.getBaseName(this.path);
         int idx = cur.indexOf(".");
-        return (cur.substring(0, idx));
+        if (idx > 0) {
+            return (cur.substring(0, idx));
+        } else {
+            return cur;
+        }
     }
 
     public String getFileName() {
@@ -94,5 +98,24 @@ public class GenericFile {
         return new BufferedWriter(new OutputStreamWriter(getAsOutputStream(), charset));
     }
 
+
+    public static String[] trimAllExtensionsFromFilenameArray(String[] inputArray) {
+        String[] outputArray = new String[inputArray.length];
+
+        // Clean filenames, trim all.
+        int i = 0;
+        for (String curFile : inputArray) {
+            String tmp = new GenericFile(curFile).getBaseName();
+            int idx = tmp.indexOf('.');
+            if (idx > 0) {
+               outputArray[i] = tmp.substring(0, idx);
+            } else {
+                outputArray[i] = tmp;
+            }
+            i++;
+        }
+
+        return outputArray;
+    }
 
 }

@@ -20,14 +20,8 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
         if (isZipped) suffix = ".gz";
         writer = new GenericFile(outputPrefix + ".bed" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
 
-        this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
-        // Clean filenames, trim all.
-        int i = 0;
-        for (String curFile : barcodeCountFilesSampleNames) {
-            String tmp = new GenericFile(curFile).getBaseName();
-            int idx = tmp.indexOf('.');
-            this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
-            i++;
+        if (barcodeCountFilesSampleNames != null) {
+            this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
         }
     }
 

@@ -15,24 +15,18 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
 
     public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
 
-        String suffix = ""; if (isZipped) suffix = ".gz";
-        writer = new GenericFile(outputPrefix.getPath()  + ".bedpe" + suffix).getAsBufferedWriter();
-        this.barcodeCountFilesSampleNames = new String[barcodeCountFilesSampleNames.length];
-
-        // Clean filenames, trim all .
-        int i = 0;
-        for (String curFile : barcodeCountFilesSampleNames) {
-            String tmp = new GenericFile(curFile).getBaseName();
-            int idx = tmp.indexOf('.');
-            this.barcodeCountFilesSampleNames[i] = tmp.substring(0, idx);
-            i++;
+        String suffix = "";
+        if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix.getPath() + ".bedpe" + suffix).getAsBufferedWriter();
+        if (barcodeCountFilesSampleNames != null) {
+            this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
         }
-
     }
 
     public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        String suffix = ""; if (isZipped) suffix = ".gz";
-        writer = new GenericFile(outputPrefix.getPath()  + ".bedpe" + suffix).getAsBufferedWriter();
+        String suffix = "";
+        if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix.getPath() + ".bedpe" + suffix).getAsBufferedWriter();
     }
 
     @Override
