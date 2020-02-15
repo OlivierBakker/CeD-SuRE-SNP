@@ -1,7 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.BasicIpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import org.apache.commons.collections4.list.TreeList;
@@ -71,8 +70,12 @@ public class IpcrFileReader implements IpcrRecordProvider {
         }
     }
 
-    private void setHeader() throws IOException {
-        String line = coreReader.readLine();
+    protected String getNextLine() throws IOException {
+        return coreReader.readLine();
+    }
+
+    protected void setHeader() throws IOException {
+        String line = getNextLine();
         header = line.split(sep);
         if (header.length < 16) {
             LOGGER.error("Error parsing line:");
@@ -189,42 +192,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
     }
 
     private IpcrRecord parseIpcrRecord(String line) {
-        String[] data = line.split(sep);
-        IpcrRecord record = new BasicIpcrRecord();
-
-        if (data.length < 16) {
-            LOGGER.error("Error parsing line:");
-            LOGGER.error(line);
-            LOGGER.error("Needed 16 columns in IPCR file, found: " + data.length);
-            throw new IllegalArgumentException("Needed 16 columns in IPCR file, found: " + data.length);
-        }
-        record.setBarcode(data[0]);
-        record.setPrimaryReadName(data[1]);
-        //record.setMateReadName(data[1]);
-        record.setContig(data[2]);
-        record.setPrimaryStart(Integer.parseInt(data[3]));
-        record.setPrimaryEnd(Integer.parseInt(data[4]));
-        record.setMateStart(Integer.parseInt(data[5]));
-        record.setMateEnd(Integer.parseInt(data[6]));
-        record.setPrimarySamFlags(Integer.parseInt(data[7]));
-        record.setMateSamFlags(Integer.parseInt(data[8]));
-        record.setPrimaryMappingQuality(Integer.parseInt(data[9]));
-        record.setMateMappingQuality(Integer.parseInt(data[10]));
-        record.setPrimaryCigar(data[11]);
-        record.setMateCigar(data[12]);
-        record.setPrimaryStrand(data[13].charAt(0));
-        record.setMateStrand(data[14].charAt(0));
-        record.setIpcrDuplicateCount(Integer.parseInt(data[15]));
-
-        if (cdnaSamples != null) {
-            Map<String, Integer> curBarcodeCounts = new HashMap<>();
-            int i = 0;
-            for (String sample : cdnaSamples) {
-                curBarcodeCounts.put(sample, Integer.parseInt(data[16 + i]));
-                i++;
-            }
-            record.setBarcodeCountPerSample(curBarcodeCounts);
-        }
-        return record;
+        return IpcrCodec.parseFullIpcrRecord(line, cdnaSamples, sep);
     }
+
 }

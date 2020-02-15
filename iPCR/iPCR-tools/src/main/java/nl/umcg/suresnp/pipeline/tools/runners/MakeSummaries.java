@@ -2,7 +2,10 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import com.itextpdf.text.DocumentException;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
-import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.FeatureReader;
+import htsjdk.tribble.TabixFeatureReader;
+import htsjdk.tribble.bed.BEDCodec;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
@@ -10,9 +13,9 @@ import htsjdk.tribble.util.LittleEndianOutputStream;
 import nl.umcg.suresnp.pipeline.io.bedreader.BedRecordProvider;
 import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.BgzipIpcrFileReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrCodec;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
-import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
@@ -320,10 +323,10 @@ public class MakeSummaries {
     public void indexIpcr() throws IOException {
 
         // https://academic.oup.com/bioinformatics/article/27/5/718/262743
-        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
+/*        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
         TabixIndexCreator indexCreator = new TabixIndexCreator(format);
 
-        BgzipIpcrFileReader ipcrRecordProvider = new BgzipIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
+        BlockCompressedIpcrFileReader ipcrRecordProvider = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
         long pointer = ipcrRecordProvider.getFilePointer();
         IpcrRecord record = ipcrRecordProvider.getNextRecord();
 
@@ -343,12 +346,32 @@ public class MakeSummaries {
             i++;
         }
 
-
         LittleEndianOutputStream indexOutputStream = new LittleEndianOutputStream(new BlockCompressedOutputStream(params.getOutputPrefix() + ".tbi"));
         Index index = indexCreator.finalizeIndex(ipcrRecordProvider.getFilePointer());
         index.write(indexOutputStream);
         indexOutputStream.flush();
         indexOutputStream.close();
+
+        ipcrRecordProvider.close();*/
+
+        LOGGER.debug("Done indexing");
+
+        IpcrCodec codec = new IpcrCodec();
+        FeatureReader<IpcrRecord> reader = TabixFeatureReader.getFeatureReader(
+                params.getInputIpcr()[0],
+                params.getInputIpcr()[0] + ".tbi",
+                codec,
+                true);
+
+
+        for (IpcrRecord rec : reader.query("1", 1000, 15000)) {
+            LOGGER.debug(rec.getContig() + "\t" + rec.getStart() + "\t" + rec.getEnd());
+        }
+
+        for (IpcrRecord rec : reader.query("9", 5000, 100000)) {
+            LOGGER.debug(rec.getContig() + "\t" + rec.getStart() + "\t" + rec.getEnd());
+        }
+
 
     }
 
