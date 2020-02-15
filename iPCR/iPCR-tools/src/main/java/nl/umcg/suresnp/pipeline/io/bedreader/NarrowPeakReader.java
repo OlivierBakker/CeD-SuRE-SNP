@@ -1,6 +1,8 @@
 package nl.umcg.suresnp.pipeline.io.bedreader;
 
+import htsjdk.samtools.util.Locatable;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
@@ -11,7 +13,7 @@ import java.util.List;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
-public class NarrowPeakReader {
+public class NarrowPeakReader implements BedRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(NarrowPeakReader.class);
     private BufferedReader reader;
@@ -21,6 +23,7 @@ public class NarrowPeakReader {
         this.reader = inputFile.getAsBufferedReader();
     }
 
+    @Override
     public NarrowPeakRecord getNextRecord() throws IOException {
         String line = reader.readLine();
         if (line != null) {
@@ -30,7 +33,23 @@ public class NarrowPeakReader {
         }
     }
 
-    public List<NarrowPeakRecord> getBedRecordAsList() throws IOException {
+    @Override
+    public List<BedRecord> getBedRecordAsList() throws IOException {
+        List<BedRecord> output = new TreeList<>();
+        NarrowPeakRecord curRecord = getNextRecord();
+        int i = 0;
+
+        while (curRecord != null) {
+            logProgress(i, 1000000, "NarrowPeakReader");
+            i++;
+            output.add(new BedRecord(curRecord));
+            curRecord = getNextRecord();
+        }
+        LOGGER.info("Read " + i + " records");
+        return output;
+    }
+
+    public List<NarrowPeakRecord> getNarrowPeakRecordsAsList() throws IOException {
         List<NarrowPeakRecord> output = new TreeList<>();
         NarrowPeakRecord curRecord = getNextRecord();
         int i = 0;
@@ -45,6 +64,7 @@ public class NarrowPeakReader {
         return output;
     }
 
+    @Override
     public void close() throws IOException {
         reader.close();
     }

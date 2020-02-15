@@ -95,6 +95,8 @@ public class IpcrTools {
             e.printStackTrace();
         } catch (DocumentException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }

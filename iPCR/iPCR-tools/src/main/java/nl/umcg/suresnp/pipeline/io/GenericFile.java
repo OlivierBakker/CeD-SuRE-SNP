@@ -53,6 +53,16 @@ public class GenericFile {
         }
     }
 
+    public String getFullExtension() {
+        String cur = FilenameUtils.getBaseName(this.path);
+        int idx = cur.indexOf(".");
+        if (idx > 0) {
+            return (cur.substring(idx));
+        } else {
+            return "";
+        }
+    }
+
     public String getFileName() {
         return FilenameUtils.getName(this.path);
     }

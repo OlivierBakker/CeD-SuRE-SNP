@@ -3,6 +3,7 @@ package nl.umcg.suresnp.pipeline.utils;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import org.apache.log4j.Logger;
 
+import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,8 +13,10 @@ public class BedUtils {
 
     private static final Logger LOGGER = Logger.getLogger(BedUtils.class);
 
-    public static List<BedRecord>[] intersectSortedBedRecords(List<? extends BedRecord> setOne, List<? extends BedRecord> setTwo) {
+    public static List<BedRecord>[] intersectSortedBedRecords(List<BedRecord> setOne, List<BedRecord> setTwo) throws Exception {
 
+
+        // TODO: Refactor this so it is on a per contig basis to account for missing contigs, current impl can only handle one missing gap
         // TODO: Cleanup this code a bit, make sure the last records are properly accounted for
         LOGGER.info("Input A: " + setOne.size());
         LOGGER.info("Input B: " + setTwo.size());
@@ -30,6 +33,7 @@ public class BedUtils {
         boolean run = true;
         BedRecord curRecOne = setOne.get(iterOne);
         BedRecord curRecTwo = setTwo.get(iterTwo);
+        String curContig = curRecOne.getContig();
 
         iterOne ++;
         iterTwo ++;
@@ -45,7 +49,9 @@ public class BedUtils {
 
             // If the same chromosome
             if (curRecOne.getContig().equals(curRecTwo.getContig())) {
-                LOGGER.debug("iterOne: " + iterOne + " iterTwo: " + iterTwo + " i: " +i);
+                if (i % 100 == 0) {
+                    LOGGER.debug("iterOne: " + iterOne + " iterTwo: " + iterTwo + " i: " + i + " curChr: " + curContig);
+                }
                 if (curRecOne.overlaps(curRecTwo)) {
                     outOne.add(curRecOne);
                     outTwo.add(curRecTwo);
@@ -53,22 +59,59 @@ public class BedUtils {
                     iterTwo ++;
                     curRecOne = setOne.get(iterOne);
                     curRecTwo = setTwo.get(iterTwo);
-                } else if (curRecOne.getStop() < curRecTwo.getStart()) {
+                } else if (curRecOne.getEnd() < curRecTwo.getStart()) {
                     iterOne ++;
                     curRecOne = setOne.get(iterOne);
-                } else if (curRecOne.getStart() > curRecTwo.getStop()){
+                } else if (curRecOne.getStart() > curRecTwo.getEnd()){
                     iterTwo ++;
                     curRecTwo = setTwo.get(iterTwo);
                 }
+                curContig = curRecOne.getContig();
             } else {
-                // Figure out to advance iterOne or iterTwo
-                if (curRecOne.getContig().equals(setOne.get(iterOne - 1).getContig())) {
+
+                if (i % 100 == 0) {
+                    LOGGER.debug("Cur chr:" + curContig +  " one: " + curRecOne.getContig() + " two: " + curRecTwo.getContig() + " i: " +i);
+                }
+
+                // This block deals with missing contigs
+                // Case where the first contigs are missing in either file
+                if (iterOne < 1) {
                     iterOne ++;
                     curRecOne = setOne.get(iterOne);
+                } else if (iterTwo < 1) {
+                    iterTwo ++;
+                    curRecTwo = setTwo.get(iterTwo);
+                }
+
+                // Figure out to advance iterOne or iterTwo
+                if (curRecOne.getContig().equals(setOne.get(iterOne - 1).getContig()) ) {
+                    iterOne ++;
+                    curRecOne = setOne.get(iterOne);
+                    curContig = curRecTwo.getContig();
                 } else if (curRecTwo.getContig().equals(setTwo.get(iterTwo - 1).getContig())) {
                     iterTwo ++;
                     curRecTwo = setTwo.get(iterTwo);
+                    curContig = curRecOne.getContig();
+                } else  if (!curContig.equals(curRecOne.getContig()) && curContig.equals(curRecTwo.getContig())) {
+                    iterOne ++;
+                    curRecOne = setOne.get(iterOne);
+                } else if (!curContig.equals(curRecTwo.getContig()) && curContig.equals(curRecOne.getContig())) {
+                    iterTwo ++;
+                    curRecTwo = setTwo.get(iterTwo);
                 }
+
+            }
+
+            if(i > (setOne.size() + setTwo.size())) {
+                LOGGER.info("RecOne-1: " + setOne.get(iterOne - 1).toBedString());
+                LOGGER.info("RecOne: " + curRecOne.toBedString() + " iter: " + iterOne);
+                LOGGER.info("RecOne+1: " + setOne.get(iterOne + 1).toBedString());
+
+                LOGGER.info("RecTwo-1: " + setTwo.get(iterTwo - 1).toBedString());
+                LOGGER.info("RecTwo: " + curRecTwo.toBedString() + " iter: " + iterTwo);
+                LOGGER.info("RecTwo+1: " + setTwo.get(iterTwo + 1).toBedString());
+
+                throw new Exception("It seems exit conditions were not met. Are you sure both inputs were sorted?");
             }
             i++;
         }

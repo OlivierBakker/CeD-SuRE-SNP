@@ -44,14 +44,14 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeHeader() throws IOException {
-        ipcrBedWriter.writeHeader("");
-        cdnaBedWriter.writeHeader("");
+        //ipcrBedWriter.writeHeader("");
+        //cdnaBedWriter.writeHeader("");
     }
 
     @Override
     public void writeHeader(String reason) throws IOException {
-        ipcrBedWriter.writeHeader(reason);
-        cdnaBedWriter.writeHeader(reason);
+        //ipcrBedWriter.writeHeader(reason);
+        //cdnaBedWriter.writeHeader(reason);
 
     }
 

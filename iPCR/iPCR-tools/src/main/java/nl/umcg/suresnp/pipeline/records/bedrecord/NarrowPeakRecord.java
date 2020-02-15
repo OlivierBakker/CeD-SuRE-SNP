@@ -1,9 +1,11 @@
 package nl.umcg.suresnp.pipeline.records.bedrecord;
 
-public class NarrowPeakRecord extends BedRecord {
+import htsjdk.samtools.util.Locatable;
+import htsjdk.tribble.Feature;
+
+public class NarrowPeakRecord extends BedRecord implements Feature, Locatable {
 
     private String name;
-    private double score;
     private char strand;
     private double signalValue;
     private double pValue;
@@ -11,9 +13,8 @@ public class NarrowPeakRecord extends BedRecord {
     private int peak;
 
     public NarrowPeakRecord(String contig, int start, int stop, String name, double score, char strand, double signalValue, double pValue, double qValue, int peak) {
-        super(contig, start, stop);
+        super(contig, start, stop, score);
         this.name = name;
-        this.score = score;
         this.strand = strand;
         this.signalValue = signalValue;
         this.pValue = pValue;
@@ -27,14 +28,6 @@ public class NarrowPeakRecord extends BedRecord {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public double getScore() {
-        return score;
-    }
-
-    public void setScore(double score) {
-        this.score = score;
     }
 
     public char getStrand() {

@@ -1,10 +1,12 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 
+import htsjdk.tribble.Feature;
+
 import java.io.Serializable;
 import java.util.Map;
 
-public class BasicIpcrRecord implements IpcrRecord, Serializable {
+public class BasicIpcrRecord implements IpcrRecord, Serializable, Feature {
 
     private String barcode;
     private String primaryReadName;
@@ -53,6 +55,24 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         this.barcodeCountPerSample = barcodeCountPerSample;
     }
 
+    public BasicIpcrRecord(IpcrRecord record) {
+        this.barcode = record.getBarcode();
+        this.primaryReadName = record.getPrimaryReadName();
+        this.contig = record.getContig();
+        this.primaryStart = record.getPrimaryStart();
+        this.primaryEnd = record.getPrimaryEnd();
+        this.mateStart = record.getMateStart();
+        this.primarySamFlags = record.getPrimarySamFlags();
+        this.mateSamFlags = record.getMateSamFlags();
+        this.primaryMappingQuality = record.getPrimaryMappingQuality();
+        this.mateMappingQuality = record.getMateMappingQuality();
+        this.primaryCigar = record.getPrimaryCigar();
+        this.mateCigar = record.getMateCigar();
+        this.primaryStrand = record.getPrimaryStrand();
+        this.barcodeCountPerSample = record.getBarcodeCountPerSample();
+        this.ipcrDuplicateCount = record.getIpcrDuplicateCount();
+    }
+
     @Override
     public String getBarcode() {
         return barcode;
@@ -87,6 +107,16 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     @Override
     public String getContig() {
         return contig;
+    }
+
+    @Override
+    public int getStart() {
+        return getOrientationIndependentStart();
+    }
+
+    @Override
+    public int getEnd() {
+        return getOrientationIndependentEnd();
     }
 
     @Override

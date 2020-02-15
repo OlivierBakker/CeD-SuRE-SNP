@@ -7,10 +7,7 @@ import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
@@ -18,16 +15,26 @@ import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 public class IpcrFileReader implements IpcrRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(IpcrFileReader.class);
+
+    private InputStream coreInputStream;
     private BufferedReader coreReader;
     private BufferedReader barcodeReader;
     private String sep;
     private String[] header;
     private String[] cdnaSamples;
+    private boolean hasHeader;
+
+    public IpcrFileReader(boolean hasHeader) {
+        this.sep = "\t";
+        this.hasHeader = hasHeader;
+    }
 
     public IpcrFileReader(GenericFile file, boolean hasHeader) throws IOException {
         setBarcodeReader(file);
-        this.coreReader = file.getAsBufferedReader();
+        this.coreInputStream = file.getAsInputStream();
+        this.coreReader = new BufferedReader(new InputStreamReader(coreInputStream));
         this.sep = "\t";
+        this.hasHeader = hasHeader;
         if (hasHeader) {
             setHeader();
         }
@@ -35,12 +42,32 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     public IpcrFileReader(GenericFile file, boolean hasHeader, String sep) throws IOException {
         setBarcodeReader(file);
-        coreReader = file.getAsBufferedReader();
+        this.coreInputStream = file.getAsInputStream();
+        this.coreReader = new BufferedReader(new InputStreamReader(coreInputStream));
         this.sep = sep;
+        this.hasHeader = hasHeader;
         if (hasHeader) {
             setHeader();
         }
     }
+
+    public void setCoreInputStream(InputStream inputStream) throws IOException {
+        if (this.coreReader != null) {
+            LOGGER.warn("Reader was already set, closing");
+            coreReader.close();
+        }
+
+        if (this.coreInputStream != null) {
+            LOGGER.warn("Input stream was already set, closing");
+            coreInputStream.close();
+        }
+        this.coreInputStream = inputStream;
+        this.coreReader = new BufferedReader(new InputStreamReader(coreInputStream));
+        if (hasHeader) {
+            setHeader();
+        }
+    }
+
 
     private void setBarcodeReader(GenericFile file) throws IOException {
         try {

@@ -1,6 +1,10 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import com.itextpdf.text.DocumentException;
+import htsjdk.tribble.index.tabix.TabixFormat;
+import htsjdk.tribble.index.tabix.TabixIndexCreator;
+import nl.umcg.suresnp.pipeline.io.bedreader.BedRecordProvider;
+import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
@@ -26,6 +30,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.*;
 
+import static htsjdk.tribble.index.tabix.TabixFormat.GENERIC_FLAGS;
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 public class MakeSummaries {
@@ -40,16 +45,14 @@ public class MakeSummaries {
 
     public void barcodeOverlap() throws IOException {
         // How many of the cDNA barcodes come back in the iPCR
-        InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
-
         Set<String> cdnaBarcodes = new HashSet<>(GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes())).keySet());
         Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
         int inputCdnaCount = cdnaBarcodes.size();
 
-        LOGGER.info("Trimming barcode sets");
-        cdnaBarcodes = (Set<String>) trimBarcodesFivePrime(cdnaBarcodes, new HashSet<>(), 2);
-        ipcrBarcodes = (Set<String>) trimBarcodesFivePrime(ipcrBarcodes, new HashSet<>(), 2);
+       // LOGGER.info("Trimming barcode sets");
+        //cdnaBarcodes = (Set<String>) trimBarcodesFivePrime(cdnaBarcodes, new HashSet<>(), 2);
+        //ipcrBarcodes = (Set<String>) trimBarcodesFivePrime(ipcrBarcodes, new HashSet<>(), 2);
 
         LOGGER.info("cDNA: " + cdnaBarcodes.size());
         LOGGER.info("iPCR: " + ipcrBarcodes.size());
@@ -226,13 +229,22 @@ public class MakeSummaries {
 
     }
 
-    public void narrowPeakCorrelations() throws IOException, DocumentException {
+    public void narrowPeakCorrelations() throws Exception {
 
-
-        List<NarrowPeakRecord>[] inputFiles = new List[params.getInputIpcr().length];
+        LOGGER.info("Correlating peaks");
+        List<BedRecord>[] inputFiles = new List[params.getInputIpcr().length];
         int i = 0;
         for (String file : params.getInputIpcr()) {
-            NarrowPeakReader reader = new NarrowPeakReader(new GenericFile(file));
+            GenericFile curFile = new GenericFile(file);
+            BedRecordProvider reader;
+
+            LOGGER.info("Reading file: " + curFile.getFileName());
+            if (curFile.getFileName().contains(".bed")) {
+                reader = new FourColBedFileReader(curFile);
+            } else {
+                reader = new NarrowPeakReader(curFile);
+            }
+
             inputFiles[i] = reader.getBedRecordAsList();
             reader.close();
             i++;
@@ -248,10 +260,10 @@ public class MakeSummaries {
 
         while (i < output[0].size()) {
 
-            NarrowPeakRecord cur = (NarrowPeakRecord) output[0].get(i);
-            x[i] = cur.getSignalValue();
-            cur = (NarrowPeakRecord) output[1].get(i);
-            y[i] = cur.getSignalValue();
+            BedRecord cur = output[0].get(i);
+            x[i] = Math.log(cur.getScore()) / Math.log(10);
+            cur = output[1].get(i);
+            y[i] = Math.log(cur.getScore()) / Math.log(10);
 
             i++;
         }
@@ -298,6 +310,27 @@ public class MakeSummaries {
         }
 
         return ipcrBarcodes;
+    }
+
+    private void indexIpcr() throws IOException {
+
+        /*// https://academic.oup.com/bioinformatics/article/27/5/718/262743
+        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
+        TabixIndexCreator indexCreator = new TabixIndexCreator(format);
+
+        IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
+
+        IpcrRecord record = ipcrRecordProvider.getNextRecord();
+
+        while (record != null) {
+            indexCreator.addFeature(record, );
+            record = ipcrRecordProvider.getNextRecord();
+        }
+
+        indexCreator.finalizeIndex();
+*/
+
+
     }
 
     private void writeBarcodeCollection(Collection<String> output, GenericFile file) throws IOException {

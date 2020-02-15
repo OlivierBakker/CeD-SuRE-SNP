@@ -2,6 +2,9 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 
 import htsjdk.samtools.*;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileIpcrReader;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.AdapterSequenceMaxMismatchFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
@@ -12,6 +15,7 @@ import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificSamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.VariantType;
 import nl.umcg.suresnp.pipeline.tools.parameters.AssignVariantAllelesParameters;
 import org.apache.commons.lang3.ArrayUtils;
@@ -31,13 +35,11 @@ public class AssignVariantAlleles {
     private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
     private AlleleSpecificIpcrOutputWriter alleleSpecificIpcrOutputWriter;
     private DiscaredAlleleSpecificIpcrRecordWriter discaredOutputWriter;
-    private InfoFileReader infoFileReader;
     private AssignVariantAllelesParameters params;
     private Map<String, String> barcodeReadMap;
+    private Map<String, IpcrRecord> ipcrRecords;
 
     public AssignVariantAlleles(AssignVariantAllelesParameters params) throws IOException {
-
-        this.infoFileReader = new GenericInfoFileReader(params.getOutputPrefix());
         //this.ipcrOutputWriter = new GenericIpcrRecordWriter(new File(params.getOutputPrefix() + ".ipcr"), false);
         this.alleleSpecificIpcrOutputWriter = params.getOutputWriter();
         this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
@@ -46,6 +48,7 @@ public class AssignVariantAlleles {
 
     public void run() throws IOException, IpcrParseException {
         // TODO: need to re-write to fit updated pipeline
+        // This now seems unneccecerally complicated. In new system should be able to make it cleaner.
 
         LOGGER.warn("Currently assigns any read in BAM file if possible, does not do filtering of alignment quality" +
                 ",duplicates etc. so make sure you filter your BAM beforehand if needed.");
@@ -57,16 +60,11 @@ public class AssignVariantAlleles {
                     "@RG tags in the read headers.");
         }
 
-        // Read barcode data
-        List<InfoRecordFilter> filters = new ArrayList<>();
-        filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
-        filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
-
-        barcodeReadMap = infoFileReader.readBarcodeFileAsStringMap(new GenericFile(params.getInputBarcodes()), filters);
-        infoFileReader.flushAndClose();
+        // Read the barcode read pairs
+        readBarcodeMap();
 
         // Create genotype data iterator
-        RandomAccessGenotypeData genotypeData = readGenotypeData(RandomAccessGenotypeDataReaderFormats.VCF, params.getInputVcf());
+        RandomAccessGenotypeData genotypeData = readGenotypeData();
 
         // Create SAM readers
         SamReader primarySamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(params.getInputBam()));
@@ -104,7 +102,10 @@ public class AssignVariantAlleles {
             VariantType variantType = determineVariantType(curVariant);
 
             // Get the sam records overlapping the variant
-            SAMRecordIterator primarySamRecordIterator = primarySamReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+            SAMRecordIterator primarySamRecordIterator = primarySamReader.queryOverlapping(
+                    curVariant.getSequenceName(),
+                    curVariant.getStartPos(),
+                    curVariant.getStartPos() + 1);
             Set<String> primaryReadNameCache = new HashSet<>();
 
             // Loop over all the records and assign the allele to the read
@@ -112,8 +113,17 @@ public class AssignVariantAlleles {
                 // Retrieve the current record
                 SAMRecord record = primarySamRecordIterator.next();
                 primaryReadNameCache.add(record.getReadName());
-                AlleleSpecificSamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "PrimaryBamFile");
-                evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "PrimaryBamFile", sampleIdx);
+
+                AlleleSpecificSamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(
+                        record,
+                        variantType,
+                        curVariant,
+                        sampleIdx,
+                        "PrimaryBamFile");
+
+                evaluateIpcrRecord(curAlleleSpecificIpcrRecord,
+                        "PrimaryBamFile",
+                        sampleIdx);
                 i++;
             }
             primarySamRecordIterator.close();
@@ -121,9 +131,14 @@ public class AssignVariantAlleles {
             // If provided do the same thing for the secondary BAM file provided. This is done because GATK
             // --bamout does not provide HOM ref reads
             if (params.hasSecondaryInputBam() && secondarySamReader != null) {
-                SAMRecordIterator secondarySamRecordIterator = secondarySamReader.queryOverlapping(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+
+                SAMRecordIterator secondarySamRecordIterator = secondarySamReader.queryOverlapping(
+                        curVariant.getSequenceName(),
+                        curVariant.getStartPos(),
+                        curVariant.getStartPos() + 1);
 
                 while (secondarySamRecordIterator.hasNext()) {
+
                     SAMRecord record = secondarySamRecordIterator.next();
                     if (primaryReadNameCache.contains(record.getReadName())) {
                         discaredOutputWriter.writeRecord(new AlleleSpecificSamBasedIpcrRecord(null,
@@ -134,8 +149,16 @@ public class AssignVariantAlleles {
                                 record,
                                 variantType), "SecondaryBamFile\tReadInPrimaryBam");
                     } else {
-                        AlleleSpecificSamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(record, variantType, curVariant, sampleIdx, "SecondaryBamFile");
-                        evaluateIpcrRecord(curAlleleSpecificIpcrRecord, "SecondaryBamFile", sampleIdx);
+                        AlleleSpecificSamBasedIpcrRecord curAlleleSpecificIpcrRecord = assignVariantAlleleToSamRecord(
+                                record,
+                                variantType,
+                                curVariant,
+                                sampleIdx,
+                                "SecondaryBamFile");
+
+                        evaluateIpcrRecord(curAlleleSpecificIpcrRecord,
+                                "SecondaryBamFile",
+                                sampleIdx);
                     }
                     i++;
                 }
@@ -366,21 +389,20 @@ public class AssignVariantAlleles {
 
     }
 
-    private static RandomAccessGenotypeData readGenotypeData(RandomAccessGenotypeDataReaderFormats format, String path) throws IOException {
+    private RandomAccessGenotypeData readGenotypeData() throws IOException {
+
+        RandomAccessGenotypeDataReaderFormats format = RandomAccessGenotypeDataReaderFormats.VCF;
+        String path = params.getInputVcf();
+
         RandomAccessGenotypeData gt = null;
         LOGGER.warn("Codebase has only been tested on GATK formatted VCF files, " +
                 "although in theory other VCF should work fine your milage may vary");
         switch (format) {
             case GEN:
-                throw new UnsupportedOperationException("Not yet implemented");
             case GEN_FOLDER:
-                throw new UnsupportedOperationException("Not yet implemented");
             case PED_MAP:
-                throw new UnsupportedOperationException("Not yet implemented");
             case PLINK_BED:
-                throw new UnsupportedOperationException("Not yet implemented");
             case SHAPEIT2:
-                throw new UnsupportedOperationException("Not yet implemented");
             case TRITYPER:
                 throw new UnsupportedOperationException("Not yet implemented");
             case VCF:
@@ -392,5 +414,21 @@ public class AssignVariantAlleles {
         }
 
         return (gt);
+    }
+
+
+    private void readBarcodeMap() throws IOException {
+
+        IpcrRecordProvider reader = new IpcrFileReader(new GenericFile(params.getInputBarcodes()), true);
+        barcodeReadMap = new HashMap<>();
+
+        IpcrRecord curRecord = reader.getNextRecord();
+
+        while (curRecord != null) {
+            barcodeReadMap.put(curRecord.getPrimaryReadName(), curRecord.getBarcode());
+            curRecord = reader.getNextRecord();
+        }
+
+        reader.close();
     }
 }
