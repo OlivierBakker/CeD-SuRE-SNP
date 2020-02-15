@@ -91,6 +91,16 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
+    public int getStart() {
+        return getOrientationIndependentStart();
+    }
+
+    @Override
+    public int getEnd() {
+        return getOrientationIndependentEnd();
+    }
+
+    @Override
     public void setContig(String contig) {
         throw new UnsupportedOperationException();
     }

@@ -1,11 +1,16 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import com.itextpdf.text.DocumentException;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
+import htsjdk.tribble.util.LittleEndianOutputStream;
 import nl.umcg.suresnp.pipeline.io.bedreader.BedRecordProvider;
 import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.BgzipIpcrFileReader;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
@@ -50,7 +55,7 @@ public class MakeSummaries {
 
         int inputCdnaCount = cdnaBarcodes.size();
 
-       // LOGGER.info("Trimming barcode sets");
+        // LOGGER.info("Trimming barcode sets");
         //cdnaBarcodes = (Set<String>) trimBarcodesFivePrime(cdnaBarcodes, new HashSet<>(), 2);
         //ipcrBarcodes = (Set<String>) trimBarcodesFivePrime(ipcrBarcodes, new HashSet<>(), 2);
 
@@ -74,17 +79,17 @@ public class MakeSummaries {
         Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
         // Write overlapping barcodes
-        List<InfoRecordFilter> filters =  new ArrayList<>();
+        List<InfoRecordFilter> filters = new ArrayList<>();
         filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
 
         InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
         List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
         cdnaBarcodeReader.flushAndClose();
 
-        BufferedWriter overlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes").getAsOutputStream()));
-        BufferedWriter nonOverlappingOutputWriter = new BufferedWriter(new OutputStreamWriter( new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes").getAsOutputStream()));
+        BufferedWriter overlappingOutputWriter = new BufferedWriter(new OutputStreamWriter(new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes").getAsOutputStream()));
+        BufferedWriter nonOverlappingOutputWriter = new BufferedWriter(new OutputStreamWriter(new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes").getAsOutputStream()));
 
-        for (String curBarcode: cdnaBarcodes) {
+        for (String curBarcode : cdnaBarcodes) {
             if (ipcrBarcodes.contains(curBarcode)) {
                 overlappingOutputWriter.write(curBarcode);
                 overlappingOutputWriter.newLine();
@@ -121,10 +126,10 @@ public class MakeSummaries {
                         hist.addPostiveValue(curInsertSize);
 
                         insertSizeTotal = insertSizeTotal + curInsertSize;
-                        curInsertSizeTotal = curInsertSizeTotal + curInsertSize ;
+                        curInsertSizeTotal = curInsertSizeTotal + curInsertSize;
 
-                        curRecordCount ++;
-                        totalIpcrCount ++;
+                        curRecordCount++;
+                        totalIpcrCount++;
 
                         curRecord = ipcrRecordProvider.getNextRecord();
                     }
@@ -132,7 +137,7 @@ public class MakeSummaries {
 
                     LOGGER.info("CurInsertSize: " + curInsertSizeTotal);
                     LOGGER.info("CurRecordCount: " + curRecordCount);
-                    LOGGER.info(file + "\t" + Math.round((double)curInsertSizeTotal / (double)curRecordCount));
+                    LOGGER.info(file + "\t" + Math.round((double) curInsertSizeTotal / (double) curRecordCount));
 
                     break;
                 default:
@@ -140,8 +145,8 @@ public class MakeSummaries {
             }
         }
 
-        LOGGER.info("Total insert size: "  + insertSizeTotal);
-        LOGGER.info("Total ipcr count size: "  + totalIpcrCount);
+        LOGGER.info("Total insert size: " + insertSizeTotal);
+        LOGGER.info("Total ipcr count size: " + totalIpcrCount);
         LOGGER.info("Average insert size: " + Math.round((double) insertSizeTotal / (double) totalIpcrCount));
         LOGGER.info("Histrogram:");
 
@@ -174,7 +179,7 @@ public class MakeSummaries {
         for (String file : params.getInputIpcr()) {
             Map<String, Integer> barcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(file));
 
-            if (i == 0 ){
+            if (i == 0) {
                 overlappingBarcodes.addAll(barcodeCounts.keySet());
             } else {
                 overlappingBarcodes.retainAll(barcodeCounts.keySet());
@@ -198,13 +203,13 @@ public class MakeSummaries {
 
         // Convert to double matrix
         LOGGER.info("Converting to 2d double array");
-        double[][]x = new double[params.getInputIpcr().length][overlappingBarcodes.size()];
+        double[][] x = new double[params.getInputIpcr().length][overlappingBarcodes.size()];
 
         i = 0;
         for (String barcode : overlappingBarcodes) {
-            int j=0;
+            int j = 0;
             for (Map<String, Integer> data : input) {
-                x[j][i] = Math.log((double)data.get(barcode)) / Math.log(2);
+                x[j][i] = Math.log((double) data.get(barcode)) / Math.log(2);
                 j++;
             }
             i++;
@@ -217,11 +222,11 @@ public class MakeSummaries {
         LOGGER.info("Pearson R: " + test.correlation(x[0], x[1]));
 
 
-        Grid grid = new Grid(500,500,1,1,100,100);
-        ScatterplotPanel p = new ScatterplotPanel(1,1);
-        p.setData(x[0],x[1]);
+        Grid grid = new Grid(500, 500, 1, 1, 100, 100);
+        ScatterplotPanel p = new ScatterplotPanel(1, 1);
+        p.setData(x[0], x[1]);
         //p.setDataRange(new Range(0, 0, 500, 500));
-        p.setAlpha((float)0.5);
+        p.setAlpha((float) 0.5);
         p.setLabels("X", "y");
         p.setPlotElems(true, false);
         grid.addPanel(p);
@@ -254,7 +259,7 @@ public class MakeSummaries {
         List<BedRecord>[] output = BedUtils.intersectSortedBedRecords(inputFiles[0], inputFiles[1]);
         LOGGER.info("Output " + output.length);
 
-        i =0;
+        i = 0;
         double[] x = new double[output[0].size()];
         double[] y = new double[output[1].size()];
 
@@ -275,11 +280,11 @@ public class MakeSummaries {
         LOGGER.info("Pearson R: " + test.correlation(x, y));
 
 
-        Grid grid = new Grid(500,500,1,1,100,100);
-        ScatterplotPanel p = new ScatterplotPanel(1,1);
-        p.setData(x,y);
+        Grid grid = new Grid(500, 500, 1, 1, 100, 100);
+        ScatterplotPanel p = new ScatterplotPanel(1, 1);
+        p.setData(x, y);
         //p.setDataRange(new Range(0, 0, 500, 500));
-        p.setAlpha((float)0.5);
+        p.setAlpha((float) 0.5);
         p.setLabels("X", "y");
         p.setPlotElems(true, false);
         grid.addPanel(p);
@@ -312,24 +317,38 @@ public class MakeSummaries {
         return ipcrBarcodes;
     }
 
-    private void indexIpcr() throws IOException {
+    public void indexIpcr() throws IOException {
 
-        /*// https://academic.oup.com/bioinformatics/article/27/5/718/262743
+        // https://academic.oup.com/bioinformatics/article/27/5/718/262743
         TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
         TabixIndexCreator indexCreator = new TabixIndexCreator(format);
 
-        IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
-
+        BgzipIpcrFileReader ipcrRecordProvider = new BgzipIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
+        long pointer = ipcrRecordProvider.getFilePointer();
         IpcrRecord record = ipcrRecordProvider.getNextRecord();
 
+
+        long i = 0;
         while (record != null) {
-            indexCreator.addFeature(record, );
-            record = ipcrRecordProvider.getNextRecord();
+            logProgress(i, 1000000, "IndexIpcr");
+            try {
+                indexCreator.addFeature(record, pointer);
+                record = ipcrRecordProvider.getNextRecord();
+                pointer = ipcrRecordProvider.getFilePointer();
+            } catch (IllegalArgumentException e) {
+                LOGGER.debug("U oh: " + pointer);
+                LOGGER.debug(record.getBarcode() +"\t" + record.getContig() + "\t"+ record.getStart() + "\t" + record.getEnd());
+                throw e;
+            }
+            i++;
         }
 
-        indexCreator.finalizeIndex();
-*/
 
+        LittleEndianOutputStream indexOutputStream = new LittleEndianOutputStream(new BlockCompressedOutputStream(params.getOutputPrefix() + ".tbi"));
+        Index index = indexCreator.finalizeIndex(ipcrRecordProvider.getFilePointer());
+        index.write(indexOutputStream);
+        indexOutputStream.flush();
+        indexOutputStream.close();
 
     }
 
@@ -347,7 +366,7 @@ public class MakeSummaries {
 
     // TODO: Not the most efficient thing, if trimming becomes standard, will implement it in the file readers
     // For testing this will suffice
-    private Collection<String> trimBarcodesFivePrime(Collection<String> input, Collection<String> output,  int trimLength) {
+    private Collection<String> trimBarcodesFivePrime(Collection<String> input, Collection<String> output, int trimLength) {
         for (String curBarcode : input) {
             output.add(curBarcode.substring(trimLength));
         }

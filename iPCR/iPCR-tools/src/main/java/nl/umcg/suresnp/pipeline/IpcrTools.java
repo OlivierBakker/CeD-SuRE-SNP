@@ -82,6 +82,10 @@ public class IpcrTools {
                     SubsetBam subsetBam = new SubsetBam(new SubsetBamParameters(args));
                     subsetBam.run();
                     break;
+                case "Index":
+                    MakeSummaries index = new MakeSummaries(new MakeSummariesParameters(args));
+                    index.indexIpcr();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();

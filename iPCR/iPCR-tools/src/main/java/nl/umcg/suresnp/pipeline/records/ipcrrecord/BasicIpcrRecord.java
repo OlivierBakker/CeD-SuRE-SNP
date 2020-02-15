@@ -1,12 +1,14 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 
+import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.Feature;
 
 import java.io.Serializable;
+import java.util.Locale;
 import java.util.Map;
 
-public class BasicIpcrRecord implements IpcrRecord, Serializable, Feature {
+public class BasicIpcrRecord implements IpcrRecord, Serializable {
 
     private String barcode;
     private String primaryReadName;
@@ -82,7 +84,6 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable, Feature {
     public void setBarcode(String barcode) {
         this.barcode = barcode;
     }
-
 
     @Override
     public String getPrimaryReadName() {

@@ -24,6 +24,11 @@ public class IpcrFileReader implements IpcrRecordProvider {
     private String[] cdnaSamples;
     private boolean hasHeader;
 
+    public IpcrFileReader() {
+        this.sep = "\t";
+        this.hasHeader = true;
+    }
+
     public IpcrFileReader(boolean hasHeader) {
         this.sep = "\t";
         this.hasHeader = hasHeader;
@@ -50,24 +55,6 @@ public class IpcrFileReader implements IpcrRecordProvider {
             setHeader();
         }
     }
-
-    public void setCoreInputStream(InputStream inputStream) throws IOException {
-        if (this.coreReader != null) {
-            LOGGER.warn("Reader was already set, closing");
-            coreReader.close();
-        }
-
-        if (this.coreInputStream != null) {
-            LOGGER.warn("Input stream was already set, closing");
-            coreInputStream.close();
-        }
-        this.coreInputStream = inputStream;
-        this.coreReader = new BufferedReader(new InputStreamReader(coreInputStream));
-        if (hasHeader) {
-            setHeader();
-        }
-    }
-
 
     private void setBarcodeReader(GenericFile file) throws IOException {
         try {

@@ -1,8 +1,11 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
+import htsjdk.samtools.util.Locatable;
+import htsjdk.tribble.Feature;
+
 import java.util.Map;
 
-public interface IpcrRecord {
+public interface IpcrRecord extends Feature, Locatable {
 
     String getBarcode();
 
