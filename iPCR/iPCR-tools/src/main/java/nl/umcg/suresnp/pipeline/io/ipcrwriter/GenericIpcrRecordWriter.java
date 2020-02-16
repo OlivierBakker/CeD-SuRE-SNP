@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
+import htsjdk.samtools.util.BlockCompressedOutputStream;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import umcg.genetica.features.Gene;
@@ -14,7 +15,12 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     private BufferedWriter barcodeWriter;
     private BufferedWriter coreWriter;
     private String[] barcodeCountFilesSampleNames;
-    private final String sep = "\t";
+    private String sep = "\t";
+
+    public GenericIpcrRecordWriter(String[] barcodeCountFilesSampleNames, String sep) {
+        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+        this.sep = sep;
+    }
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
         String suffix = "";
@@ -45,56 +51,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         barcodeWriter.write(record.getBarcode());
         barcodeWriter.newLine();
 
-        // Alignment info
-        coreWriter.write(record.getBarcode());
-        coreWriter.write(sep);
-        coreWriter.write(record.getPrimaryReadName());
-        coreWriter.write(sep);
-        coreWriter.write(record.getContig());
-        coreWriter.write(sep);
-
-        coreWriter.write(Integer.toString(record.getPrimaryStart()));
-        coreWriter.write(sep);
-        coreWriter.write(Integer.toString(record.getPrimaryEnd()));
-        coreWriter.write(sep);
-
-        coreWriter.write(Integer.toString(record.getMateStart()));
-        coreWriter.write(sep);
-        coreWriter.write(Integer.toString(record.getMateEnd()));
-        coreWriter.write(sep);
-
-        coreWriter.write(Integer.toString(record.getPrimarySamFlags()));
-        coreWriter.write(sep);
-        coreWriter.write(Integer.toString(record.getMateSamFlags()));
-        coreWriter.write(sep);
-
-        coreWriter.write(Integer.toString(record.getPrimaryMappingQuality()));
-        coreWriter.write(sep);
-        coreWriter.write(Integer.toString(record.getMateMappingQuality()));
-        coreWriter.write(sep);
-
-        coreWriter.write(record.getPrimaryCigar());
-        coreWriter.write(sep);
-        coreWriter.write(record.getMateCigar());
-        coreWriter.write(sep);
-
-        coreWriter.write(record.getPrimaryStrand());
-        coreWriter.write(sep);
-
-        coreWriter.write(record.getMateStrand());
-        coreWriter.write(sep);
-
-        coreWriter.write(Integer.toString(record.getIpcrDuplicateCount()));
-        coreWriter.write(sep);
-
-        if (barcodeCountFilesSampleNames != null) {
-            for (String key : barcodeCountFilesSampleNames) {
-                coreWriter.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
-                coreWriter.write(sep);
-            }
-        }
-
-        coreWriter.newLine();
+        writeRecordToWriter(record);
     }
 
     @Override
@@ -104,58 +61,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     @Override
     public void writeHeader(String reason) throws IOException {
-        coreWriter.write("barcode");
-        coreWriter.write(sep);
-        coreWriter.write("readName");
-        coreWriter.write(sep);
-        coreWriter.write("chromosome");
-        coreWriter.write(sep);
-        coreWriter.write("readOneStart");
-        coreWriter.write(sep);
-        coreWriter.write("readOneEnd");
-        coreWriter.write(sep);
-        coreWriter.write("readTwoStart");
-        coreWriter.write(sep);
-        coreWriter.write("readTwoEnd");
-        coreWriter.write(sep);
-        coreWriter.write("readOneFlag");
-        coreWriter.write(sep);
-        coreWriter.write("readTwoFlag");
-        coreWriter.write(sep);
-        coreWriter.write("readOneMQ");
-        coreWriter.write(sep);
-        coreWriter.write("readTwoMQ");
-        coreWriter.write(sep);
-        coreWriter.write("readOneCigar");
-        coreWriter.write(sep);
-        coreWriter.write("readTwoCigar");
-        coreWriter.write(sep);
-        coreWriter.write("readOneStrand");
-        coreWriter.write(sep);
-        coreWriter.write("readTwoStrand");
-        coreWriter.write(sep);
-        coreWriter.write("ipcrCount");
-        coreWriter.write(sep);
-        if (barcodeCountFilesSampleNames != null) {
-            for (String key : barcodeCountFilesSampleNames) {
-                int idx = key.indexOf('.');
-                if (idx < 0) {
-                    coreWriter.write(key);
-                } else {
-                    coreWriter.write(key.substring(0, idx));
-                }
-                coreWriter.write(sep);
-            }
-        }
-
-        coreWriter.newLine();
-    }
-
-    public void flushAndClose() throws IOException {
-        barcodeWriter.flush();
-        barcodeWriter.close();
-        coreWriter.flush();
-        coreWriter.close();
+        writeHeaderToWriter(reason);
     }
 
     @Override
@@ -168,4 +74,121 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
     }
 
+    public void flushAndClose() throws IOException {
+        barcodeWriter.flush();
+        barcodeWriter.close();
+        coreWriter.flush();
+        coreWriter.close();
+    }
+
+    // Split so can be used by subclass
+    protected void writeHeaderToWriter(String reason) throws IOException {
+        write("barcode");
+        write(sep);
+        write("readName");
+        write(sep);
+        write("chromosome");
+        write(sep);
+        write("readOneStart");
+        write(sep);
+        write("readOneEnd");
+        write(sep);
+        write("readTwoStart");
+        write(sep);
+        write("readTwoEnd");
+        write(sep);
+        write("readOneFlag");
+        write(sep);
+        write("readTwoFlag");
+        write(sep);
+        write("readOneMQ");
+        write(sep);
+        write("readTwoMQ");
+        write(sep);
+        write("readOneCigar");
+        write(sep);
+        write("readTwoCigar");
+        write(sep);
+        write("readOneStrand");
+        write(sep);
+        write("readTwoStrand");
+        write(sep);
+        write("ipcrCount");
+        write(sep);
+        if (barcodeCountFilesSampleNames != null) {
+            for (String key : barcodeCountFilesSampleNames) {
+                int idx = key.indexOf('.');
+                if (idx < 0) {
+                    write(key);
+                } else {
+                    write(key.substring(0, idx));
+                }
+                write(sep);
+            }
+        }
+
+        writeNewLine();
+    }
+
+    // Split so can be used bu subclass
+    protected void writeRecordToWriter(IpcrRecord record) throws IOException {
+        // Alignment info
+        write(record.getBarcode());
+        write(sep);
+        write(record.getPrimaryReadName());
+        write(sep);
+        write(record.getContig());
+        write(sep);
+
+        write(Integer.toString(record.getPrimaryStart()));
+        write(sep);
+        write(Integer.toString(record.getPrimaryEnd()));
+        write(sep);
+
+        write(Integer.toString(record.getMateStart()));
+        write(sep);
+        write(Integer.toString(record.getMateEnd()));
+        write(sep);
+
+        write(Integer.toString(record.getPrimarySamFlags()));
+        write(sep);
+        write(Integer.toString(record.getMateSamFlags()));
+        write(sep);
+
+        write(Integer.toString(record.getPrimaryMappingQuality()));
+        write(sep);
+        write(Integer.toString(record.getMateMappingQuality()));
+        write(sep);
+
+        write(record.getPrimaryCigar());
+        write(sep);
+        write(record.getMateCigar());
+        write(sep);
+
+        write(Character.toString(record.getPrimaryStrand()));
+        write(sep);
+
+        write(Character.toString(record.getMateStrand()));
+        write(sep);
+
+        write(Integer.toString(record.getIpcrDuplicateCount()));
+        write(sep);
+
+        if (barcodeCountFilesSampleNames != null) {
+            for (String key : barcodeCountFilesSampleNames) {
+                write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
+                write(sep);
+            }
+        }
+
+        writeNewLine();
+    }
+
+    protected void write(String line) throws IOException {
+        coreWriter.write(line);
+    }
+
+    protected void writeNewLine() throws IOException {
+        coreWriter.newLine();
+    }
 }

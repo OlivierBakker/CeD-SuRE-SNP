@@ -15,6 +15,7 @@ import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrCodec;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.BlockCompressedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
@@ -321,9 +322,8 @@ public class MakeSummaries {
     }
 
     public void indexIpcr() throws IOException {
-
         // https://academic.oup.com/bioinformatics/article/27/5/718/262743
-        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
+/*        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
         TabixIndexCreator indexCreator = new TabixIndexCreator(format);
 
         BlockCompressedIpcrFileReader ipcrRecordProvider = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
@@ -355,7 +355,25 @@ public class MakeSummaries {
         indexOutputStream.close();
         ipcrRecordProvider.close();
 
-        LOGGER.debug("Done indexing");
+        LOGGER.debug("Done indexing");*/
+
+        IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
+        BlockCompressedIpcrRecordWriter out = new BlockCompressedIpcrRecordWriter(params.getOutputPrefix(), ipcrRecordProvider.getCdnaSamples());
+        out.writeHeader();
+        IpcrRecord record = ipcrRecordProvider.getNextRecord();
+        long i = 0;
+        while (record != null) {
+            logProgress(i, 1000000, "IndexIpcr");
+
+            out.writeRecord(record);
+            record = ipcrRecordProvider.getNextRecord();
+
+            i++;
+        }
+
+        ipcrRecordProvider.close();
+        out.flushAndClose();
+
     }
 
     private void writeBarcodeCollection(Collection<String> output, GenericFile file) throws IOException {

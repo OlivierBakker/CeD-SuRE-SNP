@@ -65,7 +65,7 @@ public class RecodeParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("The output type")
-                .argName("IPCR|IPCR_BIN|MACS|BED|BEDPE")
+                .argName("IPCR|IPCR_INDEXED|MACS|BED|BEDPE")
                 .build();
         OPTIONS.addOption(option);
 
@@ -104,7 +104,7 @@ public class RecodeParameters {
         option = Option.builder("z")
                 .longOpt("zipped")
                 .hasArg(false)
-                .desc("Should output be zipped")
+                .desc("Should output be zipped? If using -t IPCR_INDEXED this is ignored as tabix needs bgzipped output.")
                 .build();
         OPTIONS.addOption(option);
 
@@ -147,10 +147,8 @@ public class RecodeParameters {
             switch (inputType) {
                 case "IPCR":
                     break;
-                case "IPCR_BIN":
-                    break;
                 default:
-                    LOGGER.error("Invalid input type, must be either IPCR, IPCR_BIN");
+                    LOGGER.error("Invalid input type, must be either IPCR");
                     printHelp();
                     exit(-1);
             }
@@ -201,6 +199,13 @@ public class RecodeParameters {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
                 } else {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped);
+                }
+                break;
+            case "IPCR_INDEXED":
+                if (inputCdna != null) {
+                    outputWriter = new BlockCompressedIpcrRecordWriter(outputPrefix, inputCdna);
+                } else {
+                    outputWriter = new BlockCompressedIpcrRecordWriter(outputPrefix);
                 }
                 break;
             case "MACS":
