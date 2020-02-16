@@ -1,27 +1,30 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificSamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SamBasedAlleleSpecificIpcrRecord;
 
 import java.io.IOException;
 
+@Deprecated
 public class GenericAlleleSpecificIpcrRecordStdoutWriter implements AlleleSpecificIpcrOutputWriter {
 
     public GenericAlleleSpecificIpcrRecordStdoutWriter() {
     }
 
     @Override
-    public void writeRecord(AlleleSpecificSamBasedIpcrRecord record) throws IOException {
+    public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
 
         System.out.println(record.getBarcode() + "\t"
-                + record.getPrimarySamRecord().getReadName() + "\t"
+                + record.getPrimaryReadName() + "\t"
                 + record.getGeneticVariant().getPrimaryVariantId());
     }
 
     @Override
-    public void writeRecord(AlleleSpecificSamBasedIpcrRecord record, String reason) throws IOException {
-
+    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
         writeRecord(record);
     }
+
+
 
     @Override
     public void writeHeader() throws IOException {

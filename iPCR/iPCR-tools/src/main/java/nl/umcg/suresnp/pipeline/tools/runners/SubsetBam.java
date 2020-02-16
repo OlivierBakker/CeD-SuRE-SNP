@@ -8,6 +8,7 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.SubsetBamParameters;
 import org.apache.log4j.Logger;
+import org.apache.log4j.spi.RootLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -100,7 +101,8 @@ public class SubsetBam {
             i++;
         }
         samReader.close();
-        LOGGER.info("Content read and sorted");
+        LOGGER.info("");
+        LOGGER.info("Done sorting, " + i + " SAM records");
 
         // Write the output
         LOGGER.info("Writing BAM");
@@ -133,7 +135,7 @@ public class SubsetBam {
         indexer.finish();
 
         LOGGER.info("Written " + recordsWritten + " overlapping records");
-        LOGGER.info("iPCR input: " + ipcrUniqueReads.size() + " this is PE so /2");
+        LOGGER.info("iPCR input: " + ipcrUniqueReads.size() + " this is PE so *2");
         LOGGER.info("BAM total: " + i);
         LOGGER.info("% written: " + Math.round(((double) recordsWritten / (double) i) * 100));
     }

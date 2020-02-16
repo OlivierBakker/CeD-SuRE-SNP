@@ -1,16 +1,17 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificSamBasedIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SamBasedAlleleSpecificIpcrRecord;
 
 import java.io.*;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter {
+
     private OutputStream outputStream;
     private BufferedWriter writer;
     private final String sep = "\t";
-
 
     public DiscaredAlleleSpecificIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
 
@@ -24,18 +25,18 @@ public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpc
     }
 
     @Override
-    public void writeRecord(AlleleSpecificSamBasedIpcrRecord record) throws IOException {
+    public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
         writeRecord(record, "");
     }
 
     @Override
-    public void writeRecord(AlleleSpecificSamBasedIpcrRecord record, String reason) throws IOException {
+    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
         if (reason.length() > 1) {
             writer.write(reason);
             writer.write(sep);
         }
 
-        writer.write(record.getPrimarySamRecord().getReadName());
+        writer.write(record.getPrimaryReadName());
         writer.write(sep);
 
         if (record.getGeneticVariant().getPrimaryVariantId() == null) {
@@ -79,13 +80,9 @@ public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpc
 */
 
         writer.write(sep);
-        writer.write(record.getPrimarySamRecord().getCigarString());
+        writer.write(record.getPrimaryCigar());
         writer.write(sep);
-        if (record.getPrimarySamRecord().getReadNegativeStrandFlag()) {
-            writer.write("-");
-        } else {
-            writer.write("+");
-        }
+        writer.write(record.getPrimaryStrand());
 
         writer.write(sep);
         if (record.getSampleId() != null) {

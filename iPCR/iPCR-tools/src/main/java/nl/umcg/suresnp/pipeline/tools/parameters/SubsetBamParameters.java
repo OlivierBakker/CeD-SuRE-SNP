@@ -48,7 +48,7 @@ public class SubsetBamParameters {
                 .longOpt("input-type")
                 .hasArg(true)
                 .desc("The input type")
-                .argName("IPCR|IPCR_BIN")
+                .argName("IPCR")
                 .build();
         OPTIONS.addOption(option);
 
@@ -108,8 +108,6 @@ public class SubsetBamParameters {
             inputType = cmd.getOptionValue('k');
             switch (inputType) {
                 case "IPCR":
-                    break;
-                case "IPCR_BIN":
                     break;
                 default:
                     LOGGER.error("Invalid input type, must be either IPCR, IPCR_BIN");

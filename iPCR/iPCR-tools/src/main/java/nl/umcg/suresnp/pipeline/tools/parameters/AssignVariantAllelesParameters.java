@@ -19,7 +19,7 @@ public class AssignVariantAllelesParameters {
 
     // IO arguments
     private String inputBam;
-    private String inputBarcodes;
+    private String inputIpcr;
     private String inputVcf;
     private String secondaryInputBam;
 
@@ -86,7 +86,6 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-
         option = Option.builder("b")
                 .longOpt("barcode-info")
                 .hasArg(true)
@@ -126,7 +125,6 @@ public class AssignVariantAllelesParameters {
 
 
     public AssignVariantAllelesParameters(String[] args) throws ParseException, IOException {
-
         CommandLineParser parser = new DefaultParser();
         cmd = parser.parse(OPTIONS, args);
 
@@ -139,7 +137,7 @@ public class AssignVariantAllelesParameters {
         // Input files
         inputBam = cmd.getOptionValue("i").trim();
         inputVcf = cmd.getOptionValue("g").trim();
-        inputBarcodes = cmd.getOptionValue('b').trim();
+        inputIpcr = cmd.getOptionValue('b').trim();
         toolType = "AssignVariantAlleles";
 
         if (cmd.hasOption("j")) {
@@ -177,7 +175,6 @@ public class AssignVariantAllelesParameters {
             outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
         }
 
-
         // Hardcoded arguments for testing
         barcodeLength = 20;
         adapterMaxMismatch = 3;
@@ -185,7 +182,6 @@ public class AssignVariantAllelesParameters {
         if (cmd.hasOption("v")) {
             sampleGenotypeId = cmd.getOptionValue('v').trim();
         }
-
     }
 
 
@@ -217,8 +213,8 @@ public class AssignVariantAllelesParameters {
         return cmd;
     }
 
-    public String getInputBarcodes() {
-        return inputBarcodes;
+    public String getInputIpcr() {
+        return inputIpcr;
     }
 
     public String getOutputPrefix() {
