@@ -2,15 +2,9 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 
 import htsjdk.samtools.*;
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileIpcrReader;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
-import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
-import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscaredAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrParseException;

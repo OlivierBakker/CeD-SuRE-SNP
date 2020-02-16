@@ -1,9 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
-import htsjdk.samtools.util.BlockCompressedOutputStream;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
-import umcg.genetica.features.Gene;
 
 import java.io.BufferedWriter;
 import java.io.File;

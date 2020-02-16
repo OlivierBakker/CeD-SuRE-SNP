@@ -1,11 +1,7 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 
-import htsjdk.samtools.util.Locatable;
-import htsjdk.tribble.Feature;
-
 import java.io.Serializable;
-import java.util.Locale;
 import java.util.Map;
 
 public class BasicIpcrRecord implements IpcrRecord, Serializable {

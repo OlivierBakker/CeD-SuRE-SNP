@@ -3,6 +3,7 @@ package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 import htsjdk.samtools.SAMRecord;
 import org.molgenis.genotype.variant.GeneticVariant;
 
+@Deprecated
 public class AlleleSpecificSamBasedIpcrRecord extends SamBasedIpcrRecord {
 
     private String readAllele;

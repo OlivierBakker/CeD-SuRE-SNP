@@ -7,7 +7,9 @@ import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.*;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 

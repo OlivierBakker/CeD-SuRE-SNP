@@ -2,7 +2,6 @@ package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.log4j.Logger;

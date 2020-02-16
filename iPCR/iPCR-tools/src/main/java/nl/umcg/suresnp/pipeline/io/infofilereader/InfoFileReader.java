@@ -1,8 +1,8 @@
 package nl.umcg.suresnp.pipeline.io.infofilereader;
 
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.inforecord.InfoRecord;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
-import nl.umcg.suresnp.pipeline.io.GenericFile;
 
 import java.io.IOException;
 import java.util.List;

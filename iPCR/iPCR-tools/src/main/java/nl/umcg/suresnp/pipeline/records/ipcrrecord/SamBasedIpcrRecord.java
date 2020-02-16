@@ -4,6 +4,7 @@ import htsjdk.samtools.SAMRecord;
 
 import java.util.Map;
 
+@Deprecated
 public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     private String barcode;

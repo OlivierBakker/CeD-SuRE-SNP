@@ -2,29 +2,23 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import com.itextpdf.text.DocumentException;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
-import htsjdk.tribble.AbstractFeatureReader;
-import htsjdk.tribble.FeatureReader;
-import htsjdk.tribble.TabixFeatureReader;
-import htsjdk.tribble.bed.BEDCodec;
 import htsjdk.tribble.index.Index;
-import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.bedreader.BedRecordProvider;
 import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
+import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrCodec;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.BlockCompressedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
-import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
-import nl.umcg.suresnp.pipeline.io.infofilereader.InfoFileReader;
-import nl.umcg.suresnp.pipeline.io.infofilereader.SparseInfoFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
 import nl.umcg.suresnp.pipeline.utils.BedUtils;
@@ -39,19 +33,30 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.*;
 
-import static htsjdk.tribble.index.tabix.TabixFormat.GENERIC_FLAGS;
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
+/**
+ * The type Make summaries. Collection of small utillities / tools taking iPCR files as an input.
+ */
 public class MakeSummaries {
 
-    // Collection of small utils to check certain things
     private static final Logger LOGGER = Logger.getLogger(MakeSummaries.class);
     private static MakeSummariesParameters params;
 
+    /**
+     * Instantiates a new Make summaries.
+     *
+     * @param parameters the parameters
+     */
     public MakeSummaries(MakeSummariesParameters parameters) {
         this.params = parameters;
     }
 
+    /**
+     * Overlap two sets of barcodes and report the count. Can take INFO or IPCR files as input
+     * TODO: Generalize this and integrate with BarcodeOverlap
+     * @throws IOException the io exception
+     */
     public void barcodeOverlap() throws IOException {
         // How many of the cDNA barcodes come back in the iPCR
         Set<String> cdnaBarcodes = new HashSet<>(GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes())).keySet());
@@ -77,6 +82,12 @@ public class MakeSummaries {
 
     }
 
+    /**
+     * Overlap two sets of barcodes and write the result into overlapping and non overlapping files.
+     * Can take INFO or CNDA files as input
+     * TODO: Generalize this and integrate with BarcodeOverlap
+     * @throws IOException the io exception
+     */
     public void barcodeOverlapWriteOut() throws IOException {
 
         // How many of the cDNA barcodes come back in the iPCR
@@ -109,6 +120,13 @@ public class MakeSummaries {
         nonOverlappingOutputWriter.close();
     }
 
+    /**
+     * Calculate the insert size of iPCR fragments. Takes IPCR file as input. Prints histogram.
+     * TODO: add output saving to file and plotting of hist.
+     *
+     * @throws IOException              the io exception
+     * @throws IllegalArgumentException the illegal argument exception
+     */
     public void getInsertSizes() throws IOException, IllegalArgumentException {
 
         long insertSizeTotal = 0;
@@ -158,9 +176,13 @@ public class MakeSummaries {
 
     }
 
+    /**
+     * Make a histogram of barcode counts. Takes cDNA count data as input.
+     * TODO: add output saving to file and plotting of hist.
+     * @throws IOException the io exception
+     */
     public void makeBarcodeCountHist() throws IOException {
         Map<String, Integer> barcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputIpcr()[0]));
-
         StreamingHistogram histogram = new StreamingHistogram(1, 20);
 
         int i = 0;
@@ -171,11 +193,17 @@ public class MakeSummaries {
         }
         LOGGER.info("");
 
-
         System.out.print(histogram.getHistAsString());
     }
 
-    public void cdnaCorrelations() throws IOException, DocumentException {
+    /**
+     * Correlate two cDNA profiles. Takes cDNA data as input.
+     * TODO: Cleanup and implement proper filenames and better plotting
+     *
+     * @throws IOException       the io exception
+     * @throws DocumentException the document exception
+     */
+    public void getCdnaCorrelations() throws IOException, DocumentException {
 
         List<Map<String, Integer>> input = new ArrayList<>(params.getInputIpcr().length);
         Set<String> overlappingBarcodes = new HashSet<>();
@@ -238,7 +266,12 @@ public class MakeSummaries {
 
     }
 
-    public void narrowPeakCorrelations() throws Exception {
+    /**
+     * Correlate two score profiles (from .narrowPeak or 4 col bed files)
+     * TODO: Cleanup and implement proper filenames and better plotting
+     * @throws Exception the exception
+     */
+    public void getPeakCorrelations() throws Exception {
 
         LOGGER.info("Correlating peaks");
         List<BedRecord>[] inputFiles = new List[params.getInputIpcr().length];
@@ -296,35 +329,15 @@ public class MakeSummaries {
 
     }
 
-    private Set<String> readIpcrBarcodesAsSet() throws IOException {
-        Set<String> ipcrBarcodes = new HashSet<>();
 
-        for (String file : params.getInputIpcr()) {
-
-            Set<String> currentBarcodes;
-            switch (params.getInputType()) {
-                case "INFO":
-                    InfoFileReader ipcrBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
-                    currentBarcodes = ipcrBarcodeReader.getBarcodeSet(new GenericFile(file));
-                    break;
-                case "IPCR":
-                    IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(file), true);
-                    currentBarcodes = ipcrRecordProvider.getBarcodeSet();
-                    break;
-                default:
-                    throw new IllegalArgumentException("No valid input type provided");
-            }
-
-            ipcrBarcodes.addAll(currentBarcodes);
-        }
-
-        return ipcrBarcodes;
-    }
-
+    /**
+     * Index an existing bgzipped IPCR file.
+     *
+     * @throws IOException the io exception
+     */
     public void indexIpcr() throws IOException {
         // https://academic.oup.com/bioinformatics/article/27/5/718/262743
-/*        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
-        TabixIndexCreator indexCreator = new TabixIndexCreator(format);
+        TabixIndexCreator indexCreator = new TabixIndexCreator(BlockCompressedIpcrRecordWriter.IPCR_FORMAT);
 
         BlockCompressedIpcrFileReader ipcrRecordProvider = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
         long pointer = ipcrRecordProvider.getFilePointer();
@@ -355,46 +368,38 @@ public class MakeSummaries {
         indexOutputStream.close();
         ipcrRecordProvider.close();
 
-        LOGGER.debug("Done indexing");*/
-
-        IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
-        BlockCompressedIpcrRecordWriter out = new BlockCompressedIpcrRecordWriter(params.getOutputPrefix(), ipcrRecordProvider.getCdnaSamples());
-        out.writeHeader();
-        IpcrRecord record = ipcrRecordProvider.getNextRecord();
-        long i = 0;
-        while (record != null) {
-            logProgress(i, 1000000, "IndexIpcr");
-
-            out.writeRecord(record);
-            record = ipcrRecordProvider.getNextRecord();
-
-            i++;
-        }
-
-        ipcrRecordProvider.close();
-        out.flushAndClose();
+        LOGGER.debug("Done indexing");
 
     }
 
-    private void writeBarcodeCollection(Collection<String> output, GenericFile file) throws IOException {
-        BufferedWriter outputWriter = new BufferedWriter(new OutputStreamWriter(file.getAsOutputStream()));
+    /**
+     * Reads all provided IPCR of INFO files and reads their barcodes into a set.
+     *
+     * @return Set of unique barcodes
+     * @throws IOException the io exception
+     */
+    private Set<String> readIpcrBarcodesAsSet() throws IOException {
+        Set<String> ipcrBarcodes = new HashSet<>();
 
-        for (String barcode : output) {
-            outputWriter.write(barcode);
-            outputWriter.newLine();
+        for (String file : params.getInputIpcr()) {
+            Set<String> currentBarcodes;
+            switch (params.getInputType()) {
+                case "INFO":
+                    InfoFileReader ipcrBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix());
+                    currentBarcodes = ipcrBarcodeReader.getBarcodeSet(new GenericFile(file));
+                    break;
+                case "IPCR":
+                    IpcrRecordProvider ipcrRecordProvider = new IpcrFileReader(new GenericFile(file), true);
+                    currentBarcodes = ipcrRecordProvider.getBarcodeSet();
+                    break;
+                default:
+                    throw new IllegalArgumentException("No valid input type provided");
+            }
+
+            ipcrBarcodes.addAll(currentBarcodes);
         }
 
-        outputWriter.flush();
-        outputWriter.close();
-    }
-
-    // TODO: Not the most efficient thing, if trimming becomes standard, will implement it in the file readers
-    // For testing this will suffice
-    private Collection<String> trimBarcodesFivePrime(Collection<String> input, Collection<String> output, int trimLength) {
-        for (String curBarcode : input) {
-            output.add(curBarcode.substring(trimLength));
-        }
-        return output;
+        return ipcrBarcodes;
     }
 
 }

@@ -30,7 +30,7 @@ public class IpcrTools {
                     AssignVariantAlleles assignVariantAlleles = new AssignVariantAlleles(new AssignVariantAllelesParameters(args));
                     assignVariantAlleles.run();
                     break;
-                case "GenerateBarcodeComplexityCurve":
+                case "MakeBarcodeComplexityCurve":
                     MakeBarcodeComplexityCurve makeBarcodeComplexityCurve = new MakeBarcodeComplexityCurve(new MakeBarcodeComplexityCurveParameters(args));
                     makeBarcodeComplexityCurve.run();
                     break;
@@ -66,13 +66,13 @@ public class IpcrTools {
                     MakeSummaries barcodeCountHist = new MakeSummaries(new MakeSummariesParameters(args));
                     barcodeCountHist.makeBarcodeCountHist();
                     break;
-                case "cdnaCorrelations":
+                case "GetCdnaCorrelations":
                     MakeSummaries cdnaCorrelations = new MakeSummaries(new MakeSummariesParameters(args));
-                    cdnaCorrelations.cdnaCorrelations();
+                    cdnaCorrelations.getCdnaCorrelations();
                     break;
-                case "correlatePeaks":
+                case "GetPeakCorrelations":
                     MakeSummaries correlatePeaks = new MakeSummaries(new MakeSummariesParameters(args));
-                    correlatePeaks.narrowPeakCorrelations();
+                    correlatePeaks.getPeakCorrelations();
                     break;
                 case "Recode":
                     Recode recode = new Recode(new RecodeParameters(args));
@@ -82,7 +82,7 @@ public class IpcrTools {
                     SubsetBam subsetBam = new SubsetBam(new SubsetBamParameters(args));
                     subsetBam.run();
                     break;
-                case "Index":
+                case "IndexIpcr":
                     MakeSummaries index = new MakeSummaries(new MakeSummariesParameters(args));
                     index.indexIpcr();
                     break;

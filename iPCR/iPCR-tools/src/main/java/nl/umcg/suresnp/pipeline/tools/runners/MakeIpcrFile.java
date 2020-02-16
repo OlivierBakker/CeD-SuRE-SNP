@@ -1,13 +1,13 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import htsjdk.samtools.*;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.AdapterSequenceMaxMismatchFilter;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.DiscardedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.AdapterSequenceMaxMismatchFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.SamBasedIpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;

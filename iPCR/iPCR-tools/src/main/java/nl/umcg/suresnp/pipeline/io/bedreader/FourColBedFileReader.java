@@ -2,7 +2,6 @@ package nl.umcg.suresnp.pipeline.io.bedreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
-import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 

@@ -1,14 +1,11 @@
 package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
-import htsjdk.samtools.util.FileExtensions;
 import htsjdk.samtools.util.IOUtil;
 import htsjdk.tribble.AsciiFeatureCodec;
-import htsjdk.tribble.bed.BEDCodec;
 import htsjdk.tribble.readers.LineIterator;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.BasicIpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import org.apache.log4j.Logger;
-
 
 import java.util.HashMap;
 import java.util.Map;

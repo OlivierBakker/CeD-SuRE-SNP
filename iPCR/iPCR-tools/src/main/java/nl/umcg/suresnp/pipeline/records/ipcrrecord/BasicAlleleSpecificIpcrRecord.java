@@ -1,6 +1,5 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
-import htsjdk.samtools.SAMRecord;
 import org.molgenis.genotype.variant.GeneticVariant;
 
 public class BasicAlleleSpecificIpcrRecord extends BasicIpcrRecord {

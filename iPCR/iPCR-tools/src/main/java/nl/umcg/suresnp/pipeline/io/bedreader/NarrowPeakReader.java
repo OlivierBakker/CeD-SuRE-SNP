@@ -1,6 +1,5 @@
 package nl.umcg.suresnp.pipeline.io.bedreader;
 
-import htsjdk.samtools.util.Locatable;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;

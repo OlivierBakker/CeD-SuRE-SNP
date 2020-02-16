@@ -9,9 +9,7 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Documented;
 import java.nio.charset.StandardCharsets;
 
 import static htsjdk.tribble.index.tabix.TabixFormat.GENERIC_FLAGS;

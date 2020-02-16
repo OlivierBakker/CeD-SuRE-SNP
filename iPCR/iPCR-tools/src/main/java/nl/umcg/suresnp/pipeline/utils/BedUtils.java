@@ -3,7 +3,6 @@ package nl.umcg.suresnp.pipeline.utils;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import org.apache.log4j.Logger;
 
-import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.List;
 
