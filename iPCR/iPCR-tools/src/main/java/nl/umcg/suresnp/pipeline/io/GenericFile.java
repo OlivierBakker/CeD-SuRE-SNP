@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io;
 
+import htsjdk.samtools.util.BlockCompressedOutputStream;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
@@ -75,8 +76,12 @@ public class GenericFile {
         return (FilenameUtils.getExtension(this.path));
     }
 
-    public boolean isGzipped() {
+    public boolean isGZipped() {
         return (getExtention().endsWith("gz"));
+    }
+
+    public boolean isBgZipped() {
+        return (getExtention().endsWith("bgz"));
     }
 
     public Charset getCharset() {
@@ -84,7 +89,7 @@ public class GenericFile {
     }
 
     public InputStream getAsInputStream() throws IOException {
-        if (isGzipped()) {
+        if (isGZipped()) {
             return new BufferedInputStream(new GZIPInputStream(new FileInputStream(new File(path))));
         } else {
             return new BufferedInputStream(new FileInputStream(new File(path)));
@@ -97,7 +102,10 @@ public class GenericFile {
     }
 
     public OutputStream getAsOutputStream() throws IOException {
-        if (isGzipped()) {
+
+        if (isBgZipped()) {
+            return new BlockCompressedOutputStream(path);
+        } else if (isGZipped()) {
             return new BufferedOutputStream(new GZIPOutputStream(new FileOutputStream(new File(path))));
         } else {
             return new BufferedOutputStream(new FileOutputStream(new File(path)));
@@ -107,7 +115,6 @@ public class GenericFile {
     public BufferedWriter getAsBufferedWriter() throws IOException {
         return new BufferedWriter(new OutputStreamWriter(getAsOutputStream(), charset));
     }
-
 
     public static String[] trimAllExtensionsFromFilenameArray(String[] inputArray) {
         String[] outputArray = new String[inputArray.length];

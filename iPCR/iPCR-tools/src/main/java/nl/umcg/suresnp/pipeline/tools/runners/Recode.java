@@ -2,8 +2,6 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.BinaryIpcrReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileIpcrReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;

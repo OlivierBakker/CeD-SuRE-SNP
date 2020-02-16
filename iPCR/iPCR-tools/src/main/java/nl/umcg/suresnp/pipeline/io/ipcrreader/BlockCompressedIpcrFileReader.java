@@ -1,6 +1,9 @@
 package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
 import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.tribble.CloseableTribbleIterator;
+import htsjdk.tribble.FeatureReader;
+import htsjdk.tribble.TabixFeatureReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import org.apache.log4j.Logger;
@@ -12,48 +15,39 @@ import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 
 //TODO: fix duplicate code, first thingy with replacing the inputstream didnt really work
-public class BlockCompressedIpcrFileReader extends IpcrFileReader implements IpcrRecordProvider  {
+public class BlockCompressedIpcrFileReader extends IpcrFileReader implements IpcrRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(BlockCompressedIpcrFileReader.class);
-
     private BlockCompressedInputStream coreInputStream;
     private BufferedReader barcodeReader;
     private String sep;
+    private FeatureReader<IpcrRecord> featureReader;
 
-    public BlockCompressedIpcrFileReader(GenericFile file, boolean hasHeader) throws IOException {
-
-        //super(file.getPathAsString(), file.getPathAsString() + ".tbi", codec);
-        setBarcodeReader(file);
+    public BlockCompressedIpcrFileReader(GenericFile file) throws IOException {
         this.coreInputStream = new BlockCompressedInputStream(new File(file.getPathAsString()));
         this.sep = "\t";
-        if (hasHeader) {
-            setHeader();
-        }
+        setBarcodeReader(file);
+        setHeader();
+        setFeatureReader(file.getPathAsString());
     }
 
-    public BlockCompressedIpcrFileReader(GenericFile file, IpcrCodec codec,  boolean hasHeader) throws IOException {
-        //super(file.getPathAsString(), file.getPathAsString() + ".tbi", codec);
-        setBarcodeReader(file);
-        this.coreInputStream = new BlockCompressedInputStream(new File(file.getPathAsString()));
-        this.sep = "\t";
-        if (hasHeader) {
-            setHeader();
+    private void setFeatureReader(String file) throws FileNotFoundException {
+        if (new File(file + ".tbi").exists()) {
+            featureReader = TabixFeatureReader.getFeatureReader(
+                    file,
+                    file + ".tbi",
+                    new IpcrCodec(),
+                    true);
+        } else {
+            LOGGER.warn("Tabix index not found for: " + file);
+            LOGGER.warn("Querying on position will not work. Please index file first using -T Index or -T Recode -s" );
+            featureReader = null;
         }
     }
 
     @Override
     protected String getNextLine() throws IOException {
         return coreInputStream.readLine();
-    }
-
-    @Override
-    public IpcrRecord getNextRecord() throws IOException {
-        String line = coreInputStream.readLine();
-        if (line != null) {
-            return parseIpcrRecord(line);
-        } else {
-            return null;
-        }
     }
 
     @Override
@@ -88,7 +82,40 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     @Override
     public void close() throws IOException {
         coreInputStream.close();
+        featureReader.close();
     }
+
+    public CloseableTribbleIterator<IpcrRecord> query(String contig, int start, int end) throws IOException {
+        if (featureReader == null) {
+            throw new IllegalStateException("Feature reader is null, Have you indexed the iPCR file?");
+        }
+        return featureReader.query(contig, start, end);
+    }
+
+    public List<IpcrRecord> queryAsList(String contig, int start, int end) throws IOException {
+
+        if (featureReader == null) {
+            throw new IllegalStateException("Feature reader is null, Have you indexed the iPCR file?");
+        }
+        List<IpcrRecord> output = new ArrayList<>();
+        for (IpcrRecord rec : featureReader.query(contig, start, end)) {
+            output.add(rec);
+        }
+        return output;
+    }
+
+    public Map<String, IpcrRecord> queryAsMap(String contig, int start, int end) throws IOException {
+
+        if (featureReader == null) {
+            throw new IllegalStateException("Feature reader is null, Have you indexed the iPCR file?");
+        }
+        Map<String, IpcrRecord> output = new HashMap<>();
+        for (IpcrRecord rec : featureReader.query(contig, start, end)) {
+            output.put(rec.getPrimaryReadName(), rec);
+        }
+        return output;
+    }
+
 
     public long getFilePointer() {
         return coreInputStream.getFilePointer();
@@ -97,7 +124,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     private void setBarcodeReader(GenericFile file) throws IOException {
         try {
             String suffix = "";
-            if (file.isGzipped()) {
+            if (file.isGZipped()) {
                 suffix = ".gz";
             }
             String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.gz$", "") + ".barcodes" + suffix;
@@ -107,10 +134,6 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
             LOGGER.warn("No barcode file found, certain functionality will be slower");
             this.barcodeReader = null;
         }
-    }
-
-    private IpcrRecord parseIpcrRecord(String line) {
-        return IpcrCodec.parseFullIpcrRecord(line, getCdnaSamples(), sep);
     }
 
 }

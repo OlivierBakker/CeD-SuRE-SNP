@@ -29,7 +29,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
         String suffix = "";
-        if (isZipped) suffix = ".gz";
+        if (isZipped) suffix = ".bgz";
         coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
         barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }

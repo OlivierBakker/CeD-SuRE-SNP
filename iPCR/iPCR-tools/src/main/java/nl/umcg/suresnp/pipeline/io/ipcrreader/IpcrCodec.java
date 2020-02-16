@@ -13,22 +13,38 @@ import org.apache.log4j.Logger;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Used to translate a BGZipped IpcrFile into an IpcrObject. Can be fed into FeatureReader\<IpcrRecord\>
+ */
 public class IpcrCodec extends AsciiFeatureCodec<IpcrRecord> {
 
     private static final Logger LOGGER = Logger.getLogger(IpcrCodec.class);
     private String[] cdnaSamples;
     private String sep;
 
+    /**
+     * Instantiates a new Ipcr codec.
+     */
     public IpcrCodec() {
         super(IpcrRecord.class);
         this.sep = "\t";
     }
 
+    /**
+     * Instantiates a new Ipcr codec.
+     *
+     * @param cdnaSamples the cdna samples
+     */
     public IpcrCodec(String[] cdnaSamples) {
         super(IpcrRecord.class);
         this.cdnaSamples = cdnaSamples;
     }
 
+    /**
+     * Sets cdna samples.
+     *
+     * @param samples the samples
+     */
     public void setCdnaSamples(String[] samples) {
         cdnaSamples = samples;
         this.sep = "\t";
@@ -105,6 +121,14 @@ public class IpcrCodec extends AsciiFeatureCodec<IpcrRecord> {
         return toDecode.toLowerCase().endsWith(".ipcr");
     }
 
+    /**
+     * Parse full ipcr record ipcr record.
+     *
+     * @param line        the line
+     * @param cdnaSamples the cdna samples
+     * @param sep         the sep
+     * @return the ipcr record
+     */
     public static IpcrRecord parseFullIpcrRecord(String line, String[] cdnaSamples, String sep) {
         String[] data = line.split(sep);
         IpcrRecord record = new BasicIpcrRecord();

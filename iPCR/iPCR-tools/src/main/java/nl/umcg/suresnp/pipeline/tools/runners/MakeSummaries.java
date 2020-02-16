@@ -323,13 +323,12 @@ public class MakeSummaries {
     public void indexIpcr() throws IOException {
 
         // https://academic.oup.com/bioinformatics/article/27/5/718/262743
-/*        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
+        TabixFormat format = new TabixFormat(GENERIC_FLAGS, 3, 4, 5, '#', 1);
         TabixIndexCreator indexCreator = new TabixIndexCreator(format);
 
-        BlockCompressedIpcrFileReader ipcrRecordProvider = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
+        BlockCompressedIpcrFileReader ipcrRecordProvider = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
         long pointer = ipcrRecordProvider.getFilePointer();
         IpcrRecord record = ipcrRecordProvider.getNextRecord();
-
 
         long i = 0;
         while (record != null) {
@@ -338,41 +337,25 @@ public class MakeSummaries {
                 indexCreator.addFeature(record, pointer);
                 record = ipcrRecordProvider.getNextRecord();
                 pointer = ipcrRecordProvider.getFilePointer();
+
             } catch (IllegalArgumentException e) {
-                LOGGER.debug("U oh: " + pointer);
+                LOGGER.debug("U oh, something went wrong indexing. Pointer: " + pointer);
                 LOGGER.debug(record.getBarcode() +"\t" + record.getContig() + "\t"+ record.getStart() + "\t" + record.getEnd());
                 throw e;
             }
             i++;
         }
+        LOGGER.info("Done reading, processed " + i + "records");
 
-        LittleEndianOutputStream indexOutputStream = new LittleEndianOutputStream(new BlockCompressedOutputStream(params.getOutputPrefix() + ".tbi"));
+        LittleEndianOutputStream indexOutputStream = new LittleEndianOutputStream(new BlockCompressedOutputStream(params.getInputIpcr()[0] + ".tbi"));
         Index index = indexCreator.finalizeIndex(ipcrRecordProvider.getFilePointer());
         index.write(indexOutputStream);
+
         indexOutputStream.flush();
         indexOutputStream.close();
-
-        ipcrRecordProvider.close();*/
+        ipcrRecordProvider.close();
 
         LOGGER.debug("Done indexing");
-
-        IpcrCodec codec = new IpcrCodec();
-        FeatureReader<IpcrRecord> reader = TabixFeatureReader.getFeatureReader(
-                params.getInputIpcr()[0],
-                params.getInputIpcr()[0] + ".tbi",
-                codec,
-                true);
-
-
-        for (IpcrRecord rec : reader.query("1", 1000, 15000)) {
-            LOGGER.debug(rec.getContig() + "\t" + rec.getStart() + "\t" + rec.getEnd());
-        }
-
-        for (IpcrRecord rec : reader.query("9", 5000, 100000)) {
-            LOGGER.debug(rec.getContig() + "\t" + rec.getStart() + "\t" + rec.getEnd());
-        }
-
-
     }
 
     private void writeBarcodeCollection(Collection<String> output, GenericFile file) throws IOException {

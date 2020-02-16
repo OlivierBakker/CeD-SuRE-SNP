@@ -58,7 +58,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
     private void setBarcodeReader(GenericFile file) throws IOException {
         try {
             String suffix = "";
-            if (file.isGzipped()) {
+            if (file.isGZipped()) {
                 suffix = ".gz";
             }
             String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.gz$", "") + ".barcodes" + suffix;
@@ -102,9 +102,9 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     @Override
     public IpcrRecord getNextRecord() throws IOException {
-        String line = coreReader.readLine();
+        String line = getNextLine();
         if (line != null) {
-            return parseIpcrRecord(line);
+            return IpcrCodec.parseFullIpcrRecord(line, getCdnaSamples(), getSep());
         } else {
             return null;
         }
@@ -191,8 +191,7 @@ public class IpcrFileReader implements IpcrRecordProvider {
         coreReader.close();
     }
 
-    private IpcrRecord parseIpcrRecord(String line) {
-        return IpcrCodec.parseFullIpcrRecord(line, cdnaSamples, sep);
+    public String getSep() {
+        return sep;
     }
-
 }

@@ -216,9 +216,6 @@ public class RecodeParameters {
                     outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite);
                 }
                 break;
-            case "IPCR_BIN":
-                outputWriter = new BinaryIpcrRecordWriter(new File(outputPrefix), zipped);
-                break;
             default:
                 LOGGER.error("Invalid output type -t");
                 printHelp();
