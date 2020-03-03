@@ -13,4 +13,7 @@ public interface AlleleSpecificIpcrOutputWriter {
     void writeHeader() throws IOException;
     void writeHeader(String reason) throws IOException;
     void flushAndClose() throws IOException;
+    String[] getBarcodeCountFilesSampleNames();
+    void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames);
+
 }

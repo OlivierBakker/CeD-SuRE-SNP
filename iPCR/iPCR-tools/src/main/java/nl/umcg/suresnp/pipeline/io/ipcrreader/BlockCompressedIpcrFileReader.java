@@ -85,7 +85,9 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     @Override
     public void close() throws IOException {
         coreInputStream.close();
-        featureReader.close();
+        if (featureReader !=null) {
+            featureReader.close();
+        }
     }
 
     public CloseableTribbleIterator<IpcrRecord> query(String contig, int start, int end) throws IOException {

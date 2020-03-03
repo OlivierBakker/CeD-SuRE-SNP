@@ -2,7 +2,6 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.GenericAlleleSpecificIpcrRecordStdoutWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -156,7 +155,7 @@ public class AssignVariantAllelesParametersOld {
 
         if (cmd.hasOption("s")) {
             // When writing to stdout do not use log4j unless there is an error
-            outputWriter = new GenericAlleleSpecificIpcrRecordStdoutWriter();
+            //outputWriter = new GenericAlleleSpecificIpcrRecordStdoutWriter();
 
             Logger.getRootLogger().setLevel(Level.ERROR);
 

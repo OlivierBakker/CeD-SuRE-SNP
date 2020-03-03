@@ -123,20 +123,6 @@ public class MakeSummariesParameters {
             outputPrefix = "ipcrtools";
         }
 
-        // When writing to a file check if the correct options are specified
-        if (!cmd.hasOption("o")) {
-            LOGGER.error("-o not specified");
-            printHelp();
-            exit(1);
-        }
-
-        boolean zipped = false;
-        outputSuffix = "";
-        if (cmd.hasOption("z")) {
-            zipped = true;
-            outputSuffix = ".gz";
-        }
-
 
     }
 

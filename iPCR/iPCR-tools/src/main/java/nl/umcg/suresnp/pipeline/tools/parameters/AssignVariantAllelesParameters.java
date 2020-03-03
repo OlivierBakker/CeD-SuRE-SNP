@@ -2,9 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.GenericAlleleSpecificIpcrRecordStdoutWriter;
 import org.apache.commons.cli.*;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -102,12 +100,6 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("s")
-                .longOpt("stdout")
-                .desc("Pipe output to stdout instead of to a file. Will omit logging of warnings, info and debug.")
-                .build();
-        OPTIONS.addOption(option);
-
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
@@ -151,29 +143,23 @@ public class AssignVariantAllelesParameters {
             outputPrefix = "ipcrtools";
         }
 
-        if (cmd.hasOption("s")) {
-            // When writing to stdout do not use log4j unless there is an error
-            outputWriter = new GenericAlleleSpecificIpcrRecordStdoutWriter();
 
-            Logger.getRootLogger().setLevel(Level.ERROR);
-
-        } else {
-            // When writing to a file check if the correct options are specified
-            if (!cmd.hasOption("o")) {
-                LOGGER.error("-o not specified");
-                MakeBarcodeComplexityCurveParameters.printHelp();
-                exit(1);
-            }
-
-            boolean zipped = false;
-            outputSuffix = "";
-            if (cmd.hasOption("z")) {
-                zipped = true;
-                outputSuffix = ".gz";
-            }
-
-            outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+        // When writing to a file check if the correct options are specified
+        if (!cmd.hasOption("o")) {
+            LOGGER.error("-o not specified");
+            MakeBarcodeComplexityCurveParameters.printHelp();
+            exit(1);
         }
+
+        boolean zipped = false;
+        outputSuffix = "";
+        if (cmd.hasOption("z")) {
+            zipped = true;
+            outputSuffix = ".gz";
+        }
+
+        outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
+
 
         // Hardcoded arguments for testing
         barcodeLength = 20;

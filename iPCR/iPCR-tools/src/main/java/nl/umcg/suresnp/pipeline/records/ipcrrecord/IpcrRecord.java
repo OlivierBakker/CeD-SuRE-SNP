@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.Feature;
+import nl.umcg.suresnp.pipeline.records.samrecord.PairedSamRecord;
 
 import java.util.Map;
 
@@ -100,5 +101,6 @@ public interface IpcrRecord extends Feature, Locatable {
 
     int getMappedBaseCount();
 
+    void updatePositions(PairedSamRecord samRecord);
 
 }

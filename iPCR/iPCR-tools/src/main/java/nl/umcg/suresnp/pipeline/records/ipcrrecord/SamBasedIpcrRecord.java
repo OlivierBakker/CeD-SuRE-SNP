@@ -1,10 +1,10 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 import htsjdk.samtools.SAMRecord;
+import nl.umcg.suresnp.pipeline.records.samrecord.PairedSamRecord;
 
 import java.util.Map;
 
-@Deprecated
 public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     private String barcode;
@@ -346,5 +346,10 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     @Override
     public int getMappedBaseCount() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updatePositions(PairedSamRecord samRecord) {
+
     }
 }

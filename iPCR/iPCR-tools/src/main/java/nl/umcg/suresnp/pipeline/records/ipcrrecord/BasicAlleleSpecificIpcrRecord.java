@@ -91,4 +91,44 @@ public class BasicAlleleSpecificIpcrRecord extends BasicIpcrRecord implements Al
         this.source = source;
     }
 
+
+/*    @Override
+    public int getOrientationIndependentStart() {
+
+        // if (getPrimaryStrand() == 0) {
+        //    primaryStrand = '+';
+        //}
+        if (getPrimaryStrand() == '+') {
+            return getPrimaryStart();
+        } else if (getPrimaryStrand() == '-') {
+            int out = getMateStart();
+            if (out == 0) {
+                return getPrimaryStart();
+            }
+
+            return out;
+        } else {
+            throw new IllegalStateException("Strand must be either + or -");
+        }
+    }
+
+    @Override
+    public int getOrientationIndependentEnd() {
+        //if (getPrimaryStrand() == 0) {
+        //    primaryStrand = '+';
+        // }
+        // Minus is correct here
+        if (getPrimaryStrand() == '+') {
+            int out = getMateEnd();
+            if (out == 0) {
+                return getPrimaryEnd();
+            }
+            return out;
+        } else if (getPrimaryStrand() == '-') {
+            return getPrimaryEnd();
+        } else {
+            throw new IllegalStateException("Strand must be either + or -");
+        }
+    }*/
+
 }

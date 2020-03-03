@@ -134,4 +134,14 @@ public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpc
         outputStream.close();
     }
 
+    @Override
+    public String[] getBarcodeCountFilesSampleNames() {
+        return new String[0];
+    }
+
+    @Override
+    public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
+
+    }
+
 }

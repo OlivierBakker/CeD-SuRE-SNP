@@ -22,7 +22,7 @@ public class SubsetBam {
 
     private static final Logger LOGGER = Logger.getLogger(SubsetBam.class);
     private SubsetBamParameters params;
-    private int maxRecordsInMem = 50000000;
+    private int maxRecordsInMem = 100000000;
 
     // Filters PCR duplicates if using a iPCR file that has been collapsed with CollapseIpcr
     // Ensures the info used for peakcalling is the same as for the ASE analysis
@@ -79,7 +79,7 @@ public class SubsetBam {
         SAMFileHeader outputHeader = samReader.getFileHeader();
         outputHeader.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 
-        // Create the soring collection. By default can accept 50mil records without spilling to disk
+        // Create the soring collection. Can accept <maxRecordsInRam> records without spilling to disk
         SortingCollection<SAMRecord> testing = SortingCollection.newInstance(SAMRecord.class,
                 new BAMRecordCodec(outputHeader),
                 new SAMRecordCoordinateComparator(),
@@ -87,7 +87,7 @@ public class SubsetBam {
 
         int i = 0;
         for (SAMRecord record : samReader) {
-            if (i > maxRecordsInMem) {
+            if (i > maxRecordsInMem && i % 1000000 == 0) {
                 LOGGER.warn(maxRecordsInMem + " records in mem, this is the max, will be spilling to disk");
             }
 

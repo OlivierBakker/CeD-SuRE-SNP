@@ -23,7 +23,6 @@ import java.util.*;
 import static nl.umcg.suresnp.pipeline.records.ipcrrecord.VariantType.INSERTION;
 
 public class AssignVariantAlleles {
-
     private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
     private AssignVariantAllelesParameters params;
 
@@ -52,12 +51,12 @@ public class AssignVariantAlleles {
 
         // Output writers
         this.outputWriter = params.getOutputWriter();
+        this.outputWriter.setBarcodeCountFilesSampleNames(ipcrReader.getCdnaSamples());
         this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
-
     }
 
     public void run() throws IOException, IpcrParseException {
-        //TODO: figure out what the bug is
+        //TODO: figure out what the bug is > is there a bug, why did I put this here? looked trough the code and it looks good to me
         if (params.getSampleGenotypeId() != null) {
             LOGGER.warn("Provided sample id to check genotype calls using -v. Make sure your BAM only contains the " +
                     "reads for the sample you provided, otherwise reads will be wrongly assigned to the sample provided." +
@@ -84,56 +83,63 @@ public class AssignVariantAlleles {
         }
 
         // Loop over all genetic variants in VCF
-        int i = 0;
         for (GeneticVariant curVariant : genotypeData) {
-
             if (!curVariant.isBiallelic()) {
                 LOGGER.warn("Skipping " + curVariant.getPrimaryVariantId() + " variant is not bi-allelic");
                 continue;
             }
-            // Get variant information
-            VariantType variantType = determineVariantType(curVariant);
 
             // SAM records, used to get sequence and potentially updated alignment info
             Map<String, PairedSamRecord> currentSamRecords = getOverlappingSamRecords(curVariant);
 
-            Map<String, IpcrRecord> currentIpcrRecords = getOverlappingIpcrRecords(curVariant);
+            // Get iPCR records overlapping a variant. Is done in window alignment info maybe shifted by GATK
+            // Inside an active window.
+            Map<String, IpcrRecord> currentIpcrRecords = getOverlappingIpcrRecords(curVariant, 1000);
 
             // Determine shared reads between iPCR and BAM (should be equal or iPCR should be greater)
+            // as the iPCR indicates the collapsed unique reads
             Set<String> overlappingReads = new HashSet<>(currentIpcrRecords.keySet());
             overlappingReads.retainAll(currentSamRecords.keySet());
-            LOGGER.debug(overlappingReads.size() + " are intersecting");
+            //LOGGER.debug(overlappingReads.size() + " are intersecting");
 
             for (String curRead : overlappingReads) {
+                // Assign a allele to the current read
                 AlleleSpecificIpcrRecord rec = assignVariantAlleleToIpcrRecord(
                         currentIpcrRecords.get(curRead),
                         currentSamRecords.get(curRead),
-                        variantType,
                         curVariant,
                         sampleIdx,
                         currentSamRecords.get(curRead).getSource());
 
-                evaluateIpcrRecord(rec,currentSamRecords.get(curRead).getSource(), sampleIdx);
+                // Update position if needed since GATK does local re-alignment
+                // TODO: implement this
+               // rec.updatePositions(currentSamRecords.get(curRead));
+                evaluateIpcrRecord(rec, currentSamRecords.get(curRead).getSource(), sampleIdx);
             }
         }
 
         // Close file streams
         outputWriter.flushAndClose();
         discaredOutputWriter.flushAndClose();
-
         genotypeData.close();
 
         // Log statistics
         LOGGER.info("Done");
     }
 
-    private AlleleSpecificIpcrRecord assignVariantAlleleToIpcrRecord(IpcrRecord ipcrRecord, PairedSamRecord samRecord, VariantType variantType, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
+    private AlleleSpecificIpcrRecord assignVariantAlleleToIpcrRecord(IpcrRecord ipcrRecord, PairedSamRecord samRecord, GeneticVariant curVariant, int sampleIdx, String source) throws IOException {
 
+        // Determine the variant type
+        VariantType variantType = determineVariantType(curVariant);
+
+        // Get the variant alleles as string, could be refactored to Allele objects from GenotypeIO
+        // For now this works fine
         String referenceAllele = curVariant.getRefAllele().getAlleleAsString();
         String alternativeAllele = String.join("", curVariant.getAlternativeAlleles().getAllelesAsString());
         int variantPos = curVariant.getStartPos();
 
-        // Get the variant position in the read
+        // Get the variant position in the read. SAM positions are 1 based, so are VCFs
+        // Given the zero based indexing in java subtract 1. If indel will return the last base
         int variantPosInRead = samRecord.getReadPositionAtReferencePosition(variantPos, true) - 1;
         if (variantPosInRead < 0) {
             variantPosInRead = 0;
@@ -148,6 +154,8 @@ public class AssignVariantAlleles {
         String tmpReadAllele1;
         String tmpReadAllele2;
 
+        // Determine what the expected allele is based on the genotype if HOM_REF or HOM_ALT. if HET leave as NULL
+        // as in this case both alleles are valid.
         String expectedAlleleBasedOnSampleGenotype = null;
         if (sampleIdx >= 0) {
             int sampleDosage = curVariant.getSampleCalledDosages()[sampleIdx];
@@ -159,15 +167,17 @@ public class AssignVariantAlleles {
             }
         }
 
+        // Switch on the variant type.
         switch (variantType) {
             case SNP:
+                // Zero based indexing, hence the -1 above
                 tmpReadAllele1 = Character.toString(read.charAt(variantPosInRead));
 
+                // Determine if the allele is REF or ALT
                 if (tmpReadAllele1.equals(referenceAllele)) {
                     readAllele = tmpReadAllele1;
                     altReadAllele = alternativeAllele;
                     break;
-
                 } else if (tmpReadAllele1.equals(alternativeAllele)) {
                     readAllele = tmpReadAllele1;
                     altReadAllele = referenceAllele;
@@ -180,8 +190,10 @@ public class AssignVariantAlleles {
                     break;
                 }
             case INSERTION:
+                // The REF allele is the 1st base of the position
                 tmpReadAllele1 = Character.toString(read.charAt(variantPosInRead));
                 int insertEnd = variantPosInRead + alternativeAllele.length();
+
                 // If the variant is at the end of the read and the read does not fully cover the insertion, discard the read
                 // This is done to avoid false positive reference assignments
                 if (insertEnd > read.length()) {
@@ -192,9 +204,11 @@ public class AssignVariantAlleles {
                     discarded = true;
                     break;
                 }
+                // Determine the ALT allele
                 tmpReadAllele2 = read.substring(variantPosInRead, insertEnd);
 
                 // TODO: verify
+                // Cascade to assign the current allele, both REF and ALT need to be checked
                 if (tmpReadAllele1.equals(expectedAlleleBasedOnSampleGenotype)) {
                     readAllele = tmpReadAllele1;
                     break;
@@ -257,9 +271,11 @@ public class AssignVariantAlleles {
     }
 
     private boolean evaluateIpcrRecord(AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord, String source, int sampleIdx) throws IOException {
+
         if (curAlleleSpecificIpcrRecord != null) {
             curAlleleSpecificIpcrRecord.setSampleId(params.getSampleGenotypeId());
-            // Check if the read is a artifical haplotype
+
+            // Check if the read is a artifical haplotype, if so discard
             if (!curAlleleSpecificIpcrRecord.getPrimaryReadName().matches("^HC[0-9]*")) {
                 // If the sample index is provided, use it to match the read alleles to the samples genotype
                 if (sampleIdx >= 0) {
@@ -346,10 +362,11 @@ public class AssignVariantAlleles {
         return (gt);
     }
 
-    private Map<String, IpcrRecord> getOverlappingIpcrRecords(GeneticVariant curVariant) throws IOException {
-        Map<String, IpcrRecord> output = ipcrReader.queryAsMap(curVariant.getSequenceName(), curVariant.getStartPos(), curVariant.getStartPos() + 1);
+    private Map<String, IpcrRecord> getOverlappingIpcrRecords(GeneticVariant curVariant, int window) throws IOException {
+        // Needs to have a window to account for the local re-alignment by GATK
+        Map<String, IpcrRecord> output = ipcrReader.queryAsMap(curVariant.getSequenceName(), curVariant.getStartPos()-window, curVariant.getStartPos() + window);
 
-        LOGGER.debug(output.size() + " ipcr records overlapping " + curVariant.getPrimaryVariantId());
+       // LOGGER.debug(output.size() + " ipcr records overlapping " + curVariant.getPrimaryVariantId());
         return output;
     }
 
@@ -375,12 +392,14 @@ public class AssignVariantAlleles {
                 } else {
                     output.put(key, new PairedSamRecord(record, "PrimarySamReader"));
                 }
+                //LOGGER.debug(record.getReadName() + "\t" + record.getContig() + "\t" + record.getAlignmentStart() + "\t" + record.getAlignmentEnd());
             }
         }
         sammRecordIterator.close();
-        Set<String> primaryReadnameCache = output.keySet();
 
         if (secondarySamReader != null) {
+            Set<String> primaryReadnameCache = output.keySet();
+
             // Get the sam records overlapping the variant
             sammRecordIterator = secondarySamReader.queryOverlapping(
                     curVariant.getSequenceName(),
@@ -392,6 +411,7 @@ public class AssignVariantAlleles {
                 SAMRecord record = sammRecordIterator.next();
                 String key = record.getReadName().split(" ")[0];
 
+                // Don't save the read if it is already in the output or it is an artifical haplotype
                 if (!primaryReadnameCache.contains(key) && !key.matches("^HC[0-9]*")) {
                     if (output.containsKey(key)) {
                         output.get(key).setTwo(record);
@@ -403,7 +423,7 @@ public class AssignVariantAlleles {
             sammRecordIterator.close();
         }
 
-        LOGGER.debug(output.size() + " bam records overlapping " + curVariant.getPrimaryVariantId());
+       // LOGGER.debug(output.size() + " bam records overlapping " + curVariant.getPrimaryVariantId());
         return output;
     }
 

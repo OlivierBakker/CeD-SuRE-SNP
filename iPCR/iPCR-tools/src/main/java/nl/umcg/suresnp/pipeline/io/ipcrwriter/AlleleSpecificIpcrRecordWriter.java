@@ -9,12 +9,13 @@ import java.util.zip.GZIPOutputStream;
 
 public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter {
 
-    protected OutputStream outputStream;
-    protected BufferedWriter writer;
+    private OutputStream outputStream;
+    private BufferedWriter writer;
     private final String sep = "\t";
+    private String[] barcodeCountFilesSampleNames;
 
-    public AlleleSpecificIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-
+    public AlleleSpecificIpcrRecordWriter(File outputPrefix, String[] barcodeCountFilesSampleNames, boolean isZipped) throws IOException {
+        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
         if (!isZipped) {
             outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
         } else {
@@ -24,7 +25,16 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
 
+    public AlleleSpecificIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
+        this.barcodeCountFilesSampleNames = null;
+        if (!isZipped) {
+            outputStream = new BufferedOutputStream(new FileOutputStream(outputPrefix));
+        } else {
+            outputStream = new GZIPOutputStream(new FileOutputStream(outputPrefix + ".gz"));
+        }
 
+        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+    }
     @Override
     public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
         // Alignment info
@@ -34,9 +44,9 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         writer.write(sep);
         writer.write(record.getContig());
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimaryStart()));
+        writer.write(Integer.toString(record.getOrientationIndependentStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimaryEnd()));
+        writer.write(Integer.toString(record.getOrientationIndependentEnd()));
 
         // Variant info
         writer.write(sep);
@@ -85,6 +95,18 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
             writer.write(".");
         }
 
+        writer.write(sep);
+        writer.write(Integer.toString(record.getIpcrDuplicateCount()));
+        writer.write(sep);
+
+        if (barcodeCountFilesSampleNames != null) {
+            for (String key : barcodeCountFilesSampleNames) {
+                writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
+                writer.write(sep);
+            }
+        }
+
+
         writer.newLine();
     }
 
@@ -128,6 +150,20 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         writer.write("strand");
         writer.write(sep);
         writer.write("sampleId");
+        writer.write(sep);
+        writer.write("ipcrCount");
+
+        if (barcodeCountFilesSampleNames != null) {
+            for (String key : barcodeCountFilesSampleNames) {
+                writer.write(sep);
+                int idx = key.indexOf('.');
+                if (idx < 0) {
+                    writer.write(key);
+                } else {
+                    writer.write(key.substring(0, idx));
+                }
+            }
+        }
         writer.newLine();
     }
 
@@ -147,4 +183,13 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
     }
 
 
+    @Override
+    public String[] getBarcodeCountFilesSampleNames() {
+        return barcodeCountFilesSampleNames;
+    }
+
+    @Override
+    public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
+        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
 }

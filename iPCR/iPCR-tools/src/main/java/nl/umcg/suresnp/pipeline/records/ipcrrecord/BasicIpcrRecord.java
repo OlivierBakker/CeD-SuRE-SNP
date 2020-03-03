@@ -1,6 +1,9 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 
+import nl.umcg.suresnp.pipeline.records.samrecord.PairedSamRecord;
+import org.apache.commons.lang3.NotImplementedException;
+
 import java.io.Serializable;
 import java.util.Map;
 
@@ -60,6 +63,7 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         this.primaryStart = record.getPrimaryStart();
         this.primaryEnd = record.getPrimaryEnd();
         this.mateStart = record.getMateStart();
+        this.mateEnd = record.getMateEnd();
         this.primarySamFlags = record.getPrimarySamFlags();
         this.mateSamFlags = record.getMateSamFlags();
         this.primaryMappingQuality = record.getPrimaryMappingQuality();
@@ -266,6 +270,7 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         this.ipcrDuplicateCount = ipcrDuplicateCount;
     }
 
+    @Deprecated
     @Override
     public void flipPrimaryAndMate() {
         /*String tmpPrimaryReadName = primaryReadName;
@@ -356,5 +361,11 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         int r1length = getPrimaryEnd() - getPrimaryStart();
         int r2length = getMateEnd() - getMateStart();
         return r1length + r2length;
+    }
+
+    @Override
+    public void updatePositions(PairedSamRecord samRecord) {
+
+        throw new NotImplementedException("");
     }
 }
