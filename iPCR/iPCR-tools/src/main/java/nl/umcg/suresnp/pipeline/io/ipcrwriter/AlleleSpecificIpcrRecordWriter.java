@@ -1,7 +1,9 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificIpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.SamBasedAlleleSpecificIpcrRecord;
+import org.molgenis.genotype.Allele;
 
 import java.io.*;
 import java.util.List;
@@ -35,153 +37,33 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
 
         writer = new BufferedWriter(new OutputStreamWriter(outputStream));
     }
+
     @Override
     public void writeRecord(AlleleSpecificIpcrRecord record) throws IOException {
-        // Alignment info
-        writer.write(record.getBarcode());
-        writer.write(sep);
-        writer.write(record.getPrimaryReadName());
-        writer.write(sep);
-        writer.write(record.getContig());
-        writer.write(sep);
-        writer.write(Integer.toString(record.getOrientationIndependentStart()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getOrientationIndependentEnd()));
-
-        // Variant info
-        writer.write(sep);
-        if (record.getGeneticVariant().getPrimaryVariantId() == null) {
-            writer.write(record.getGeneticVariant().getSequenceName()
-                    + ":" + record.getGeneticVariant().getStartPos()
-                    + "," + record.getGeneticVariant().getRefAllele().toString()
-                    + "," + String.join("_", record.getGeneticVariant().getAlternativeAlleles().getAllelesAsString())
-            );
-        } else {
-            writer.write(record.getGeneticVariant().getPrimaryVariantId());
-        }
-        writer.write(sep);
-        writer.write(record.getVariantType().toString());
-        writer.write(sep);
-        writer.write(Integer.toString(record.getGeneticVariant().getStartPos()));
-        writer.write(sep);
-        writer.write(Integer.toString(record.getVariantStartInRead()));
-        writer.write(sep);
-
-        // Ref allele
-        writer.write(record.getGeneticVariant().getRefAllele().getAlleleAsString());
-        List<String> alleles = record.getGeneticVariant().getVariantAlleles().getAllelesAsString();
-        writer.write(sep);
-        // Effect allele (dosage 2)
-        writer.write(alleles.get(0));
-        writer.write(sep);
-        // Alt allele (dosage 0)
-        writer.write(alleles.get(1));
-        writer.write(sep);
-
-        if (record.getReadAllele() == null) {
-            writer.write(".");
-        } else {
-            writer.write(record.getReadAllele());
-        }
-        writer.write(sep);
-        writer.write(record.getPrimaryCigar());
-        writer.write(sep);
-        writer.write(record.getPrimaryStrand());
-
-        writer.write(sep);
-        if (record.getSampleId() != null) {
-            writer.write(record.getSampleId());
-        } else {
-            writer.write(".");
-        }
-
-        writer.write(sep);
-        writer.write(Integer.toString(record.getIpcrDuplicateCount()));
-        writer.write(sep);
-
-        if (barcodeCountFilesSampleNames != null) {
-            for (String key : barcodeCountFilesSampleNames) {
-                writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
-                writer.write(sep);
-            }
-        }
-
-
-        writer.newLine();
-    }
-
-    @Override
-    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
-        writer.write(reason);
-        writer.write(sep);
         writeRecord(record);
     }
 
     @Override
-    public void writeHeader() throws IOException {
-        writer.write("barcode");
-        writer.write(sep);
-        writer.write("readName");
-        writer.write(sep);
-        writer.write("sequence");
-        writer.write(sep);
-        writer.write("alignmentStart");
-        writer.write(sep);
-        writer.write("alignmentEnd");
-        writer.write(sep);
-        writer.write("variantId");
-        writer.write(sep);
-        writer.write("variantType");
-        writer.write(sep);
-        writer.write("variantStart");
-        writer.write(sep);
-        writer.write("variantStartInRead");
-        writer.write(sep);
-        writer.write("refAllele");
-        writer.write(sep);
-        writer.write("dosg2Allele");
-        writer.write(sep);
-        writer.write("dosg0Allele");
-        writer.write(sep);
-        writer.write("alleleInRead");
-        writer.write(sep);
-        writer.write("cigarString");
-        writer.write(sep);
-        writer.write("strand");
-        writer.write(sep);
-        writer.write("sampleId");
-        writer.write(sep);
-        writer.write("ipcrCount");
-
-        if (barcodeCountFilesSampleNames != null) {
-            for (String key : barcodeCountFilesSampleNames) {
-                writer.write(sep);
-                int idx = key.indexOf('.');
-                if (idx < 0) {
-                    writer.write(key);
-                } else {
-                    writer.write(key.substring(0, idx));
-                }
-            }
-        }
-        writer.newLine();
+    public void writeRecord(AlleleSpecificIpcrRecord record, String reason) throws IOException {
+        writeRecordToWriter(record);
     }
 
+    @Override
+    public void writeHeader() throws IOException {
+       writeHeader("");
+    }
 
     @Override
     public void writeHeader(String reason) throws IOException {
-        writer.write(reason);
-        writer.write(sep);
-        writeHeader();
-
+        writeHeaderToWriter(reason);
     }
+
     @Override
     public void flushAndClose() throws IOException {
         writer.flush();
         writer.close();
         outputStream.close();
     }
-
 
     @Override
     public String[] getBarcodeCountFilesSampleNames() {
@@ -191,5 +73,138 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
     @Override
     public void setBarcodeCountFilesSampleNames(String[] barcodeCountFilesSampleNames) {
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+    }
+
+    // Split so can be used by subclass
+    protected void writeHeaderToWriter(String reason) throws IOException {
+        write("barcode");
+        write(sep);
+        write("readName");
+        write(sep);
+        write("sequence");
+        write(sep);
+        write("alignmentStart");
+        write(sep);
+        write("alignmentEnd");
+        write(sep);
+        write("variantId");
+        write(sep);
+        write("variantType");
+        write(sep);
+        write("variantStart");
+        write(sep);
+        write("variantStartInRead");
+        write(sep);
+        write("refAllele");
+        write(sep);
+        write("dosg2Allele");
+        write(sep);
+        write("dosg0Allele");
+        write(sep);
+        write("alleleInRead");
+        write(sep);
+        write("cigarString");
+        write(sep);
+        write("strand");
+        write(sep);
+        write("sampleId");
+        write(sep);
+        write("ipcrCount");
+
+        if (getBarcodeCountFilesSampleNames() != null) {
+            for (String key : getBarcodeCountFilesSampleNames()) {
+                write(sep);
+                int idx = key.indexOf('.');
+                if (idx < 0) {
+                    write(key);
+                } else {
+                    write(key.substring(0, idx));
+                }
+            }
+        }
+        writeNewLine();
+    }
+
+    // Split so can be used bu subclass
+    protected void writeRecordToWriter(AlleleSpecificIpcrRecord record) throws IOException {
+        // Alignment info
+        write(record.getBarcode());
+        write(sep);
+        write(record.getPrimaryReadName());
+        write(sep);
+        write(record.getContig());
+        write(sep);
+        write(Integer.toString(record.getOrientationIndependentStart()));
+        write(sep);
+        write(Integer.toString(record.getOrientationIndependentEnd()));
+
+        // Variant info
+        write(sep);
+        if (record.getGeneticVariant().getPrimaryVariantId() == null) {
+            write(record.getGeneticVariant().getSequenceName()
+                    + ":" + record.getGeneticVariant().getStartPos()
+                    + "," + record.getGeneticVariant().getRefAllele().toString()
+                    + "," + String.join("_", record.getGeneticVariant().getAlternativeAlleles().getAllelesAsString())
+            );
+        } else {
+            write(record.getGeneticVariant().getPrimaryVariantId());
+        }
+        write(sep);
+        write(record.getVariantType().toString());
+        write(sep);
+        write(Integer.toString(record.getGeneticVariant().getStartPos()));
+        write(sep);
+        write(Integer.toString(record.getVariantStartInRead()));
+        write(sep);
+
+        // Ref allele
+        write(record.getGeneticVariant().getRefAllele().getAlleleAsString());
+        List<String> alleles = record.getGeneticVariant().getVariantAlleles().getAllelesAsString();
+        write(sep);
+        // Effect allele (dosage 2)
+        write(alleles.get(0));
+        write(sep);
+        // Alt allele (dosage 0)
+        write(alleles.get(1));
+        write(sep);
+
+        if (record.getReadAllele() == null) {
+            write(".");
+        } else {
+            write(record.getReadAllele());
+        }
+        write(sep);
+        write(record.getPrimaryCigar());
+        write(sep);
+        write(Character.toString(record.getPrimaryStrand()));
+
+        write(sep);
+        if (record.getSampleId() != null) {
+            write(record.getSampleId());
+        } else {
+            write(".");
+        }
+
+        write(sep);
+        write(Integer.toString(record.getIpcrDuplicateCount()));
+        write(sep);
+
+        if (getBarcodeCountFilesSampleNames() != null) {
+            for (String key : getBarcodeCountFilesSampleNames()) {
+                write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
+                write(sep);
+            }
+        }
+
+
+        writeNewLine();
+    }
+
+    protected void write(String line) throws IOException {
+        writer.write(line);
+    }
+
+    protected void writeNewLine() throws IOException {
+        writer.newLine();
     }
 }

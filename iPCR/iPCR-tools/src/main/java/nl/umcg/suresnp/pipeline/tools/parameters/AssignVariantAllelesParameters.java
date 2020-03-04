@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.MinimalAlleleSpecificIpcrRecrodWriter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -57,7 +58,6 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-
         option = Option.builder("j")
                 .longOpt("secondary-input-bam")
                 .hasArg(true)
@@ -89,6 +89,14 @@ public class AssignVariantAllelesParameters {
                 .hasArg(true)
                 .desc("The file containing read names and barcodes")
                 .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("t")
+                .longOpt("output-type")
+                .hasArg(true)
+                .desc("Output type")
+                .argName("FULL | MINIMAL")
                 .build();
         OPTIONS.addOption(option);
 
@@ -158,12 +166,22 @@ public class AssignVariantAllelesParameters {
             outputSuffix = ".gz";
         }
 
-        outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.ipcr" + outputSuffix), zipped);
 
+        String outputType;
+        if (cmd.hasOption("t")) {
+            outputType = cmd.getOptionValue("t");
+        } else {
+            outputType = "FULL";
+        }
 
-        // Hardcoded arguments for testing
-        barcodeLength = 20;
-        adapterMaxMismatch = 3;
+        switch (outputType) {
+            case "FULL":
+                outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.allele.specific.ipcr" + outputSuffix), zipped);
+                break;
+            case "MINIMAL":
+                outputWriter = new MinimalAlleleSpecificIpcrRecrodWriter(new File(outputPrefix + ".minimal.allele.specific.ipcr" + outputSuffix), zipped);
+                break;
+        }
 
         if (cmd.hasOption("v")) {
             sampleGenotypeId = cmd.getOptionValue('v').trim();
@@ -181,14 +199,6 @@ public class AssignVariantAllelesParameters {
 
     public String getSecondaryInputBam() {
         return secondaryInputBam;
-    }
-
-    public int getAdapterMaxMismatch() {
-        return adapterMaxMismatch;
-    }
-
-    public int getBarcodeLength() {
-        return barcodeLength;
     }
 
     public String getInputBam() {
@@ -213,14 +223,6 @@ public class AssignVariantAllelesParameters {
 
     public String getInputVcf() {
         return inputVcf;
-    }
-
-    public boolean isStdoutput() {
-        return isStdoutput;
-    }
-
-    public boolean isReduced() {
-        return isReduced;
     }
 
     public static Options getOPTIONS() {

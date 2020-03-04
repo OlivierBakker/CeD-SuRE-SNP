@@ -63,7 +63,8 @@ public class IpcrFileReader implements IpcrRecordProvider {
             if (file.isGZipped()) {
                 suffix = ".gz";
             }
-            String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.gz$", "") + ".barcodes" + suffix;
+
+            String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.[b]?gz$", "") + ".barcodes" + suffix;
             LOGGER.info("Reading barcodes from: " + curPath);
             this.barcodeReader = new GenericFile(curPath).getAsBufferedReader();
         } catch (FileNotFoundException e) {
