@@ -24,17 +24,14 @@ public class AssignVariantAllelesParameters {
 
     private String outputPrefix;
     private String outputSuffix;
+    private String outputType;
 
-    private boolean isStdoutput;
-    private boolean isReduced;
     private AlleleSpecificIpcrOutputWriter outputWriter;
 
     // General arguments
     private String toolType;
 
     // Tool specific arguments
-    private int barcodeLength;
-    private int adapterMaxMismatch;
     private String sampleGenotypeId;
 
 
@@ -167,7 +164,6 @@ public class AssignVariantAllelesParameters {
         }
 
 
-        String outputType;
         if (cmd.hasOption("t")) {
             outputType = cmd.getOptionValue("t");
         } else {
@@ -188,6 +184,9 @@ public class AssignVariantAllelesParameters {
         }
     }
 
+    public String getOutputType() {
+        return outputType;
+    }
 
     public String getSampleGenotypeId() {
         return sampleGenotypeId;

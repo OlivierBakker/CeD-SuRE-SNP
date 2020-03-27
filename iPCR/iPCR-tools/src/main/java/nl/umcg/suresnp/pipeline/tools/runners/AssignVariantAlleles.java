@@ -68,7 +68,10 @@ public class AssignVariantAlleles {
         RandomAccessGenotypeData genotypeData = readGenotypeData();
 
         discaredOutputWriter.writeHeader("source\treason");
-        outputWriter.writeHeader("source");
+
+        if (!params.getOutputType().equals("MINIMAL")) {
+            outputWriter.writeHeader("source");
+        }
 
         // Determine the index of the sample to check genotypes against
         int sampleIdx = -9;
@@ -94,7 +97,7 @@ public class AssignVariantAlleles {
 
             // Get iPCR records overlapping a variant. Is done in window alignment info maybe shifted by GATK
             // Inside an active window.
-            Map<String, IpcrRecord> currentIpcrRecords = getOverlappingIpcrRecords(curVariant, 1000);
+            Map<String, IpcrRecord> currentIpcrRecords = getOverlappingIpcrRecords(curVariant, 500);
 
             // Determine shared reads between iPCR and BAM (should be equal or iPCR should be greater)
             // as the iPCR indicates the collapsed unique reads
