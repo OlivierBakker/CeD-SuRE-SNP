@@ -2,6 +2,8 @@ package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import nl.umcg.suresnp.pipeline.tools.runners.Recode;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,9 +16,11 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     private BufferedWriter coreWriter;
     private String[] barcodeCountFilesSampleNames;
     private String sep = "\t";
+    private static final Logger LOGGER = Logger.getLogger(GenericIpcrRecordWriter.class);
+
 
     public GenericIpcrRecordWriter(String[] barcodeCountFilesSampleNames, String sep) {
-        this.barcodeCountFilesSampleNames = barcodeCountFilesSampleNames;
+        this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
         this.sep = sep;
     }
 
@@ -172,7 +176,9 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         write(Integer.toString(record.getIpcrDuplicateCount()));
         write(sep);
 
+
         if (barcodeCountFilesSampleNames != null) {
+
             for (String key : barcodeCountFilesSampleNames) {
                 write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
                 write(sep);

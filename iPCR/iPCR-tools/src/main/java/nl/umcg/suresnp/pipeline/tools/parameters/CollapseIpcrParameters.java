@@ -159,9 +159,9 @@ public class CollapseIpcrParameters {
                 }
 
                 if (barcodeCountFiles != null) {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles, sampleToWrite);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles, sampleToWrite, true);
                 } else {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite, true);
                 }
                 break;
 

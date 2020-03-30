@@ -22,6 +22,7 @@ public class RecodeParameters {
 
     // Yes, should be an enum, but I couldn't be bothered
     private String inputType;
+    private boolean replaceOldCdnaSamples;
 
     // Output
     private String outputPrefix;
@@ -108,6 +109,20 @@ public class RecodeParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("r")
+                .longOpt("replace-cdna-samples")
+                .desc("Replace old cDNA samples with new ones instead of adding them")
+                .hasArg(false)
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("u")
+                .longOpt("dont-write-ipcr-with-macs")
+                .hasArg(false)
+                .desc("Do not write the ipcr track for MACS output. Can be used when writing multiple samples.")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
@@ -177,6 +192,8 @@ public class RecodeParameters {
             sampleToWrite = null;
         }
 
+        replaceOldCdnaSamples = cmd.hasOption("r");
+        boolean writeIpcr = !cmd.hasOption("u");
         boolean zipped = cmd.hasOption("z");
 
         switch (outputType) {
@@ -210,15 +227,13 @@ public class RecodeParameters {
                 break;
             case "MACS":
                 if (sampleToWrite == null) {
-                    LOGGER.error("No sample provided but output type is MACS. Please specify which cDNA sample should be used");
-                    printHelp();
-                    exit(1);
+                    LOGGER.info("No sample provided but output type is MACS. Will output bedfile for all samples");
                 }
 
                 if (inputCdna != null) {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, sampleToWrite);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, sampleToWrite, writeIpcr);
                 } else {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite, writeIpcr);
                 }
                 break;
             default:
@@ -277,6 +292,10 @@ public class RecodeParameters {
 
     public static Options getOPTIONS() {
         return OPTIONS;
+    }
+
+    public boolean isReplaceOldCdnaSamples() {
+        return replaceOldCdnaSamples;
     }
 
     public static void printHelp() {

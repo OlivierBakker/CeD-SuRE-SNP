@@ -8,6 +8,7 @@ import nl.umcg.suresnp.pipeline.records.inforecord.filters.AdapterSequenceMaxMis
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeBarcodeCountsParameters;
+import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
@@ -26,6 +27,7 @@ public class MakeBarcodeCounts {
     private BufferedWriter discardedWriter;
     private BufferedWriter outputWriter;
     private BufferedWriter barcodeWriter;
+    private BufferedWriter histogramWriter;
 
     public MakeBarcodeCounts(MakeBarcodeCountsParameters params) throws IOException {
         this.params = params;
@@ -34,6 +36,7 @@ public class MakeBarcodeCounts {
         this.discardedWriter = new GenericFile(params.getOutputPrefix() + ".discarded.barcodes.txt" + suffix).getAsBufferedWriter();
         this.outputWriter = new GenericFile(params.getOutputPrefix() + ".barcode.counts" + suffix).getAsBufferedWriter();
         this.barcodeWriter = new GenericFile(params.getOutputPrefix() + ".barcodes" + suffix).getAsBufferedWriter();
+        this.histogramWriter = new GenericFile(params.getOutputPrefix() + ".count.histogram.tsv" + suffix).getAsBufferedWriter();
     }
 
     public void run() throws IOException {
@@ -128,14 +131,22 @@ public class MakeBarcodeCounts {
         discardedWriter.close();
         LOGGER.info(barcodeCounts.size() + " unique barcodes");
 
+        // Make histogram and count up the values to see if it matches the total readcount
+        StreamingHistogram histogram = new StreamingHistogram(1, 20);
+
         int sanityCheckSum = 0;
         for (String key : barcodeCounts.keySet()) {
             int curValue = barcodeCounts.get(key);
+            histogram.addPostiveValue(curValue);
             sanityCheckSum += curValue;
 
             outputWriter.write(key + "\t" + curValue);
             outputWriter.newLine();
         }
+
+        histogramWriter.write(histogram.getHistAsTsv());
+
+
         LOGGER.info("Sanity check " + sanityCheckSum + " total count, should be equal to " + (totalCount - totalDiscard));
         LOGGER.info("Done writing " + barcodeCounts.size() + " records");
 
@@ -144,6 +155,9 @@ public class MakeBarcodeCounts {
 
         barcodeWriter.flush();
         barcodeWriter.close();
+
+        histogramWriter.flush();
+        histogramWriter.close();
 
     }
 

@@ -37,7 +37,7 @@ public class BlockCompressedIpcrRecordWriter extends GenericIpcrRecordWriter imp
         barcodeWriter = new GenericFile(outputPrefix + ".barcodes.gz").getAsBufferedWriter();
         outputStream = new BlockCompressedOutputStream(outputPrefix + ".ipcr.bgz");
         indexCreator = new TabixIndexCreator(IPCR_FORMAT);
-        indexWriter = new LittleEndianOutputStream(new BlockCompressedOutputStream(outputPrefix + "ipcr.bgz.tbi"));
+        indexWriter = new LittleEndianOutputStream(new BlockCompressedOutputStream(outputPrefix + ".ipcr.bgz.tbi"));
     }
 
     @Override

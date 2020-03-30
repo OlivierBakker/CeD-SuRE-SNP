@@ -39,15 +39,20 @@ public class Recode {
         // Define input reader, needs to be done here as to know which samples are available.
         IpcrRecordProvider multiFileIpcrReader = new MultiFileIpcrReader(params.getInputIpcr());
 
-        // Writing output. Concat the sample names form the existing file and the new ones
+        // Define the output writer
         IpcrOutputWriter writer = params.getOutputWriter();
-        writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), multiFileIpcrReader.getCdnaSamples()));
+        if (params.isReplaceOldCdnaSamples()) {
+            // Keep only the newly added samples
+            writer.setBarcodeCountFilesSampleNames(writer.getBarcodeCountFilesSampleNames());
+        } else {
+            // Concat the sample names form the existing file and the new ones
+            writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), multiFileIpcrReader.getCdnaSamples()));
+        }
         writer.writeHeader();
 
         long start = System.currentTimeMillis();
 
         // Read iPCR data
-
         IpcrRecord rec = multiFileIpcrReader.getNextRecord();
 
         // Region filter
@@ -64,34 +69,37 @@ public class Recode {
             logProgress(totalRecords, 1000000, "Recode");
 
             // Apply filters
+            boolean passesFilter = true;
             for (IpcrRecordFilter filter : filters) {
                 if (!filter.passesFilter(rec)) {
-                    rec = multiFileIpcrReader.getNextRecord();
+                    passesFilter=false;
                     filteredRecords ++;
-                    continue;
+                    break;
                 }
             }
 
             // If provided, add additional cDNA data to ipcr records
-            if (inputCdna != null) {
-                for (String curCdnaFile : inputCdna.keySet()) {
-                    Map<String, Integer> curMap = inputCdna.get(curCdnaFile);
-                    Integer curCdnaCount = curMap.get(rec.getBarcode());
+            if (passesFilter) {
+                if (inputCdna != null) {
+                    for (String curCdnaFile : inputCdna.keySet()) {
+                        Map<String, Integer> curMap = inputCdna.get(curCdnaFile);
+                        Integer curCdnaCount = curMap.get(rec.getBarcode());
 
-                    if (curCdnaCount != null) {
-                        rec.addBarcodeCount(curCdnaFile, curCdnaCount);
-                    } else {
-                        rec.addBarcodeCount(curCdnaFile, 0);
+                        if (curCdnaCount != null) {
+                            rec.addBarcodeCount(curCdnaFile, curCdnaCount);
+                        } else {
+                            rec.addBarcodeCount(curCdnaFile, 0);
+                        }
                     }
                 }
+                // Write output
+                writer.writeRecord(rec);
+                writtenRecords++;
             }
 
-            // Write output
-            writer.writeRecord(rec);
+            // Read the next record
             rec = multiFileIpcrReader.getNextRecord();
-            writtenRecords ++;
         }
-
         writer.flushAndClose();
         long stop = System.currentTimeMillis();
         LOGGER.info("Done writing. Took: " + ((stop - start) / 1000) + " seconds");
