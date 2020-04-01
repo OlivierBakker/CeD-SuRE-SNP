@@ -20,7 +20,9 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
 
     public GenericIpcrRecordWriter(String[] barcodeCountFilesSampleNames, String sep) {
-        this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
+        if (barcodeCountFilesSampleNames != null) {
+            this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
+        }
         this.sep = sep;
     }
 

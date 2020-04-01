@@ -5,7 +5,7 @@ import htsjdk.samtools.fastq.FastqRecord;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.HasBarcodeCountGreaterEqualsFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.AnyBarcodeCountGreaterEqualsFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeReadNucleotideDistributionParameters;
 import org.apache.log4j.Logger;
@@ -128,7 +128,7 @@ public class MakeReadNucleotideDistribution {
         Set<String> readNamesToKeep = new HashSet<>();
 
         List<IpcrRecordFilter> filters = new ArrayList<>();
-        filters.add(new HasBarcodeCountGreaterEqualsFilter(params.getBarcodeCountFilter()));
+        filters.add(new AnyBarcodeCountGreaterEqualsFilter(params.getBarcodeCountFilter()));
         IpcrRecord curRecord = provider.getNextRecord();
 
         int i = 0;

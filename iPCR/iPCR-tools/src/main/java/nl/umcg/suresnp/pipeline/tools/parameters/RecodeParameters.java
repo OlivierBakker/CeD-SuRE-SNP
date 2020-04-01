@@ -2,11 +2,15 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilterType;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.System.exit;
 
@@ -18,11 +22,12 @@ public class RecodeParameters {
     // IO arguments
     private String[] inputIpcr;
     private String[] inputCdna;
-    private GenericFile regionFilterFile;
 
     // Yes, should be an enum, but I couldn't be bothered
     private String inputType;
     private boolean replaceOldCdnaSamples;
+    private GenericFile regionFilterFile;
+    private List<IpcrRecordFilter> filters;
 
     // Output
     private String outputPrefix;
@@ -58,7 +63,7 @@ public class RecodeParameters {
                 .longOpt("input-type")
                 .hasArg(true)
                 .desc("The input type")
-                .argName("IPCR|IPCR_BIN")
+                .argName("IPCR|IPCR_INDEXED")
                 .build();
         OPTIONS.addOption(option);
 
@@ -70,11 +75,20 @@ public class RecodeParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("f")
+        option = Option.builder("rf")
                 .longOpt("region-filter")
                 .hasArg(true)
                 .desc("BED file to only output records overlapping those regions")
                 .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("f")
+                .longOpt("filter")
+                .hasArg(true)
+                .desc("One of the following filters: IN_REGION | ANY_BC_GT_EQ | ANY_BC_ST_EQ\n" +
+                        "For more details see documentation")
+                .argName("-f <filtername>;<args>")
                 .build();
         OPTIONS.addOption(option);
 
@@ -97,7 +111,7 @@ public class RecodeParameters {
         option = Option.builder("s")
                 .longOpt("sample-to-write")
                 .hasArg(true)
-                .desc("cDNA sample to use to write MACS output")
+                .desc("cDNA sample to use to write MACS output. If omitted will write on bedfile for all of them")
                 .argName("sample")
                 .build();
         OPTIONS.addOption(option);
@@ -152,8 +166,16 @@ public class RecodeParameters {
         }
 
         // BED file containing regions to include
+        if (cmd.hasOption("rf")) {
+            regionFilterFile = new GenericFile(cmd.getOptionValue("rf"));
+        }
+
+        // Define and parse filters
         if (cmd.hasOption("f")) {
-            regionFilterFile = new GenericFile(cmd.getOptionValue("f"));
+            filters = new ArrayList<>();
+            for (String curFilter : cmd.getOptionValues("f")) {
+                filters.add(IpcrRecordFilterType.createFilter(curFilter));
+            }
         }
 
         // Input type
@@ -161,6 +183,7 @@ public class RecodeParameters {
             inputType = cmd.getOptionValue('k');
             switch (inputType) {
                 case "IPCR":
+                case "IPCR_INDEXED":
                     break;
                 default:
                     LOGGER.error("Invalid input type, must be either IPCR");
@@ -227,7 +250,7 @@ public class RecodeParameters {
                 break;
             case "MACS":
                 if (sampleToWrite == null) {
-                    LOGGER.info("No sample provided but output type is MACS. Will output bedfile for all samples");
+                    LOGGER.info("No sample provided but output type is MACS. Will output bedfiles for all samples");
                 }
 
                 if (inputCdna != null) {
@@ -243,15 +266,14 @@ public class RecodeParameters {
         }
 
         toolType = "Recode";
+    }
 
+    public List<IpcrRecordFilter> getFilters() {
+        return filters;
     }
 
     public GenericFile getRegionFilterFile() {
         return regionFilterFile;
-    }
-
-    public void setRegionFilterFile(GenericFile regionFilterFile) {
-        this.regionFilterFile = regionFilterFile;
     }
 
     public CommandLine getCmd() {
@@ -280,10 +302,6 @@ public class RecodeParameters {
 
     public String[] getInputCdna() {
         return inputCdna;
-    }
-
-    public boolean isStdoutput() {
-        return isStdoutput;
     }
 
     public String getToolType() {

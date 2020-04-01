@@ -1,6 +1,7 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord.filters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 
 import java.io.BufferedReader;
@@ -8,10 +9,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-public class InRegionFilter implements IpcrRecordFilter {
+public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord> {
 
+    private static final IpcrRecordFilterType type = IpcrRecordFilterType.IN_REGION;
+    private boolean filterFailed;
+    private int currentIndex;
     private List<String> contigs;
     private List<Integer> starts;
     private List<Integer> stops;
@@ -20,18 +25,34 @@ public class InRegionFilter implements IpcrRecordFilter {
         this.contigs = new ArrayList<>();
         this.starts = new ArrayList<>();
         this.stops = new ArrayList<>();
+        this.currentIndex = 0;
+        this.filterFailed = false;
     }
 
     public InRegionFilter(List<String> contigs, List<Integer> starts, List<Integer> stops) {
         this.contigs = contigs;
         this.starts = starts;
         this.stops = stops;
+        this.currentIndex = 0;
+        this.filterFailed = false;
     }
+
+    public InRegionFilter(String contig, int start, int stop) {
+        this.contigs = new ArrayList<>();
+        this.starts = new ArrayList<>();
+        this.stops = new ArrayList<>();
+        this.currentIndex = 0;
+        this.filterFailed = false;
+        addRegion(contig, start, stop);
+    }
+
 
     public InRegionFilter(GenericFile regionFile) throws IOException, ParseException {
         this.contigs = new ArrayList<>();
         this.starts = new ArrayList<>();
         this.stops = new ArrayList<>();
+        this.currentIndex = 0;
+        this.filterFailed = false;
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(regionFile.getAsInputStream()));
         String line = reader.readLine();
@@ -60,21 +81,59 @@ public class InRegionFilter implements IpcrRecordFilter {
 
     @Override
     public boolean passesFilter(IpcrRecord ipcrRecord) {
-
         int i = 0;
         for (String contig : contigs) {
             if (ipcrRecord.getContig().equals(contig)) {
                 if (ipcrRecord.isFullyInsideWindow(starts.get(i), stops.get(i))) {
-                    return true;
+                    return !filterFailed;
                 }
             }
             i++;
         }
-        return false;
+        return filterFailed;
+    }
+
+    @Override
+    public void invertFilter() {
+        filterFailed = !filterFailed;
     }
 
     @Override
     public String getFilterName() {
-        return "InRegionFilter";
+        return type.toString();
+    }
+
+    @Override
+    public IpcrRecordFilterType getFilterType() {
+        return type;
+    }
+
+    public List<String> getContigs() {
+        return contigs;
+    }
+
+    public List<Integer> getStarts() {
+        return starts;
+    }
+
+    public List<Integer> getStops() {
+        return stops;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return currentIndex < contigs.size();
+    }
+
+    @Override
+    public BedRecord next() {
+        int cachedIndex = currentIndex;
+        currentIndex++;
+
+        if (cachedIndex < contigs.size()) {
+            return new BedRecord(contigs.get(cachedIndex), starts.get(cachedIndex), stops.get(cachedIndex));
+        } else {
+            return null;
+        }
     }
 }

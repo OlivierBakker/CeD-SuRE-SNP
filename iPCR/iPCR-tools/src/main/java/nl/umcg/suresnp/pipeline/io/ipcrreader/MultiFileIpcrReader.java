@@ -2,16 +2,18 @@ package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecordIterator;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public class MultiFileIpcrReader implements IpcrRecordProvider {
+public class MultiFileIpcrReader implements IpcrRecordProvider, Iterable<IpcrRecord> {
 
     private static final Logger LOGGER = Logger.getLogger(MultiFileIpcrReader.class);
     private String[] files;
@@ -93,8 +95,12 @@ public class MultiFileIpcrReader implements IpcrRecordProvider {
         currentProvider.close();
     }
 
-
     private boolean readAllFiles() {
         return currentFileIndex >= files.length - 1;
+    }
+
+    @Override
+    public Iterator<IpcrRecord> iterator() {
+        return new IpcrRecordIterator(this);
     }
 }

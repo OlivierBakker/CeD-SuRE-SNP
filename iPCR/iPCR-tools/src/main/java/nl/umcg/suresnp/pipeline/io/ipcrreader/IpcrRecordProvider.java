@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public interface IpcrRecordProvider {
+public interface IpcrRecordProvider extends Iterable<IpcrRecord> {
     IpcrRecord getNextRecord() throws IOException;
     List<IpcrRecord> getRecordsAsList() throws IOException;
     List<IpcrRecord> getRecordsAsList(List<IpcrRecordFilter> filters) throws IOException;

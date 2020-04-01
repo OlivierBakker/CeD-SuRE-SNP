@@ -2,18 +2,20 @@ package nl.umcg.suresnp.pipeline.io.ipcrreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecordIterator;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
-public class IpcrFileReader implements IpcrRecordProvider {
+public class IpcrFileReader implements IpcrRecordProvider, Iterable<IpcrRecord> {
 
     private static final Logger LOGGER = Logger.getLogger(IpcrFileReader.class);
 
@@ -196,5 +198,9 @@ public class IpcrFileReader implements IpcrRecordProvider {
 
     public String getSep() {
         return sep;
+    }
+
+    public Iterator<IpcrRecord> iterator() {
+        return new IpcrRecordIterator(this);
     }
 }

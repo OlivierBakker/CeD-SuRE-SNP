@@ -5,7 +5,10 @@ import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.tribble.TabixFeatureReader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecordIterator;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
@@ -17,8 +20,7 @@ import java.util.*;
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
 
-//TODO: fix duplicate code, first thingy with replacing the inputstream didnt really work
-public class BlockCompressedIpcrFileReader extends IpcrFileReader implements IpcrRecordProvider {
+public class BlockCompressedIpcrFileReader extends IpcrFileReader implements IpcrRecordProvider, Iterable<IpcrRecord> {
 
     private static final Logger LOGGER = Logger.getLogger(BlockCompressedIpcrFileReader.class);
     private BlockCompressedInputStream coreInputStream;
@@ -26,7 +28,25 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     private String sep;
     private FeatureReader<IpcrRecord> featureReader;
 
+    // For iterating over tribble indexed regions
+    private InRegionFilter regions;
+    private CloseableTribbleIterator<IpcrRecord> cachedIterator;
+    private BedRecord cachedRegion;
+
     public BlockCompressedIpcrFileReader(GenericFile file) throws IOException {
+        this.coreInputStream = new BlockCompressedInputStream(new File(file.getPathAsString()));
+        this.sep = "\t";
+        setBarcodeReader(file);
+        setHeader();
+        setFeatureReader(file.getPathAsString());
+
+        this.regions = null;
+        this.cachedIterator = null;
+        this.cachedRegion = null;
+    }
+
+    public BlockCompressedIpcrFileReader(GenericFile file, InRegionFilter regions) throws IOException {
+        this.regions = regions;
         this.coreInputStream = new BlockCompressedInputStream(new File(file.getPathAsString()));
         this.sep = "\t";
         setBarcodeReader(file);
@@ -43,7 +63,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
                     true);
         } else {
             LOGGER.warn("Tabix index not found for: " + file);
-            LOGGER.warn("Querying on position will not work. Please index file first using -T Index or -T Recode -s" );
+            LOGGER.warn("Querying on position will not work. Please index file first using -T Index or -T Recode -s");
             featureReader = null;
         }
     }
@@ -51,6 +71,27 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     @Override
     protected String getNextLine() throws IOException {
         return coreInputStream.readLine();
+    }
+
+    @Override
+    public IpcrRecord getNextRecord() throws IOException {
+        // If no regions provided, just iterate over all items using default impl
+        if (regions == null) {
+            return super.getNextRecord();
+        } else {
+
+            // For the first iter
+            if (cachedRegion == null && regions.hasNext()) {
+                cachedRegion = regions.next();
+            }
+
+            if (cachedIterator == null || !cachedIterator.hasNext()) {
+                cachedIterator = this.query(cachedRegion.getContig(), cachedRegion.getStart(), cachedRegion.getEnd());
+                cachedRegion = regions.next();
+            }
+
+            return cachedIterator.next();
+        }
     }
 
     @Override
@@ -85,7 +126,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     @Override
     public void close() throws IOException {
         coreInputStream.close();
-        if (featureReader !=null) {
+        if (featureReader != null) {
             featureReader.close();
         }
     }
@@ -121,7 +162,6 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
         return output;
     }
 
-
     public long getFilePointer() {
         return coreInputStream.getFilePointer();
     }
@@ -141,4 +181,8 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
         }
     }
 
+    @Override
+    public Iterator<IpcrRecord> iterator() {
+        return new IpcrRecordIterator(this);
+    }
 }

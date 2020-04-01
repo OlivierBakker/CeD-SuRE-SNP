@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileIpcrReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
@@ -36,8 +37,34 @@ public class Recode {
         // Read additional cDNA data
         Map<String, Map<String, Integer>> inputCdna = readCdnaCounts();
 
+        // Filters to apply
+        List<IpcrRecordFilter> filters;
+        if (params.getFilters() != null) {
+            filters = params.getFilters();
+        } else {
+            filters = new ArrayList<>();
+        }
+
         // Define input reader, needs to be done here as to know which samples are available.
-        IpcrRecordProvider multiFileIpcrReader = new MultiFileIpcrReader(params.getInputIpcr());
+        // If a indexed iPCR file is provided, init a BlockCompressedIpcrReader
+        IpcrRecordProvider ipcrReader;
+        if (params.getInputIpcr().length > 1 || !params.getInputType().equals("IPCR_INDEXED")) {
+            LOGGER.info("Using generic IpcrFileReader. Using multiple ipcr files with Tabix is currently not supported");
+            ipcrReader = new MultiFileIpcrReader(params.getInputIpcr());
+            // When not using tabix indexed file reader apply classical filtering
+            if (params.getRegionFilterFile() != null) {
+                LOGGER.info("Will loop over all records to extract loci");
+                filters.add(new InRegionFilter(params.getRegionFilterFile()));
+            }
+        } else {
+            LOGGER.info("Using BlockCompressedIpcrFileReader");
+            if (params.getRegionFilterFile() != null) {
+                LOGGER.info("Using Tabix for fast extraction of loci");
+                ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), new InRegionFilter(params.getRegionFilterFile()));
+            } else {
+                ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
+            }
+        }
 
         // Define the output writer
         IpcrOutputWriter writer = params.getOutputWriter();
@@ -46,25 +73,17 @@ public class Recode {
             writer.setBarcodeCountFilesSampleNames(writer.getBarcodeCountFilesSampleNames());
         } else {
             // Concat the sample names form the existing file and the new ones
-            writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), multiFileIpcrReader.getCdnaSamples()));
+            writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), ipcrReader.getCdnaSamples()));
         }
         writer.writeHeader();
 
+
         long start = System.currentTimeMillis();
-
-        // Read iPCR data
-        IpcrRecord rec = multiFileIpcrReader.getNextRecord();
-
-        // Region filter
-        List<IpcrRecordFilter> filters = new ArrayList<>();
-        if (params.getRegionFilterFile() != null) {
-            filters.add(new InRegionFilter(params.getRegionFilterFile()));
-        }
-        int totalRecords = 1;
+        int totalRecords = 0;
         int filteredRecords = 0;
         int writtenRecords = 0;
 
-        while (rec != null) {
+        for (IpcrRecord rec : ipcrReader) {
             totalRecords ++;
             logProgress(totalRecords, 1000000, "Recode");
 
@@ -78,8 +97,8 @@ public class Recode {
                 }
             }
 
-            // If provided, add additional cDNA data to ipcr records
             if (passesFilter) {
+                // If provided, add additional cDNA data to ipcr records
                 if (inputCdna != null) {
                     for (String curCdnaFile : inputCdna.keySet()) {
                         Map<String, Integer> curMap = inputCdna.get(curCdnaFile);
@@ -92,25 +111,23 @@ public class Recode {
                         }
                     }
                 }
+
                 // Write output
                 writer.writeRecord(rec);
                 writtenRecords++;
             }
-
-            // Read the next record
-            rec = multiFileIpcrReader.getNextRecord();
         }
         writer.flushAndClose();
         long stop = System.currentTimeMillis();
-        LOGGER.info("Done writing. Took: " + ((stop - start) / 1000) + " seconds");
 
+        LOGGER.info("Done writing. Took: " + ((stop - start) / 1000) + " seconds");
         LOGGER.info("Processed  " + totalRecords + " records");
         LOGGER.info("Wrote  " + writtenRecords + " records");
         LOGGER.info("Removed  " + filteredRecords + " records");
-
     }
 
     private Map<String, Map<String, Integer>> readCdnaCounts() throws IOException {
+
         Map<String, Map<String, Integer>> inputCdna;
         if (params.getInputCdna() != null) {
             long start = System.currentTimeMillis();
@@ -135,51 +152,6 @@ public class Recode {
         } else {
             inputCdna = null;
         }
-
-
         return inputCdna;
     }
-
-    //TODO: remove this
-/*    private List<IpcrRecord> readIpcrRecords() throws IOException, ParseException {
-
-        // Region filter
-        List<IpcrRecordFilter> filters = new ArrayList<>();
-        if (params.getRegionFilterFile() != null) {
-            filters.add(new InRegionFilter(params.getRegionFilterFile()));
-        }
-
-        long start = System.currentTimeMillis();
-        List<IpcrRecord> inputIpcr = new ArrayList<>();
-
-        for (String file : params.getInputIpcr()) {
-            GenericFile inputFile = new GenericFile(file);
-            LOGGER.info("Reading file: " + inputFile.getBaseName());
-
-            switch (params.getInputType()) {
-                case "IPCR":
-                    provider = new IpcrFileReader(inputFile, true);
-                    break;
-                case "IPCR_BIN":
-                    provider = new BinaryIpcrReader(inputFile);
-                    break;
-                default:
-                    throw new IllegalArgumentException("No valid input type provided");
-            }
-
-            if (filters.size() > 0) {
-                inputIpcr.addAll(provider.getRecordsAsList(filters));
-            } else {
-                inputIpcr.addAll(provider.getRecordsAsList());
-            }
-            provider.close();
-        }
-
-        long stop = System.currentTimeMillis();
-        LOGGER.info("Done reading. Took: " + ((stop - start) / 1000) + " seconds");
-
-        return inputIpcr;
-    }*/
-
-
 }
