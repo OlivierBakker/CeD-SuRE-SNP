@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
+import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import org.apache.log4j.Logger;
 
@@ -27,13 +28,13 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
 
         // Fixed writers
         if (writeIpcr) {
-            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".ipcr"), isZipped);
+            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_IPCR), isZipped);
             ipcrBedWriter.setSampleToWrite("IPCR");
         }
 
         cdnaBedWriters = new HashMap<>();
         if (sampleToWrite != null) {
-            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".cdna"), isZipped);
+            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_CDNA), isZipped);
             cdnaBedWriter.setSampleToWrite(sampleToWrite);
             cdnaBedWriters.put(sampleToWrite, cdnaBedWriter);
         } else {
@@ -50,13 +51,13 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
 
         // Fixed writers
         if (writeIpcr) {
-            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".ipcr"), isZipped);
+            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_IPCR), isZipped);
             ipcrBedWriter.setSampleToWrite("IPCR");
         }
 
         cdnaBedWriters = new HashMap<>();
         if (sampleToWrite != null) {
-            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix + ".cdna"), isZipped);
+            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_CDNA), isZipped);
             cdnaBedWriter.setSampleToWrite(sampleToWrite);
             cdnaBedWriters.put(sampleToWrite, cdnaBedWriter);
         } else {
@@ -125,7 +126,7 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
                 for (String sample : getBarcodeCountFilesSampleNames()) {
                     if (!cdnaBedWriters.containsKey(sample)) {
                         // If it does not exist, add a new writer for the sample
-                        BedIpcrRecordWriter writer = new BedIpcrRecordWriter(new File(outputPrefix + "_" + sample + ".cdna"), isZipped, getBarcodeCountFilesSampleNames());
+                        BedIpcrRecordWriter writer = new BedIpcrRecordWriter(new File(outputPrefix + "_" + sample + FileExtensions.MACS_CDNA), isZipped, getBarcodeCountFilesSampleNames());
                         writer.setSampleToWrite(sample);
                         cdnaBedWriters.put(sample, writer);
                     } else {
@@ -140,6 +141,4 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
             e.printStackTrace();
         }
     }
-
-
 }

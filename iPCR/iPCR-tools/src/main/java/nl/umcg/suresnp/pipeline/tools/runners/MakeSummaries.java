@@ -55,37 +55,85 @@ public class MakeSummaries {
     /**
      * Overlap two sets of barcodes and report the count. Can take INFO or IPCR files as input
      * TODO: Generalize this and integrate with BarcodeOverlap
+     *
      * @throws IOException the io exception
      */
     public void barcodeOverlap() throws IOException {
         // How many of the cDNA barcodes come back in the iPCR
-        Set<String> cdnaBarcodes = new HashSet<>(GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes())).keySet());
+        Map<String, Integer> cdnaBarcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes()));
         Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
-        int inputCdnaCount = cdnaBarcodes.size();
+
+        int inputIpcrCount = ipcrBarcodes.size();
+        int inputCdnaCount = cdnaBarcodeCounts.size();
 
         // LOGGER.info("Trimming barcode sets");
         //cdnaBarcodes = (Set<String>) trimBarcodesFivePrime(cdnaBarcodes, new HashSet<>(), 2);
         //ipcrBarcodes = (Set<String>) trimBarcodesFivePrime(ipcrBarcodes, new HashSet<>(), 2);
 
-        LOGGER.info("cDNA: " + cdnaBarcodes.size());
-        LOGGER.info("iPCR: " + ipcrBarcodes.size());
-
+        Set<String> cdnaBarcodes = cdnaBarcodeCounts.keySet();
         cdnaBarcodes.retainAll(ipcrBarcodes);
+        int overlappingCount = cdnaBarcodes.size();
 
-        LOGGER.info("Overlap: " + cdnaBarcodes.size());
+        LOGGER.info("cDNA: " + inputCdnaCount);
+        LOGGER.info("iPCR: " + inputIpcrCount);
+        LOGGER.info("Overlap: " + overlappingCount);
+
+        // TODO: very very ugly improve
+        int totalCdnaCount = 0;
+        int barcodeGreaterThan50 = 0;
+        int barcodeGreaterThan100 = 0;
+        int barcodeGreaterThan250 = 0;
+        int barcodeGreaterThan500 = 0;
+        int barcodeGreaterThan1000 = 0;
+
+        for (String key : cdnaBarcodeCounts.keySet()) {
+            int curCount = cdnaBarcodeCounts.get(key);
+            totalCdnaCount += curCount;
+            if (curCount > 50) {
+                barcodeGreaterThan50 += curCount;
+            }
+            if (curCount > 100) {
+                barcodeGreaterThan100 += curCount;
+            }
+            if (curCount > 250) {
+                barcodeGreaterThan250 += curCount;
+            }
+            if (curCount > 500) {
+                barcodeGreaterThan500 += curCount;
+            }
+            if (curCount > 1000) {
+                barcodeGreaterThan1000 += curCount;
+            }
+        }
 
         LOGGER.info(inputCdnaCount +
                 " cDNA barcodes  of which " +
-                cdnaBarcodes.size() +
-                " (" + (cdnaBarcodes.size() / inputCdnaCount) * 100 + "%) could be found in iPCR");
+                overlappingCount +
+                " (" + ((double) overlappingCount / (double) inputCdnaCount) * 100 + "%) could be found in iPCR");
 
+        BufferedWriter output = new GenericFile(params.getOutputPrefix() + ".barcodeOverlap.tsv").getAsBufferedWriter();
+        output.write("total_cDNA\tunique_cDNA\tunique_iPCR\toverlap\t50\t100\t250\t500\t1000\n");
+        output.write(totalCdnaCount + "\t" +
+                inputCdnaCount + "\t" +
+                inputIpcrCount + "\t" +
+                overlappingCount + "\t" +
+                barcodeGreaterThan50 + "\t" +
+                barcodeGreaterThan100 + "\t" +
+                barcodeGreaterThan250 + "\t" +
+                barcodeGreaterThan500 + "\t" +
+                barcodeGreaterThan1000 + "\t"
+        );
+        output.newLine();
+        output.flush();
+        output.close();
     }
 
     /**
      * Overlap two sets of barcodes and write the result into overlapping and non overlapping files.
      * Can take INFO or CNDA files as input
      * TODO: Generalize this and integrate with BarcodeOverlap
+     *
      * @throws IOException the io exception
      */
     public void barcodeOverlapWriteOut() throws IOException {
@@ -179,6 +227,7 @@ public class MakeSummaries {
     /**
      * Make a histogram of barcode counts. Takes cDNA count data as input.
      * TODO: add output saving to file and plotting of hist.
+     *
      * @throws IOException the io exception
      */
     public void makeBarcodeCountHist() throws IOException {
@@ -269,6 +318,7 @@ public class MakeSummaries {
     /**
      * Correlate two score profiles (from .narrowPeak or 4 col bed files)
      * TODO: Cleanup and implement proper filenames and better plotting
+     *
      * @throws Exception the exception
      */
     public void getPeakCorrelations() throws Exception {
@@ -353,7 +403,7 @@ public class MakeSummaries {
 
             } catch (IllegalArgumentException e) {
                 LOGGER.debug("U oh, something went wrong indexing. Pointer: " + pointer);
-                LOGGER.debug(record.getBarcode() +"\t" + record.getContig() + "\t"+ record.getStart() + "\t" + record.getEnd());
+                LOGGER.debug(record.getBarcode() + "\t" + record.getContig() + "\t" + record.getStart() + "\t" + record.getEnd());
                 throw e;
             }
             i++;

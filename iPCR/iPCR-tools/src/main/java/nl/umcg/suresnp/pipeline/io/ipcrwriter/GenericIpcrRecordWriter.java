@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
+import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.runners.Recode;
@@ -27,10 +28,7 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     }
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
-        String suffix = "";
-        if (isZipped) suffix = ".bgz";
-        coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
-        barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
+        constructWriters(outputPrefix.getPath(), isZipped);
 
         if (barcodeCountFilesSampleNames != null) {
             this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
@@ -38,10 +36,13 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
     }
 
     public GenericIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        String suffix = "";
-        if (isZipped) suffix = ".bgz";
-        coreWriter = new GenericFile(outputPrefix + ".ipcr" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
-        barcodeWriter = new GenericFile(outputPrefix + ".ipcr.barcodes" + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
+        constructWriters(outputPrefix.getPath(), isZipped);
+    }
+
+    private void constructWriters(String outputPrefix, boolean isZipped) throws IOException {
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        coreWriter = new GenericFile(outputPrefix + FileExtensions.IPCR + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
+        barcodeWriter = new GenericFile(outputPrefix + FileExtensions.IPCR_BARCODES + suffix, StandardCharsets.US_ASCII).getAsBufferedWriter();
     }
 
     @Override

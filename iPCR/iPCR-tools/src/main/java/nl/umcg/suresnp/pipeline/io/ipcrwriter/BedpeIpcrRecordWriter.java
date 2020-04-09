@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
+import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 
@@ -14,19 +15,17 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
     private final String sep = "\t";
 
     public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix.getPath() + FileExtensions.BEDPE + suffix).getAsBufferedWriter();
 
-        String suffix = "";
-        if (isZipped) suffix = ".gz";
-        writer = new GenericFile(outputPrefix.getPath() + ".bedpe" + suffix).getAsBufferedWriter();
         if (barcodeCountFilesSampleNames != null) {
             this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
         }
     }
 
     public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
-        String suffix = "";
-        if (isZipped) suffix = ".gz";
-        writer = new GenericFile(outputPrefix.getPath() + ".bedpe" + suffix).getAsBufferedWriter();
+        String suffix = ""; if (isZipped) suffix = ".gz";
+        writer = new GenericFile(outputPrefix.getPath() + FileExtensions.BEDPE + suffix).getAsBufferedWriter();
     }
 
     @Override

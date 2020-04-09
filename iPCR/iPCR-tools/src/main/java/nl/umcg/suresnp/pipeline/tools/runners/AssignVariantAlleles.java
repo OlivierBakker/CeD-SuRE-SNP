@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 
 import htsjdk.samtools.*;
+import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
@@ -52,7 +53,7 @@ public class AssignVariantAlleles {
         // Output writers
         this.outputWriter = params.getOutputWriter();
         this.outputWriter.setBarcodeCountFilesSampleNames(ipcrReader.getCdnaSamples());
-        this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + ".discarded.reads.txt"), false);
+        this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + FileExtensions.IPCR_DISCARD), false);
     }
 
     public void run() throws IOException, IpcrParseException {

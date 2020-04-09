@@ -28,6 +28,7 @@ public class RecodeParameters {
     private boolean replaceOldCdnaSamples;
     private GenericFile regionFilterFile;
     private List<IpcrRecordFilter> filters;
+    private GenericFile sampleMappings;
 
     // Output
     private String outputPrefix;

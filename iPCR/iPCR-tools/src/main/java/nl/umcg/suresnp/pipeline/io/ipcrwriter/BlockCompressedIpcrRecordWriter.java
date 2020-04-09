@@ -5,6 +5,7 @@ import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 
@@ -24,20 +25,19 @@ public class BlockCompressedIpcrRecordWriter extends GenericIpcrRecordWriter imp
 
     public BlockCompressedIpcrRecordWriter(String outputPrefix) throws IOException {
         super(null, "\t");
-        barcodeWriter = new GenericFile(outputPrefix + ".barcodes.gz").getAsBufferedWriter();
-        outputStream = new BlockCompressedOutputStream(outputPrefix + ".ipcr.bgz");
-        indexCreator = new TabixIndexCreator(IPCR_FORMAT);
-        indexWriter = new LittleEndianOutputStream(new BlockCompressedOutputStream(outputPrefix + ".ipcr.bgz.tbi"));
+        constructWriters(outputPrefix);
     }
-
 
     public BlockCompressedIpcrRecordWriter(String outputPrefix, String[] barcodeCountFilesSampleNames) throws IOException {
         super(barcodeCountFilesSampleNames, "\t");
+        constructWriters(outputPrefix);
+    }
 
-        barcodeWriter = new GenericFile(outputPrefix + ".barcodes.gz").getAsBufferedWriter();
-        outputStream = new BlockCompressedOutputStream(outputPrefix + ".ipcr.bgz");
+    private void constructWriters(String outputPrefix) throws IOException {
+        barcodeWriter = new GenericFile(outputPrefix + FileExtensions.IPCR_BARCODES + ".gz").getAsBufferedWriter();
+        outputStream = new BlockCompressedOutputStream(outputPrefix + FileExtensions.IPCR_INDEXED);
         indexCreator = new TabixIndexCreator(IPCR_FORMAT);
-        indexWriter = new LittleEndianOutputStream(new BlockCompressedOutputStream(outputPrefix + ".ipcr.bgz.tbi"));
+        indexWriter = new LittleEndianOutputStream(new BlockCompressedOutputStream(outputPrefix + FileExtensions.IPCR_INDEX));
     }
 
     @Override
