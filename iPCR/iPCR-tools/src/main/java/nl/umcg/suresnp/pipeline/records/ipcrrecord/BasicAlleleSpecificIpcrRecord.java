@@ -91,6 +91,18 @@ public class BasicAlleleSpecificIpcrRecord extends BasicIpcrRecord implements Al
         this.source = source;
     }
 
+    public String getVariantIdentifier() {
+        if (this.getGeneticVariant().getPrimaryVariantId() == null) {
+            return this.getGeneticVariant().getSequenceName()
+                    + ":" + this.getGeneticVariant().getStartPos()
+                    + "," + this.getGeneticVariant().getRefAllele().toString()
+                    + "," + String.join("_", this.getGeneticVariant().getAlternativeAlleles().getAllelesAsString());
+
+        } else {
+            return this.getGeneticVariant().getPrimaryVariantId();
+        }
+    }
+
 
 /*    @Override
     public int getOrientationIndependentStart() {

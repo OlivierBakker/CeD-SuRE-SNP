@@ -16,6 +16,7 @@ public enum FileExtensions {
 
     BED(".bed"),
     BEDPE(".bedpe"),
+    BEDGRAPH(".bdg"),
     MACS_IPCR(IPCR.toString()),
     MACS_CDNA(CDNA.toString())
     ;

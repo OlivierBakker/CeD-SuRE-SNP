@@ -66,7 +66,7 @@ public class BedRecord implements Feature, Locatable {
         return score;
     }
 
-    // TODO: replaced by Locatable default impl
+/*    // TODO: replaced by Locatable default impl
     public boolean overlaps(BedRecord other) {
         if (!contig.equals(other.getContig())) {
             return false;
@@ -97,7 +97,7 @@ public class BedRecord implements Feature, Locatable {
             return false;
         }
         return B37GenomeInfo.isInWindow(other.getStart(), start, end) && B37GenomeInfo.isInWindow(other.getEnd(), start, end);
-    }
+    }*/
 
     public String toBedString() {
         return contig + "\t" + start + "\t" + end + "\t" + score;

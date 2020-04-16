@@ -24,6 +24,8 @@ public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRec
         write(sep);
         write("variantId");
         write(sep);
+        write("variantContig");
+        write(sep);
         write("variantStart");
         write(sep);
         write("variantStartInRead");
@@ -52,15 +54,9 @@ public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRec
         write(sep);
 
         // Variant info
-        if (record.getGeneticVariant().getPrimaryVariantId() == null) {
-            write(record.getGeneticVariant().getSequenceName()
-                    + ":" + record.getGeneticVariant().getStartPos()
-                    + "," + record.getGeneticVariant().getRefAllele().toString()
-                    + "," + String.join("_", record.getGeneticVariant().getAlternativeAlleles().getAllelesAsString())
-            );
-        } else {
-            write(record.getGeneticVariant().getPrimaryVariantId());
-        }
+        write(record.getVariantIdentifier());
+        write(sep);
+        write(record.getGeneticVariant().getSequenceName());
         write(sep);
         write(Integer.toString(record.getGeneticVariant().getStartPos()));
         write(sep);

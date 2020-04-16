@@ -33,5 +33,7 @@ public interface AlleleSpecificIpcrRecord extends IpcrRecord {
 
     void setSource(String source);
 
+    String getVariantIdentifier();
+
 
 }

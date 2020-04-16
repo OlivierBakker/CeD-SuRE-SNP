@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificBedgraphIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.MinimalAlleleSpecificIpcrRecrodWriter;
@@ -93,7 +94,7 @@ public class AssignVariantAllelesParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("Output type")
-                .argName("FULL | MINIMAL")
+                .argName("FULL | MINIMAL | BEDGRAPH")
                 .build();
         OPTIONS.addOption(option);
 
@@ -176,6 +177,9 @@ public class AssignVariantAllelesParameters {
                 break;
             case "MINIMAL":
                 outputWriter = new MinimalAlleleSpecificIpcrRecrodWriter(new File(outputPrefix + ".minimal.allele.specific.ipcr" + outputSuffix), zipped);
+                break;
+            case "BEDGRAPH":
+                outputWriter = new AlleleSpecificBedgraphIpcrRecordWriter(new File(outputPrefix), zipped, "IPCR", 250);
                 break;
         }
 
