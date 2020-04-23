@@ -4,6 +4,8 @@ import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificBedgraphIpcrRecordWr
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.MinimalAlleleSpecificIpcrRecrodWriter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -18,15 +20,14 @@ public class AssignVariantAllelesParameters {
     private final CommandLine cmd;
 
     // IO arguments
-    private String inputBam;
-    private String inputIpcr;
+    private String[] inputBam;
+    private String[] inputIpcr;
+    private String[] secondaryInputBam;
     private String inputVcf;
-    private String secondaryInputBam;
 
     private String outputPrefix;
     private String outputSuffix;
     private String outputType;
-
     private AlleleSpecificIpcrOutputWriter outputWriter;
 
     // General arguments
@@ -34,7 +35,7 @@ public class AssignVariantAllelesParameters {
 
     // Tool specific arguments
     private String sampleGenotypeId;
-
+    private String[] cDNASamples;
 
     private static final Options OPTIONS;
 
@@ -83,9 +84,9 @@ public class AssignVariantAllelesParameters {
         OPTIONS.addOption(option);
 
         option = Option.builder("b")
-                .longOpt("barcode-info")
+                .longOpt("input-ipcr-files")
                 .hasArg(true)
-                .desc("The file containing read names and barcodes")
+                .desc("One or more BGZipped and indexed iPCR file")
                 .argName("path/to/file")
                 .build();
         OPTIONS.addOption(option);
@@ -95,6 +96,14 @@ public class AssignVariantAllelesParameters {
                 .hasArg(true)
                 .desc("Output type")
                 .argName("FULL | MINIMAL | BEDGRAPH")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("c")
+                .longOpt("cDNA-samples")
+                .hasArg(true)
+                .desc("One or more sample identifiers to sum the cDNA scores for. For IPCR use provide the string IPCR as the first item, if provided cDNA is ignored")
+                .argName("<sampleid> [<sampleid>]")
                 .build();
         OPTIONS.addOption(option);
 
@@ -119,8 +128,14 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-    }
+        option = Option.builder("z")
+                .longOpt("zipped")
+                .hasArg(false)
+                .desc("Should output be zipped?")
+                .build();
+        OPTIONS.addOption(option);
 
+    }
 
     public AssignVariantAllelesParameters(String[] args) throws ParseException, IOException {
         CommandLineParser parser = new DefaultParser();
@@ -133,13 +148,13 @@ public class AssignVariantAllelesParameters {
         }
 
         // Input files
-        inputBam = cmd.getOptionValue("i").trim();
+        inputBam = cmd.getOptionValues("i");
         inputVcf = cmd.getOptionValue("g").trim();
-        inputIpcr = cmd.getOptionValue('b').trim();
+        inputIpcr = cmd.getOptionValues('b');
         toolType = "AssignVariantAlleles";
 
         if (cmd.hasOption("j")) {
-            secondaryInputBam = cmd.getOptionValue("j").trim();
+            secondaryInputBam = cmd.getOptionValues("j");
         }
 
         // Define the output writer, either stdout or to file
@@ -149,11 +164,10 @@ public class AssignVariantAllelesParameters {
             outputPrefix = "ipcrtools";
         }
 
-
         // When writing to a file check if the correct options are specified
         if (!cmd.hasOption("o")) {
             LOGGER.error("-o not specified");
-            MakeBarcodeComplexityCurveParameters.printHelp();
+            printHelp();
             exit(1);
         }
 
@@ -163,7 +177,6 @@ public class AssignVariantAllelesParameters {
             zipped = true;
             outputSuffix = ".gz";
         }
-
 
         if (cmd.hasOption("t")) {
             outputType = cmd.getOptionValue("t");
@@ -179,7 +192,12 @@ public class AssignVariantAllelesParameters {
                 outputWriter = new MinimalAlleleSpecificIpcrRecrodWriter(new File(outputPrefix + ".minimal.allele.specific.ipcr" + outputSuffix), zipped);
                 break;
             case "BEDGRAPH":
-                outputWriter = new AlleleSpecificBedgraphIpcrRecordWriter(new File(outputPrefix), zipped, "IPCR", 250);
+                if (!cmd.hasOption("c")) {
+                    LOGGER.error("-c not specified with BEDGRAPH output type. Need to know which sample(s) to score with");
+                }
+                cDNASamples = cmd.getOptionValues("c");
+                AdaptableScoreProvider provider = new SampleSumScoreProvider(cDNASamples);
+                outputWriter = new AlleleSpecificBedgraphIpcrRecordWriter(new File(outputPrefix), zipped, provider, 1);
                 break;
         }
 
@@ -200,11 +218,11 @@ public class AssignVariantAllelesParameters {
         return secondaryInputBam != null;
     }
 
-    public String getSecondaryInputBam() {
+    public String[] getSecondaryInputBam() {
         return secondaryInputBam;
     }
 
-    public String getInputBam() {
+    public String[] getInputBam() {
         return inputBam;
     }
 
@@ -212,7 +230,7 @@ public class AssignVariantAllelesParameters {
         return cmd;
     }
 
-    public String getInputIpcr() {
+    public String[] getInputIpcr() {
         return inputIpcr;
     }
 

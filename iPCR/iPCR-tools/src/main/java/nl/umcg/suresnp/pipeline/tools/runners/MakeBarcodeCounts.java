@@ -131,6 +131,12 @@ public class MakeBarcodeCounts {
         discardedWriter.close();
         LOGGER.info(barcodeCounts.size() + " unique barcodes");
 
+        outputWriter.flush();
+        outputWriter.close();
+
+        barcodeWriter.flush();
+        barcodeWriter.close();
+
         // Make histogram and count up the values to see if it matches the total readcount
         StreamingHistogram histogram = new StreamingHistogram(1, 20);
 
@@ -145,19 +151,11 @@ public class MakeBarcodeCounts {
         }
 
         histogramWriter.write(histogram.getHistAsTsv());
-
+        histogramWriter.flush();
+        histogramWriter.close();
 
         LOGGER.info("Sanity check " + sanityCheckSum + " total count, should be equal to " + (totalCount - totalDiscard));
         LOGGER.info("Done writing " + barcodeCounts.size() + " records");
-
-        outputWriter.flush();
-        outputWriter.close();
-
-        barcodeWriter.flush();
-        barcodeWriter.close();
-
-        histogramWriter.flush();
-        histogramWriter.close();
 
     }
 

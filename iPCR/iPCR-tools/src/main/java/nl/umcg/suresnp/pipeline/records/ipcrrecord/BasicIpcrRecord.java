@@ -1,14 +1,18 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
 
+import htsjdk.samtools.SAMRecord;
 import nl.umcg.suresnp.pipeline.records.samrecord.PairedSamRecord;
-import org.apache.commons.lang3.NotImplementedException;
+import org.apache.log4j.Logger;
 
 import java.io.Serializable;
 import java.util.Map;
 
 public class BasicIpcrRecord implements IpcrRecord, Serializable {
 
+    private static final Logger LOGGER = Logger.getLogger(BasicIpcrRecord.class);
+
+    private boolean isNotPaired = false;
     private String barcode;
     private String primaryReadName;
     private String mateReadName;
@@ -325,6 +329,10 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
        // if (getPrimaryStrand() == 0) {
         //    primaryStrand = '+';
         //}
+        if (isNotPaired) {
+            return getPrimaryStart();
+        }
+
         if (getPrimaryStrand() == '+') {
             return getPrimaryStart();
         } else if (getPrimaryStrand() == '-') {
@@ -339,6 +347,11 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         //if (getPrimaryStrand() == 0) {
         //    primaryStrand = '+';
         // }
+
+        if (isNotPaired) {
+            return getPrimaryEnd();
+        }
+
         // Minus is correct here
         if (getPrimaryStrand() == '+') {
             return getMateEnd();
@@ -366,6 +379,44 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     @Override
     public void updatePositions(PairedSamRecord samRecord) {
 
-        throw new NotImplementedException("");
+        SAMRecord rec1 = samRecord.getOne();
+        SAMRecord rec2 = samRecord.getTwo();
+
+        // Santiy checks
+        if (!contig.equals(rec1.getContig())){
+            throw new IllegalArgumentException("Trying to update position, but contigs mismatch, this is likely not what you want");
+        }
+
+        // Quick check which record is which, works only because iPCR record must be proper pair
+        if ((getPrimaryStrand() == '-') == rec1.getReadNegativeStrandFlag()) {
+            // Santiy checks
+            int dist = Math.abs(primaryStart - rec1.getStart());
+            if (dist > 1000) {
+                LOGGER.warn("New position more then 1kb away, are you sure this is correct?");
+            }
+
+            primaryStart = rec1.getStart();
+            primaryEnd = rec1.getEnd();
+            if (rec2 !=null) {
+                mateStart  = rec2.getStart();
+                mateEnd = rec2.getEnd();
+            } else {
+                isNotPaired = true;
+                mateStart  = rec1.getStart();
+                mateEnd = rec1.getEnd();
+            }
+
+        } else {
+            if (rec2 !=null) {
+                primaryStart  = rec2.getStart();
+                primaryEnd = rec2.getEnd();
+            } else {
+                isNotPaired = true;
+                primaryStart  = rec1.getStart();
+                primaryEnd = rec1.getEnd();
+            }
+            mateStart  = rec1.getStart();
+            mateEnd = rec1.getEnd();
+        }
     }
 }

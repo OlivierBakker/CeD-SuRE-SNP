@@ -4,7 +4,7 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileIpcrReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IterativeMultiFileIpcrReader;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
@@ -50,7 +50,7 @@ public class Recode {
         IpcrRecordProvider ipcrReader;
         if (params.getInputIpcr().length > 1 || !params.getInputType().equals("IPCR_INDEXED")) {
             LOGGER.info("Using generic IpcrFileReader. Using multiple ipcr files with Tabix is currently not supported");
-            ipcrReader = new MultiFileIpcrReader(params.getInputIpcr());
+            ipcrReader = new IterativeMultiFileIpcrReader(params.getInputIpcr());
             // When not using tabix indexed file reader apply classical filtering
             if (params.getRegionFilterFile() != null) {
                 LOGGER.info("Will loop over all records to extract loci");

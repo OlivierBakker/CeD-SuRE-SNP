@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 import static nl.umcg.suresnp.pipeline.records.ipcrrecord.VariantType.INSERTION;
 
 public class AssignVariantAlleles {
@@ -28,9 +29,9 @@ public class AssignVariantAlleles {
     private AssignVariantAllelesParameters params;
 
     // Input
-    private SamReader primarySamReader;
-    private SamReader secondarySamReader;
-    private BlockCompressedIpcrFileReader ipcrReader;
+    private List<SamReader> primarySamReaders;
+    private List<SamReader> secondarySamReaders;
+    private List<BlockCompressedIpcrFileReader> ipcrReaders;
 
     // Output
     private AlleleSpecificIpcrOutputWriter outputWriter;
@@ -39,21 +40,30 @@ public class AssignVariantAlleles {
     public AssignVariantAlleles(AssignVariantAllelesParameters params) throws IOException {
         this.params = params;
 
-        // Input iPCR reader
-        this.ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()));
-
-        // Create SAM readers
-        this.primarySamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(params.getInputBam()));
-
-        this.secondarySamReader = null;
-        if (this.params.hasSecondaryInputBam()) {
-            secondarySamReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(params.getSecondaryInputBam()));
+        // Input iPCR readers
+        this.ipcrReaders = new ArrayList<>();
+        for (String ipcrFile : params.getInputIpcr()) {
+            ipcrReaders.add(new BlockCompressedIpcrFileReader(new GenericFile(ipcrFile)));
         }
 
+        // Create SAM readers
+        this.primarySamReaders = new ArrayList<>();
+        for (String primarySamFile : params.getInputBam()) {
+            primarySamReaders.add(SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(primarySamFile)));
+        }
+
+        this.secondarySamReaders = null;
+        if (this.params.hasSecondaryInputBam()) {
+            secondarySamReaders = new ArrayList<>();
+            for (String secondarySamFile : params.getSecondaryInputBam()) {
+                secondarySamReaders.add(SamReaderFactory.makeDefault().validationStringency(ValidationStringency.LENIENT).open(new File(secondarySamFile)));
+            }
+        }
         // Output writers
         this.outputWriter = params.getOutputWriter();
-        this.outputWriter.setBarcodeCountFilesSampleNames(ipcrReader.getCdnaSamples());
+        this.outputWriter.setBarcodeCountFilesSampleNames(ipcrReaders.get(0).getCdnaSamples());
         this.discaredOutputWriter = new DiscaredAlleleSpecificIpcrRecordWriter(new File(params.getOutputPrefix() + FileExtensions.IPCR_DISCARD), false);
+
     }
 
     public void run() throws IOException, IpcrParseException {
@@ -86,12 +96,15 @@ public class AssignVariantAlleles {
             }
         }
 
+
+        int i = 0;
         // Loop over all genetic variants in VCF
         for (GeneticVariant curVariant : genotypeData) {
             if (!curVariant.isBiallelic()) {
                 LOGGER.warn("Skipping " + curVariant.getPrimaryVariantId() + " variant is not bi-allelic");
                 continue;
             }
+            logProgress(i, 1000, "AssignVariantAlleles");
 
             // SAM records, used to get sequence and potentially updated alignment info
             Map<String, PairedSamRecord> currentSamRecords = getOverlappingSamRecords(curVariant);
@@ -116,8 +129,9 @@ public class AssignVariantAlleles {
                         currentSamRecords.get(curRead).getSource());
 
                 // Update position if needed since GATK does local re-alignment
-                // TODO: implement this
-               // rec.updatePositions(currentSamRecords.get(curRead));
+                if (rec !=null && currentSamRecords.get(curRead).getSource().equals("PrimarySamReader")) {
+                    rec.updatePositions(currentSamRecords.get(curRead));
+                }
                 evaluateIpcrRecord(rec, currentSamRecords.get(curRead).getSource(), sampleIdx);
             }
         }
@@ -367,67 +381,76 @@ public class AssignVariantAlleles {
     }
 
     private Map<String, IpcrRecord> getOverlappingIpcrRecords(GeneticVariant curVariant, int window) throws IOException {
-        // Needs to have a window to account for the local re-alignment by GATK
-        Map<String, IpcrRecord> output = ipcrReader.queryAsMap(curVariant.getSequenceName(), curVariant.getStartPos()-window, curVariant.getStartPos() + window);
+        Map<String, IpcrRecord> output = new HashMap<>();
 
-       // LOGGER.debug(output.size() + " ipcr records overlapping " + curVariant.getPrimaryVariantId());
+        for (BlockCompressedIpcrFileReader ipcrReader : ipcrReaders) {
+            // Needs to have a window to account for the local re-alignment by GATK
+            output.putAll(ipcrReader.queryAsMap(curVariant.getSequenceName(), curVariant.getStartPos() - window, curVariant.getStartPos() + window));
+        }
+
+        // LOGGER.debug(output.size() + " ipcr records overlapping " + curVariant.getPrimaryVariantId());
         return output;
     }
 
     private Map<String, PairedSamRecord> getOverlappingSamRecords(GeneticVariant curVariant) {
 
         Map<String, PairedSamRecord> output = new HashMap<>();
-
+        SAMRecordIterator samRecordIterator;
         // Get the sam records overlapping the variant
-        SAMRecordIterator sammRecordIterator = primarySamReader.queryOverlapping(
-                curVariant.getSequenceName(),
-                curVariant.getStartPos(),
-                curVariant.getStartPos() + 1);
+        for (SamReader primarySamReader : primarySamReaders) {
 
-        while (sammRecordIterator.hasNext()) {
-            // Retrieve the current record
-            SAMRecord record = sammRecordIterator.next();
-            String key = record.getReadName().split(" ")[0];
-
-            // Dont use artifical haplotypes from GATK
-            if (!key.matches("^HC[0-9]*")) {
-                if (output.containsKey(key)) {
-                    output.get(key).setTwo(record);
-                } else {
-                    output.put(key, new PairedSamRecord(record, "PrimarySamReader"));
-                }
-                //LOGGER.debug(record.getReadName() + "\t" + record.getContig() + "\t" + record.getAlignmentStart() + "\t" + record.getAlignmentEnd());
-            }
-        }
-        sammRecordIterator.close();
-
-        if (secondarySamReader != null) {
-            Set<String> primaryReadnameCache = output.keySet();
-
-            // Get the sam records overlapping the variant
-            sammRecordIterator = secondarySamReader.queryOverlapping(
+             samRecordIterator = primarySamReader.queryOverlapping(
                     curVariant.getSequenceName(),
                     curVariant.getStartPos(),
                     curVariant.getStartPos() + 1);
 
-            while (sammRecordIterator.hasNext()) {
+            while (samRecordIterator.hasNext()) {
                 // Retrieve the current record
-                SAMRecord record = sammRecordIterator.next();
+                SAMRecord record = samRecordIterator.next();
                 String key = record.getReadName().split(" ")[0];
 
-                // Don't save the read if it is already in the output or it is an artifical haplotype
-                if (!primaryReadnameCache.contains(key) && !key.matches("^HC[0-9]*")) {
+                // Dont use artifical haplotypes from GATK
+                if (!key.matches("^HC[0-9]*")) {
                     if (output.containsKey(key)) {
                         output.get(key).setTwo(record);
                     } else {
-                        output.put(key, new PairedSamRecord(record, "SecondarySamReader"));
+                        output.put(key, new PairedSamRecord(record, "PrimarySamReader"));
                     }
+                    //LOGGER.debug(record.getReadName() + "\t" + record.getContig() + "\t" + record.getAlignmentStart() + "\t" + record.getAlignmentEnd());
                 }
             }
-            sammRecordIterator.close();
+            samRecordIterator.close();
         }
 
-       // LOGGER.debug(output.size() + " bam records overlapping " + curVariant.getPrimaryVariantId());
+        if (secondarySamReaders != null) {
+            Set<String> primaryReadnameCache = output.keySet();
+
+            for (SamReader secondarySamReader : secondarySamReaders) {
+                // Get the sam records overlapping the variant
+                samRecordIterator = secondarySamReader.queryOverlapping(
+                        curVariant.getSequenceName(),
+                        curVariant.getStartPos(),
+                        curVariant.getStartPos() + 1);
+
+                while (samRecordIterator.hasNext()) {
+                    // Retrieve the current record
+                    SAMRecord record = samRecordIterator.next();
+                    String key = record.getReadName().split(" ")[0];
+
+                    // Don't save the read if it is already in the output or it is an artifical haplotype
+                    if (!primaryReadnameCache.contains(key) && !key.matches("^HC[0-9]*")) {
+                        if (output.containsKey(key)) {
+                            output.get(key).setTwo(record);
+                        } else {
+                            output.put(key, new PairedSamRecord(record, "SecondarySamReader"));
+                        }
+                    }
+                }
+                samRecordIterator.close();
+            }
+        }
+
+        // LOGGER.debug(output.size() + " bam records overlapping " + curVariant.getPrimaryVariantId());
         return output;
     }
 

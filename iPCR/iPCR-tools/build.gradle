@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'SuRE-SNP'
-version '1.0-SNAPSHOT'
+version '1.0-SNAPSHOT-dev'
 
 apply plugin: 'java'
 apply plugin:'application'

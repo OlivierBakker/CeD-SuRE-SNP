@@ -33,10 +33,10 @@ public class B37GenomeInfo {
             add("20");
             add("21");
             add("22");
-            add("x");
-            add("y");
             add("X");
             add("Y");
+            add("x");
+            add("y");
             add("chr1");
             add("chr2");
             add("chr3");
@@ -59,11 +59,12 @@ public class B37GenomeInfo {
             add("chr20");
             add("chr21");
             add("chr22");
-            add("chrx");
-            add("chry");
             add("chrX");
             add("chrY");
+            add("chrx");
+            add("chry");
         }};
+
 
         chromSizes = new HashMap<>() {{
             put("chr1", 249250621);
@@ -125,6 +126,11 @@ public class B37GenomeInfo {
     public static List<String> getChromosomes() {
         return chromosomes;
     }
+
+    public static List<String> getChromosomesNoChr(){return  chromosomes.subList(0, 24);}
+
+    public static List<String> getChromosomesChr(){return  chromosomes.subList(26, 49);}
+
 
     public static int getChromSize(String chrom) {
         return chromSizes.get(chrom);
