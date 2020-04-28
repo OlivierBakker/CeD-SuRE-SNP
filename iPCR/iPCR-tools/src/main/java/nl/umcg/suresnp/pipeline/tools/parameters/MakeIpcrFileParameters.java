@@ -109,7 +109,7 @@ public class MakeIpcrFileParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("Output type")
-                .argName("BED|IPCR")
+                .argName("BEDPE|IPCR")
                 .build();
         OPTIONS.addOption(option);
 
@@ -196,16 +196,9 @@ public class MakeIpcrFileParameters {
             switch (outputType) {
                 case "BEDPE":
                     if (barcodeCountFiles != null) {
-                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles,null);
                     } else {
-                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped);
-                    }
-                    break;
-                case "BED":
-                    if (barcodeCountFiles != null) {
-                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
-                    } else {
-                        outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped);
+                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, null);
                     }
                     break;
                 case "IPCR":
@@ -215,7 +208,6 @@ public class MakeIpcrFileParameters {
                         outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped);
                     }
                     break;
-
                 default:
                     LOGGER.error("Invalid output type -t");
                     printHelp();

@@ -181,7 +181,6 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
 
 
         if (barcodeCountFilesSampleNames != null) {
-
             for (String key : barcodeCountFilesSampleNames) {
                 write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
                 write(sep);

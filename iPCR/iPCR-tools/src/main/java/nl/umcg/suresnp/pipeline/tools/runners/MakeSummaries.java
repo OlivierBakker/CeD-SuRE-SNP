@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
+import JSci.maths.vectors.DoubleVector;
 import com.itextpdf.text.DocumentException;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.tribble.index.Index;
@@ -317,13 +318,14 @@ public class MakeSummaries {
 
     /**
      * Correlate two score profiles (from .narrowPeak or 4 col bed files)
-     * TODO: Cleanup and implement proper filenames and better plotting
+     * TODO: Cleanup and better plotting
      *
      * @throws Exception the exception
      */
     public void getPeakCorrelations() throws Exception {
-
         LOGGER.info("Correlating peaks");
+
+        // Reading the input files, can be .bed or .narrowPeak
         List<BedRecord>[] inputFiles = new List[params.getInputIpcr().length];
         int i = 0;
         for (String file : params.getInputIpcr()) {
@@ -343,40 +345,48 @@ public class MakeSummaries {
         }
         LOGGER.info("Done reading");
 
+        // Intersect overlapping bed records. Remove others
         List<BedRecord>[] output = BedUtils.intersectSortedBedRecords(inputFiles[0], inputFiles[1]);
         LOGGER.info("Output " + output.length);
 
+        // Calculate correlations and make plot
         i = 0;
         double[] x = new double[output[0].size()];
         double[] y = new double[output[1].size()];
 
+        BufferedWriter writer = new GenericFile(params.getOutputPrefix() + ".xy.tsv").getAsBufferedWriter();
+        writer.write("x\ty");
         while (i < output[0].size()) {
-
+            // X records
             BedRecord cur = output[0].get(i);
+            writer.write(Double.toString(cur.getScore()) + "\t");
             x[i] = Math.log(cur.getScore()) / Math.log(10);
+
+            // Y records
             cur = output[1].get(i);
+            writer.write(Double.toString(cur.getScore()));
             y[i] = Math.log(cur.getScore()) / Math.log(10);
 
+            writer.newLine();
             i++;
         }
+        writer.flush();
+        writer.close();
 
         LOGGER.info("Calculating pearson R");
         PearsonsCorrelation test = new PearsonsCorrelation();
-        //RealMatrix out = test.computeCorrelationMatrix(x);
-        //LOGGER.info("Pearson R: " + out.getColumn(0)[1]);
         LOGGER.info("Pearson R: " + test.correlation(x, y));
 
-
+        // Make the plot
         Grid grid = new Grid(500, 500, 1, 1, 100, 100);
         ScatterplotPanel p = new ScatterplotPanel(1, 1);
         p.setData(x, y);
         //p.setDataRange(new Range(0, 0, 500, 500));
         p.setAlpha((float) 0.5);
-        p.setLabels("X", "y");
+        p.setLabels("X", "Y");
         p.setPlotElems(true, false);
         grid.addPanel(p);
-        grid.draw("output.png");
-
+        grid.draw(params.getOutputPrefix() + ".png");
     }
 
 

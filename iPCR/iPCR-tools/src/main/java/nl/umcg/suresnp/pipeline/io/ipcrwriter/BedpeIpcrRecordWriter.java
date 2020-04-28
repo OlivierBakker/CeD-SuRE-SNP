@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 
 import java.io.BufferedWriter;
@@ -12,20 +13,24 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
 
     protected BufferedWriter writer;
     private String[] barcodeCountFilesSampleNames;
+    private final AdaptableScoreProvider scoreProvider;
     private final String sep = "\t";
 
-    public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames) throws IOException {
+    public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleNames, AdaptableScoreProvider scoreProvider) throws IOException {
         String suffix = ""; if (isZipped) suffix = ".gz";
-        writer = new GenericFile(outputPrefix.getPath() + FileExtensions.BEDPE + suffix).getAsBufferedWriter();
+        this.writer = new GenericFile(outputPrefix.getPath() + FileExtensions.BEDPE + suffix).getAsBufferedWriter();
 
         if (barcodeCountFilesSampleNames != null) {
             this.barcodeCountFilesSampleNames = GenericFile.trimAllExtensionsFromFilenameArray(barcodeCountFilesSampleNames);
         }
+
+        this.scoreProvider = scoreProvider;
     }
 
-    public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
+    public BedpeIpcrRecordWriter(File outputPrefix, boolean isZipped, AdaptableScoreProvider scoreProvider) throws IOException {
         String suffix = ""; if (isZipped) suffix = ".gz";
-        writer = new GenericFile(outputPrefix.getPath() + FileExtensions.BEDPE + suffix).getAsBufferedWriter();
+        this.writer = new GenericFile(outputPrefix.getPath() + FileExtensions.BEDPE + suffix).getAsBufferedWriter();
+        this.scoreProvider = scoreProvider;
     }
 
     @Override
@@ -51,11 +56,15 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(record.getPrimaryReadName());
         writer.write(sep);
 
-        if (record.getBarcodeCountPerSample() != null) {
-            for (String key : barcodeCountFilesSampleNames) {
-                writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
-                writer.write(sep);
+        if (scoreProvider == null) {
+            if (record.getBarcodeCountPerSample() != null) {
+                for (String key : barcodeCountFilesSampleNames) {
+                    writer.write(Integer.toString(record.getBarcodeCountPerSample().get(key)));
+                    writer.write(sep);
+                }
             }
+        } else {
+            writer.write(Double.toString(scoreProvider.getScore(record)));
         }
 
         writer.newLine();
@@ -79,21 +88,25 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
         writer.write("readName");
         writer.write(sep);
 
-        if (barcodeCountFilesSampleNames != null) {
-            for (String key : barcodeCountFilesSampleNames) {
-                int idx = key.indexOf('.');
+        if (scoreProvider == null) {
+            if (barcodeCountFilesSampleNames != null) {
+                for (String key : barcodeCountFilesSampleNames) {
+                    int idx = key.indexOf('.');
 
-                if (idx < 1) {
-                    writer.write(key);
-                } else {
-                    writer.write(key.substring(0, idx));
+                    if (idx < 1) {
+                        writer.write(key);
+                    } else {
+                        writer.write(key.substring(0, idx));
+                    }
+                    writer.write(sep);
                 }
-                writer.write(sep);
             }
+        } else {
+            writer.write(sep);
+            writer.write(scoreProvider.getSamplesAsString());
         }
 
         writer.newLine();
-
     }
 
     public void flushAndClose() throws IOException {

@@ -1,6 +1,8 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -20,7 +22,7 @@ public class CollapseIpcrParameters {
     private String outputSuffix;
     private String outputType;
     private IpcrOutputWriter outputWriter;
-    private String sampleToWrite;
+    private String[] samplesToWrite;
 
     private boolean writeDiscardedReads;
     private boolean noHeader;
@@ -79,9 +81,9 @@ public class CollapseIpcrParameters {
         OPTIONS.addOption(option);
 
         option = Option.builder("s")
-                .longOpt("sample-to-write")
+                .longOpt("samples-to-write")
                 .hasArg(true)
-                .desc("cDNA sample to use to write MACS output")
+                .desc("cDNA sample(s) to use to write MACS output. When providing multiple -s options, samples are summed")
                 .argName("sample")
                 .build();
         OPTIONS.addOption(option);
@@ -119,9 +121,9 @@ public class CollapseIpcrParameters {
         }
 
         if (cmd.hasOption('s')) {
-            sampleToWrite = cmd.getOptionValue('s').trim();
+            samplesToWrite = cmd.getOptionValues('s');
         } else {
-            sampleToWrite = null;
+            samplesToWrite = null;
         }
 
 
@@ -132,16 +134,16 @@ public class CollapseIpcrParameters {
         switch (outputType) {
             case "BEDPE":
                 if (barcodeCountFiles != null) {
-                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles, null);
                 } else {
-                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped);
+                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, null);
                 }
                 break;
             case "BED":
                 if (barcodeCountFiles != null) {
-                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
+                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles, null);
                 } else {
-                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped);
+                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, null);
                 }
                 break;
             case "IPCR":
@@ -152,16 +154,19 @@ public class CollapseIpcrParameters {
                 }
                 break;
             case "MACS":
-                if (sampleToWrite == null) {
-                    LOGGER.error("No sample provided but output type is MACS. Please specify which cDNA sample should be used");
+                AdaptableScoreProvider provider = null;
+                if (samplesToWrite == null) {
+                    LOGGER.info("No sample provided but output type is MACS. Writing one bedfile for each cDNA sample");
                     printHelp();
                     exit(1);
+                } else {
+                    provider = new SampleSumScoreProvider(samplesToWrite);
                 }
 
                 if (barcodeCountFiles != null) {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles, sampleToWrite, true);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles, provider, true);
                 } else {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite, true);
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, provider, true);
                 }
                 break;
 

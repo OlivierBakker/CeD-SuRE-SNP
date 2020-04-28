@@ -2,6 +2,8 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilterType;
 import org.apache.commons.cli.*;
@@ -35,7 +37,7 @@ public class RecodeParameters {
     private String outputType;
     private IpcrOutputWriter outputWriter;
     private boolean isStdoutput;
-    private String sampleToWrite;
+    private String[] samplesToWrite;
 
     // General arguments
     private String toolType;
@@ -110,9 +112,9 @@ public class RecodeParameters {
         OPTIONS.addOption(option);
 
         option = Option.builder("s")
-                .longOpt("sample-to-write")
+                .longOpt("samples-to-write")
                 .hasArg(true)
-                .desc("cDNA sample to use to write MACS output. If omitted will write on bedfile for all of them")
+                .desc("cDNA sample(s) to use to write MACS|BED output. When providing more then one -s, samples are summed up.")
                 .argName("sample")
                 .build();
         OPTIONS.addOption(option);
@@ -211,28 +213,37 @@ public class RecodeParameters {
         }
 
         if (cmd.hasOption('s')) {
-            sampleToWrite = cmd.getOptionValue('s').trim();
+            samplesToWrite = cmd.getOptionValues('s');
         } else {
-            sampleToWrite = null;
+            samplesToWrite = null;
         }
 
         replaceOldCdnaSamples = cmd.hasOption("r");
         boolean writeIpcr = !cmd.hasOption("u");
         boolean zipped = cmd.hasOption("z");
+        AdaptableScoreProvider provider = null;
 
         switch (outputType) {
             case "BEDPE":
                 if (inputCdna != null) {
-                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
+                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, provider);
                 } else {
-                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped);
+                    outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, provider);
                 }
                 break;
             case "BED":
-                if (inputCdna != null) {
-                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna);
+                if (samplesToWrite == null) {
+                    LOGGER.info("No sample provided. Please specify one (or more to sum them up) using -s");
+                    printHelp();
+                    exit(1);
                 } else {
-                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped);
+                    provider = new SampleSumScoreProvider(samplesToWrite);
+                }
+
+                if (inputCdna != null) {
+                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, provider);
+                } else {
+                    outputWriter = new BedIpcrRecordWriter(new File(outputPrefix), zipped, provider);
                 }
                 break;
             case "IPCR":
@@ -250,14 +261,15 @@ public class RecodeParameters {
                 }
                 break;
             case "MACS":
-                if (sampleToWrite == null) {
-                    LOGGER.info("No sample provided but output type is MACS. Will output bedfiles for all samples");
-                }
-
-                if (inputCdna != null) {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, sampleToWrite, writeIpcr);
+                if (samplesToWrite == null) {
+                    LOGGER.info("No sample provided but output type is MACS. Writing one bedfile for each cDNA sample");
                 } else {
-                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, sampleToWrite, writeIpcr);
+                    provider = new SampleSumScoreProvider(samplesToWrite);
+                }
+                if (inputCdna != null) {
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, provider, writeIpcr);
+                } else {
+                    outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, provider, writeIpcr);
                 }
                 break;
             default:

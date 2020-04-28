@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import org.molgenis.genotype.RandomAccessGenotypeData;
 import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
 import org.molgenis.genotype.variant.GeneticVariant;
+import org.molgenis.genotype.variantFilter.VariantIdIncludeFilter;
 
 import java.io.File;
 import java.io.IOException;
@@ -96,10 +97,17 @@ public class AssignVariantAlleles {
             }
         }
 
+        // Filter variants
+        Iterable<GeneticVariant> variantIterable;
+        if (params.getVariantsToInclude() == null) {
+            variantIterable = genotypeData;
+        } else {
+            variantIterable = genotypeData.getVariantIdMap(new VariantIdIncludeFilter(params.getVariantsToInclude())).values();
+        }
 
         int i = 0;
         // Loop over all genetic variants in VCF
-        for (GeneticVariant curVariant : genotypeData) {
+        for (GeneticVariant curVariant : variantIterable) {
             if (!curVariant.isBiallelic()) {
                 LOGGER.warn("Skipping " + curVariant.getPrimaryVariantId() + " variant is not bi-allelic");
                 continue;

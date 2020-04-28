@@ -14,7 +14,6 @@ public class BedUtils {
 
     public static List<BedRecord>[] intersectSortedBedRecords(List<BedRecord> setOne, List<BedRecord> setTwo) throws Exception {
 
-
         // TODO: Refactor this so it is on a per contig basis to account for missing contigs, current impl can only handle one missing gap
         // TODO: Cleanup this code a bit, make sure the last records are properly accounted for
         LOGGER.info("Input A: " + setOne.size());
@@ -25,7 +24,6 @@ public class BedUtils {
 
         // Make something with 2 stacks. As they are sorted. If recA < recB advance recA if recA > recB advance recA
         // Check every loop for equality. If so keep the record in output sets
-
         int i=0;
         int iterOne = 0;
         int iterTwo = 0;
@@ -114,8 +112,6 @@ public class BedUtils {
             }
             i++;
         }
-
-        // Clean last pair
 
         LOGGER.info("Overlapped " + outOne.size() + ", " + outTwo.size() + " records");
 

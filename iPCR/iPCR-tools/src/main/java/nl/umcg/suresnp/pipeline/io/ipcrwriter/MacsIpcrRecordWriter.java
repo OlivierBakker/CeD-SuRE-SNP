@@ -1,7 +1,9 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.FileExtensions;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -18,48 +20,41 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
     private boolean isZipped;
     private File outputPrefix;
     private String[] barcodeCountFilesSampleNames;
-    private String sampleToWrite;
 
-    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String sampleToWrite, boolean writeIpcr) throws IOException {
+    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, AdaptableScoreProvider scoreProvider, boolean writeIpcr) throws IOException {
         this.isZipped = isZipped;
         this.outputPrefix = outputPrefix;
         this.writeIpcr = writeIpcr;
-        this.sampleToWrite = sampleToWrite;
 
         // Fixed writers
         if (writeIpcr) {
-            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_IPCR), isZipped);
-            ipcrBedWriter.setSampleToWrite("IPCR");
+            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_IPCR), isZipped, new SampleSumScoreProvider(new String[]{"IPCR"}));
         }
 
         cdnaBedWriters = new HashMap<>();
-        if (sampleToWrite != null) {
-            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_CDNA), isZipped);
-            cdnaBedWriter.setSampleToWrite(sampleToWrite);
-            cdnaBedWriters.put(sampleToWrite, cdnaBedWriter);
+        if (scoreProvider != null) {
+            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_CDNA), isZipped, scoreProvider);
+            cdnaBedWriters.put(scoreProvider.getSamplesAsString(), cdnaBedWriter);
         } else {
             LOGGER.info("Initializing writer with no cDNA samples");
         }
     }
 
-    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleName, String sampleToWrite, boolean writeIpcr) throws IOException {
+    public MacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleName, AdaptableScoreProvider scoreProvider, boolean writeIpcr) throws IOException {
         this.isZipped = isZipped;
         this.outputPrefix = outputPrefix;
         this.writeIpcr = writeIpcr;
-        this.sampleToWrite = sampleToWrite;
         this.barcodeCountFilesSampleNames = barcodeCountFilesSampleName;
 
         // Fixed writers
         if (writeIpcr) {
-            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_IPCR), isZipped);
-            ipcrBedWriter.setSampleToWrite("IPCR");
+            ipcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_IPCR), isZipped, new SampleSumScoreProvider(new String[]{"IPCR"}));
         }
 
         cdnaBedWriters = new HashMap<>();
-        if (sampleToWrite != null) {
-            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_CDNA), isZipped);
-            cdnaBedWriter.setSampleToWrite(sampleToWrite);
-            cdnaBedWriters.put(sampleToWrite, cdnaBedWriter);
+        if (scoreProvider != null) {
+            BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + FileExtensions.MACS_CDNA), isZipped, scoreProvider);
+            cdnaBedWriters.put(scoreProvider.getSamplesAsString(), cdnaBedWriter);
         } else {
             updateCdnaBedWriters();
         }
@@ -122,21 +117,18 @@ public class MacsIpcrRecordWriter implements IpcrOutputWriter {
 
     private void updateCdnaBedWriters() {
         try {
-            if (sampleToWrite == null) {
-                for (String sample : getBarcodeCountFilesSampleNames()) {
-                    if (!cdnaBedWriters.containsKey(sample)) {
-                        // If it does not exist, add a new writer for the sample
-                        BedIpcrRecordWriter writer = new BedIpcrRecordWriter(new File(outputPrefix + "_" + sample + FileExtensions.MACS_CDNA), isZipped, getBarcodeCountFilesSampleNames());
-                        writer.setSampleToWrite(sample);
-                        cdnaBedWriters.put(sample, writer);
-                    } else {
-                        // If it does exist, update with new samples
-                        cdnaBedWriters.get(sample).setBarcodeCountFilesSampleNames(getBarcodeCountFilesSampleNames());
-                    }
+            for (String sample : getBarcodeCountFilesSampleNames()) {
+                if (!cdnaBedWriters.containsKey(sample)) {
+                    // If it does not exist, add a new writer for the sample
+                    BedIpcrRecordWriter writer = new BedIpcrRecordWriter(new File(outputPrefix + "_" + sample + FileExtensions.MACS_CDNA), isZipped,
+                            new SampleSumScoreProvider(new String[]{sample}));
+                    cdnaBedWriters.put(sample, writer);
+                } else {
+                    // If it does exist, update with new samples
+                    cdnaBedWriters.get(sample).setBarcodeCountFilesSampleNames(getBarcodeCountFilesSampleNames());
                 }
-            } else {
-                cdnaBedWriters.get(sampleToWrite).setBarcodeCountFilesSampleNames(getBarcodeCountFilesSampleNames());
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }

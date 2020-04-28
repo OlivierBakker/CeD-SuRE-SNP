@@ -5,6 +5,7 @@ import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.MinimalAlleleSpecificIpcrRecrodWriter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.NormalizedSampleScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
@@ -36,6 +37,7 @@ public class AssignVariantAllelesParameters {
     // Tool specific arguments
     private String sampleGenotypeId;
     private String[] cDNASamples;
+    private String[] variantsToInclude;
 
     private static final Options OPTIONS;
 
@@ -103,7 +105,15 @@ public class AssignVariantAllelesParameters {
                 .longOpt("cDNA-samples")
                 .hasArg(true)
                 .desc("One or more sample identifiers to sum the cDNA scores for. For IPCR use provide the string IPCR as the first item, if provided cDNA is ignored")
-                .argName("<sampleid> [<sampleid>]")
+                .argName("<sampleid> [-c <sampleid>]")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("vf")
+                .longOpt("variant-filter")
+                .hasArg(true)
+                .desc("One or more variant id's")
+                .argName("<variant id> [-c <variant id>]")
                 .build();
         OPTIONS.addOption(option);
 
@@ -184,6 +194,10 @@ public class AssignVariantAllelesParameters {
             outputType = "FULL";
         }
 
+        if (cmd.hasOption("vf")) {
+            variantsToInclude = cmd.getOptionValues("vf");
+        }
+
         switch (outputType) {
             case "FULL":
                 outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.allele.specific.ipcr" + outputSuffix), zipped);
@@ -194,9 +208,11 @@ public class AssignVariantAllelesParameters {
             case "BEDGRAPH":
                 if (!cmd.hasOption("c")) {
                     LOGGER.error("-c not specified with BEDGRAPH output type. Need to know which sample(s) to score with");
+                    printHelp();
+                    exit(1);
                 }
                 cDNASamples = cmd.getOptionValues("c");
-                AdaptableScoreProvider provider = new SampleSumScoreProvider(cDNASamples);
+                AdaptableScoreProvider provider = new NormalizedSampleScoreProvider(cDNASamples);
                 outputWriter = new AlleleSpecificBedgraphIpcrRecordWriter(new File(outputPrefix), zipped, provider, 1);
                 break;
         }
@@ -204,6 +220,10 @@ public class AssignVariantAllelesParameters {
         if (cmd.hasOption("v")) {
             sampleGenotypeId = cmd.getOptionValue('v').trim();
         }
+    }
+
+    public String[] getVariantsToInclude() {
+        return variantsToInclude;
     }
 
     public String getOutputType() {
