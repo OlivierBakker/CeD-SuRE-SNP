@@ -66,6 +66,13 @@ public class Recode {
             }
         }
 
+
+        LOGGER.info("Applying the following filters:");
+        for(IpcrRecordFilter filter : filters) {
+            LOGGER.info(filter.getFilterName());
+        }
+
+
         // Define the output writer
         IpcrOutputWriter writer = params.getOutputWriter();
         if (params.isReplaceOldCdnaSamples()) {

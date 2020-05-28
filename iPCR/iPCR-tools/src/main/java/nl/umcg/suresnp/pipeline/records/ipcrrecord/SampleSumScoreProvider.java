@@ -3,7 +3,7 @@ package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 import org.apache.log4j.Logger;
 
 public class SampleSumScoreProvider implements AdaptableScoreProvider {
-    private static final Logger LOGGER = Logger.getLogger(NormalizedSampleScoreProvider.class);
+    private static final Logger LOGGER = Logger.getLogger(SampleSumScoreProvider.class);
     private final String[] samplesToSum;
     private final String samplesAsString;
 

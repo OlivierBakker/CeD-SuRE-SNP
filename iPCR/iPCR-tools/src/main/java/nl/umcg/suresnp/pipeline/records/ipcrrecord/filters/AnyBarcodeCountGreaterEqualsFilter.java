@@ -2,6 +2,9 @@ package nl.umcg.suresnp.pipeline.records.ipcrrecord.filters;
 
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 
+/**
+ * Filter records where ANY BC count is >= x
+ */
 public class AnyBarcodeCountGreaterEqualsFilter implements IpcrRecordFilter {
 
     private static final IpcrRecordFilterType type = IpcrRecordFilterType.ANY_BC_GT_EQ;
@@ -11,6 +14,11 @@ public class AnyBarcodeCountGreaterEqualsFilter implements IpcrRecordFilter {
     public AnyBarcodeCountGreaterEqualsFilter(int barcodeCount) {
         this.barcodeCount = barcodeCount;
         this.filterFailed = false;
+    }
+
+    public AnyBarcodeCountGreaterEqualsFilter(int barcodeCount, boolean invert) {
+        this.barcodeCount = barcodeCount;
+        this.filterFailed = invert;
     }
 
     @Override

@@ -19,6 +19,9 @@ public enum IpcrRecordFilterType {
         String args = filters[1];
         System.out.println(arg);
         System.out.println(args);
+        String[] splitArgs;
+        int count;
+        boolean invert;
 
         try {
             switch (IpcrRecordFilterType.valueOf(filterType)) {
@@ -29,11 +32,15 @@ public enum IpcrRecordFilterType {
                     int upper = Integer.parseInt(region.split("-")[1]);
                     return new InRegionFilter(sequenceName, lower, upper);
                 case ANY_BC_GT_EQ:
-                    int count = Integer.parseInt(args);
-                    return new AnyBarcodeCountGreaterEqualsFilter(count);
+                    splitArgs = args.split(":");
+                    count = Integer.parseInt(splitArgs[0]);
+                    invert = splitArgs[1].toUpperCase().equals("TRUE");
+                    return new AnyBarcodeCountGreaterEqualsFilter(count, invert);
                 case ANY_BC_ST_EQ:
-                    int count2 = Integer.parseInt(args);
-                    return new AnyBarcodeCountSmallerEqualsFilter(count2);
+                    splitArgs = args.split(":");
+                    count = Integer.parseInt(splitArgs[0]);
+                    invert = splitArgs[1].toUpperCase().equals("TRUE");
+                    return new AnyBarcodeCountSmallerEqualsFilter(count, invert);
 
             }
         } catch (IllegalArgumentException e) {

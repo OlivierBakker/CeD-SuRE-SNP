@@ -131,9 +131,6 @@ public class MakeBarcodeCounts {
         discardedWriter.close();
         LOGGER.info(barcodeCounts.size() + " unique barcodes");
 
-        outputWriter.flush();
-        outputWriter.close();
-
         barcodeWriter.flush();
         barcodeWriter.close();
 
@@ -151,6 +148,10 @@ public class MakeBarcodeCounts {
         }
 
         histogramWriter.write(histogram.getHistAsTsv());
+
+        outputWriter.flush();
+        outputWriter.close();
+
         histogramWriter.flush();
         histogramWriter.close();
 

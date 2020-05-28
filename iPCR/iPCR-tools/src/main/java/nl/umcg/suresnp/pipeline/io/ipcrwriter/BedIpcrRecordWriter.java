@@ -42,9 +42,9 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
-        int count = 0;
+        double count = 0;
         if (scoreProvider != null) {
-            scoreProvider.getScore(record);
+            count = scoreProvider.getScore(record);
         } else {
             count = 1;
         }
@@ -56,7 +56,6 @@ public class BedIpcrRecordWriter implements IpcrOutputWriter {
                 i++;
             }
         }
-
     }
 
     private void writeBedRecord(IpcrRecord record) throws IOException {
