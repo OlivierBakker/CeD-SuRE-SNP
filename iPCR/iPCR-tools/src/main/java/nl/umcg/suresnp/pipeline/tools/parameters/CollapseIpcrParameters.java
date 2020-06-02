@@ -62,7 +62,7 @@ public class CollapseIpcrParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("Output type")
-                .argName("IPCR|MACS|BED|BEDPE")
+                .argName("IPCR|IPCR_INDEXED|MACS|BED|BEDPE")
                 .build();
         OPTIONS.addOption(option);
 
@@ -151,6 +151,13 @@ public class CollapseIpcrParameters {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
                 } else {
                     outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped);
+                }
+                break;
+            case "IPCR_INDEXED":
+                if (barcodeCountFiles != null) {
+                    outputWriter = new BlockCompressedIpcrRecordWriter(outputPrefix, barcodeCountFiles);
+                } else {
+                    outputWriter = new BlockCompressedIpcrRecordWriter(outputPrefix);
                 }
                 break;
             case "MACS":

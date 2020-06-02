@@ -224,7 +224,8 @@ public class MakeIpcrFile {
         filters.add(new FivePrimeFragmentLengthEqualsFilter(params.getBarcodeLength()));
         filters.add(new AdapterSequenceMaxMismatchFilter(params.getAdapterMaxMismatch()));
         Map<String, String> readBarcodePairs = barcodeFileReader.readBarcodeFileAsStringMap(inputBarcodeFile, filters);
-        barcodeFileReader.flushAndClose();
+
+        //barcodeFileReader.flushAndClose();
 
         return readBarcodePairs;
     }

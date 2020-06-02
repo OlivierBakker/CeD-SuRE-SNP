@@ -84,7 +84,7 @@ public class MakeIpcrFileParameters {
         option = Option.builder("n")
                 .longOpt("barcode-counts")
                 .hasArg(true)
-                .desc("RNAseq based barcode counts")
+                .desc("RNAseq based barcode counts generated using -T MakeBarcodeCounts")
                 .argName("path/to/file")
                 .build();
         OPTIONS.addOption(option);
@@ -109,7 +109,7 @@ public class MakeIpcrFileParameters {
                 .longOpt("output-type")
                 .hasArg(true)
                 .desc("Output type")
-                .argName("BEDPE|IPCR")
+                .argName("IPCR")
                 .build();
         OPTIONS.addOption(option);
 
@@ -194,13 +194,6 @@ public class MakeIpcrFileParameters {
             }
 
             switch (outputType) {
-                case "BEDPE":
-                    if (barcodeCountFiles != null) {
-                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles,null);
-                    } else {
-                        outputWriter = new BedpeIpcrRecordWriter(new File(outputPrefix), zipped, null);
-                    }
-                    break;
                 case "IPCR":
                     if (barcodeCountFiles != null) {
                         outputWriter = new GenericIpcrRecordWriter(new File(outputPrefix), zipped, barcodeCountFiles);
