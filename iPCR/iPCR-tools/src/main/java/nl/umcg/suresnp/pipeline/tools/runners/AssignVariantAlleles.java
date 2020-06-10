@@ -2,6 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 
 import htsjdk.samtools.*;
+import htsjdk.samtools.util.SortingCollection;
 import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
@@ -37,6 +38,9 @@ public class AssignVariantAlleles {
     // Output
     private AlleleSpecificIpcrOutputWriter outputWriter;
     private DiscaredAlleleSpecificIpcrRecordWriter discaredOutputWriter;
+    private int maxRecordsInMem = 100000000;
+    private SortingCollection<SAMRecord> testing = null;
+
 
     public AssignVariantAlleles(AssignVariantAllelesParameters params) throws IOException {
         this.params = params;
@@ -105,6 +109,19 @@ public class AssignVariantAlleles {
             variantIterable = genotypeData.getVariantIdMap(new VariantIdIncludeFilter(params.getVariantsToInclude())).values();
         }
 
+        //TODO: Cleanup this bamout stuff
+        SAMFileHeader outputHeader = null;
+        if (params.isPrimaryBamOut()) {
+            outputHeader = primarySamReaders.get(0).getFileHeader();
+            outputHeader.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+
+            // Create the soring collection. Can accept <maxRecordsInRam> records without spilling to disk
+            testing = SortingCollection.newInstance(SAMRecord.class,
+                    new BAMRecordCodec(outputHeader),
+                    new SAMRecordCoordinateComparator(),
+                    maxRecordsInMem);
+        }
+
         int i = 0;
         // Loop over all genetic variants in VCF
         for (GeneticVariant curVariant : variantIterable) {
@@ -143,6 +160,36 @@ public class AssignVariantAlleles {
                 evaluateIpcrRecord(rec, currentSamRecords.get(curRead).getSource(), sampleIdx);
             }
         }
+
+        if (params.isPrimaryBamOut()) {
+            // Write the output
+            LOGGER.info("Writing BAM");
+            SAMFileWriter outputWriter = new SAMFileWriterFactory()
+                    .makeSAMOrBAMWriter(outputHeader,
+                            true,
+                            new File(params.getOutputPrefix() + ".bam"));
+
+            for (SAMRecord record : testing) {
+                outputWriter.addAlignment(record);
+            }
+            outputWriter.close();
+            LOGGER.info("BAM written");
+
+            LOGGER.info("Constructing index");
+            // Bam index can only be constructed on existing bam file as it needs to have the info on the GZIP blocks
+            // This is set by the .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
+            BAMIndexer indexer = new BAMIndexer(new File(params.getOutputPrefix() + ".bam.bai"), outputHeader);
+            SamReader samReader = SamReaderFactory.makeDefault()
+                    .validationStringency(ValidationStringency.LENIENT)
+                    .enable(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS)
+                    .open(new File(params.getOutputPrefix() + ".bam"));
+
+            for (SAMRecord record : samReader) {
+                indexer.processAlignment(record);
+            }
+            indexer.finish();
+        }
+
 
         // Close file streams
         outputWriter.flushAndClose();
@@ -415,6 +462,12 @@ public class AssignVariantAlleles {
             while (samRecordIterator.hasNext()) {
                 // Retrieve the current record
                 SAMRecord record = samRecordIterator.next();
+
+                //TODO: Ugly hack
+                if (params.isPrimaryBamOut()) {
+                    testing.add(record);
+                }
+
                 String key = record.getReadName().split(" ")[0];
 
                 // Dont use artifical haplotypes from GATK
@@ -443,6 +496,12 @@ public class AssignVariantAlleles {
                 while (samRecordIterator.hasNext()) {
                     // Retrieve the current record
                     SAMRecord record = samRecordIterator.next();
+
+                    //TODO: Ugly hack
+                    if (params.isPrimaryBamOut()) {
+                        testing.add(record);
+                    }
+
                     String key = record.getReadName().split(" ")[0];
 
                     // Don't save the read if it is already in the output or it is an artifical haplotype

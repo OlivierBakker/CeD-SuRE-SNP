@@ -68,19 +68,22 @@ public class Recode {
 
 
         LOGGER.info("Applying the following filters:");
-        for(IpcrRecordFilter filter : filters) {
+        for (IpcrRecordFilter filter : filters) {
             LOGGER.info(filter.getFilterName());
         }
-
 
         // Define the output writer
         IpcrOutputWriter writer = params.getOutputWriter();
         if (params.isReplaceOldCdnaSamples()) {
-            // Keep only the newly added samples
-            writer.setBarcodeCountFilesSampleNames(writer.getBarcodeCountFilesSampleNames());
+            if (params.getSamplesToWrite() == null) {
+                // Keep only the newly added samples
+                writer.setBarcodeCountFilesSampleNames(writer.getBarcodeCountFilesSampleNames());
+            }
         } else {
-            // Concat the sample names form the existing file and the new ones
-            writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), ipcrReader.getCdnaSamples()));
+            if (params.getSamplesToWrite() == null) {
+                // Concat the sample names form the existing file and the new ones
+                writer.setBarcodeCountFilesSampleNames(ArrayUtils.addAll(writer.getBarcodeCountFilesSampleNames(), ipcrReader.getCdnaSamples()));
+            }
         }
         writer.writeHeader();
 
@@ -91,15 +94,15 @@ public class Recode {
         int writtenRecords = 0;
 
         for (IpcrRecord rec : ipcrReader) {
-            totalRecords ++;
+            totalRecords++;
             logProgress(totalRecords, 1000000, "Recode");
 
             // Apply filters
             boolean passesFilter = true;
             for (IpcrRecordFilter filter : filters) {
                 if (!filter.passesFilter(rec)) {
-                    passesFilter=false;
-                    filteredRecords ++;
+                    passesFilter = false;
+                    filteredRecords++;
                     break;
                 }
             }
@@ -151,7 +154,7 @@ public class Recode {
 
             LOGGER.info("Adding the following samples to the iPCR records");
             StringBuilder logLine = new StringBuilder();
-            for (String file: inputCdna.keySet()) {
+            for (String file : inputCdna.keySet()) {
                 logLine.append(file).append(", ");
             }
             LOGGER.info(logLine.toString());

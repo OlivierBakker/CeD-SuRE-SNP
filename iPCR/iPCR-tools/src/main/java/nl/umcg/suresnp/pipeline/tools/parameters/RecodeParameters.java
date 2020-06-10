@@ -329,6 +329,10 @@ public class RecodeParameters {
         return replaceOldCdnaSamples;
     }
 
+    public String[] getSamplesToWrite() {
+        return samplesToWrite;
+    }
+
     public static void printHelp() {
         HelpFormatter formatter = new HelpFormatter();
         formatter.setWidth(999);

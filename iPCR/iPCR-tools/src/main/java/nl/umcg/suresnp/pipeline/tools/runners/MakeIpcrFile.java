@@ -195,7 +195,10 @@ public class MakeIpcrFile {
             samRecordIterator.close();
             samReader.close();
             outputWriter.flushAndClose();
-            discardedOutputWriter.flushAndClose();
+
+
+            //TODO: Throws a nullpointer
+           // discardedOutputWriter.flushAndClose();
 
         } catch (IOException | ParseException e) {
             e.printStackTrace();

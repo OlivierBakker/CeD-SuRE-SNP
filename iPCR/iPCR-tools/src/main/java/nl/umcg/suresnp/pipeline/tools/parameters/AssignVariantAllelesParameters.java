@@ -39,6 +39,8 @@ public class AssignVariantAllelesParameters {
     private String[] cDNASamples;
     private String[] variantsToInclude;
 
+    private boolean primaryBamOut;
+
     private static final Options OPTIONS;
 
     static {
@@ -145,6 +147,13 @@ public class AssignVariantAllelesParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("bo")
+                .longOpt("bam-out")
+                .hasArg(false)
+                .desc("Should the bam be written, only usefull for debugging and whern using -vf")
+                .build();
+        OPTIONS.addOption(option);
+
     }
 
     public AssignVariantAllelesParameters(String[] args) throws ParseException, IOException {
@@ -156,6 +165,8 @@ public class AssignVariantAllelesParameters {
             printHelp();
             exit(0);
         }
+
+        primaryBamOut = cmd.hasOption("bo");
 
         // Input files
         inputBam = cmd.getOptionValues("i");
@@ -280,6 +291,10 @@ public class AssignVariantAllelesParameters {
 
     public static Options getOptions() {
         return OPTIONS;
+    }
+
+    public boolean isPrimaryBamOut() {
+        return primaryBamOut;
     }
 
     public static void printHelp() {
