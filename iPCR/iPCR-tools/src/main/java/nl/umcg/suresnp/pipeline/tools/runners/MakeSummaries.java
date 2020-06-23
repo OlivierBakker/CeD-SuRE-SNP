@@ -65,6 +65,7 @@ public class MakeSummaries {
         Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
 
+        int indexNumber = 100;
         int inputIpcrCount = ipcrBarcodes.size();
         int inputCdnaCount = cdnaBarcodeCounts.size();
 
@@ -72,9 +73,9 @@ public class MakeSummaries {
         //cdnaBarcodes = (Set<String>) trimBarcodesFivePrime(cdnaBarcodes, new HashSet<>(), 2);
         //ipcrBarcodes = (Set<String>) trimBarcodesFivePrime(ipcrBarcodes, new HashSet<>(), 2);
 
-        Set<String> cdnaBarcodes = cdnaBarcodeCounts.keySet();
-        cdnaBarcodes.retainAll(ipcrBarcodes);
-        int overlappingCount = cdnaBarcodes.size();
+        Set<String> overlappingCdnaBarcodes = new HashSet<>(cdnaBarcodeCounts.keySet());
+        overlappingCdnaBarcodes.retainAll(ipcrBarcodes);
+        int overlappingCount = overlappingCdnaBarcodes.size();
 
         LOGGER.info("cDNA: " + inputCdnaCount);
         LOGGER.info("iPCR: " + inputIpcrCount);
@@ -87,10 +88,17 @@ public class MakeSummaries {
         int barcodeGreaterThan250 = 0;
         int barcodeGreaterThan500 = 0;
         int barcodeGreaterThan1000 = 0;
+        int[] allUniqueCounts = new int[indexNumber];
 
         for (String key : cdnaBarcodeCounts.keySet()) {
             int curCount = cdnaBarcodeCounts.get(key);
+            for (int i=0; i < indexNumber; i++) {
+                if (curCount == i) {
+                    allUniqueCounts[i] ++;
+                }
+            }
             totalCdnaCount += curCount;
+
             if (curCount > 50) {
                 barcodeGreaterThan50 += curCount;
             }
@@ -108,24 +116,59 @@ public class MakeSummaries {
             }
         }
 
+        // Unique counts per bin
+        int[] overlappingUniqueCounts = new int[indexNumber];
+        for (String key: overlappingCdnaBarcodes) {
+            int curCount = cdnaBarcodeCounts.get(key);
+            for (int i=0; i < indexNumber; i++) {
+                if (curCount == i) {
+                    overlappingUniqueCounts[i] ++;
+                }
+            }
+        }
+
+        // Percentage unique per bin
+        double[] overlappingPercentages = new double[indexNumber];
+        for (int i=0; i < indexNumber; i++) {
+            overlappingPercentages[i] = ((double) overlappingUniqueCounts[i] / (double) allUniqueCounts[i]) * 100;
+        }
+
         LOGGER.info(inputCdnaCount +
                 " cDNA barcodes  of which " +
                 overlappingCount +
                 " (" + ((double) overlappingCount / (double) inputCdnaCount) * 100 + "%) could be found in iPCR");
 
+        // Summary file overall
         BufferedWriter output = new GenericFile(params.getOutputPrefix() + ".barcodeOverlap.tsv").getAsBufferedWriter();
-        output.write("total_cDNA\tunique_cDNA\tunique_iPCR\toverlap\t50\t100\t250\t500\t1000\n");
+        output.write("total_cDNA\tunique_cDNA\tunique_iPCR\toverlap\tperc_overlap\t50\t100\t250\t500\t1000\n");
         output.write(totalCdnaCount + "\t" +
                 inputCdnaCount + "\t" +
                 inputIpcrCount + "\t" +
                 overlappingCount + "\t" +
+                ((double) overlappingCount / (double) inputCdnaCount) * 100 + "\t" +
                 barcodeGreaterThan50 + "\t" +
                 barcodeGreaterThan100 + "\t" +
                 barcodeGreaterThan250 + "\t" +
                 barcodeGreaterThan500 + "\t" +
-                barcodeGreaterThan1000 + "\t"
+                barcodeGreaterThan1000
         );
         output.newLine();
+        output.flush();
+        output.close();
+
+
+        // Overlapping counts per bin
+        output = new GenericFile(params.getOutputPrefix() + ".barcodeOverlapPerBin.tsv").getAsBufferedWriter();
+
+        for (int i : allUniqueCounts) { output.write(i + "\t"); }
+        output.newLine();
+
+        for (int i : overlappingUniqueCounts) { output.write(i + "\t"); }
+        output.newLine();
+
+        for (double i : overlappingPercentages) { output.write(i + "\t"); }
+        output.newLine();
+
         output.flush();
         output.close();
     }
