@@ -1,6 +1,5 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
-import JSci.maths.vectors.DoubleVector;
 import com.itextpdf.text.DocumentException;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import htsjdk.tribble.index.Index;
@@ -18,8 +17,6 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrFileReader;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.BlockCompressedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.FivePrimeFragmentLengthEqualsFilter;
-import nl.umcg.suresnp.pipeline.records.inforecord.filters.InfoRecordFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
 import nl.umcg.suresnp.pipeline.utils.BedUtils;
@@ -30,8 +27,8 @@ import umcg.genetica.graphics.Grid;
 import umcg.genetica.graphics.panels.ScatterplotPanel;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
@@ -55,15 +52,18 @@ public class MakeSummaries {
 
     /**
      * Overlap two sets of barcodes and report the count. Can take INFO or IPCR files as input
-     * TODO: Generalize this and integrate with BarcodeOverlap
      *
      * @throws IOException the io exception
      */
     public void barcodeOverlap() throws IOException {
-        // How many of the cDNA barcodes come back in the iPCR
-        Map<String, Integer> cdnaBarcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes()));
-        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
 
+        // How many of the cDNA barcodes come back in the iPCR
+        Map<String, Integer> cdnaBarcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputBarcodes()), params.getTrimBarcodesToLength());
+        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet(params.getTrimBarcodesToLength());
+
+        if (params.getTrimBarcodesToLength() > 0) {
+            LOGGER.info("Trimming barcodes to length: " + params.getTrimBarcodesToLength());
+        }
 
         int indexNumber = 100;
         int inputIpcrCount = ipcrBarcodes.size();
@@ -92,9 +92,9 @@ public class MakeSummaries {
 
         for (String key : cdnaBarcodeCounts.keySet()) {
             int curCount = cdnaBarcodeCounts.get(key);
-            for (int i=0; i < indexNumber; i++) {
+            for (int i = 0; i < indexNumber; i++) {
                 if (curCount == i) {
-                    allUniqueCounts[i] ++;
+                    allUniqueCounts[i]++;
                 }
             }
             totalCdnaCount += curCount;
@@ -118,18 +118,18 @@ public class MakeSummaries {
 
         // Unique counts per bin
         int[] overlappingUniqueCounts = new int[indexNumber];
-        for (String key: overlappingCdnaBarcodes) {
+        for (String key : overlappingCdnaBarcodes) {
             int curCount = cdnaBarcodeCounts.get(key);
-            for (int i=0; i < indexNumber; i++) {
+            for (int i = 0; i < indexNumber; i++) {
                 if (curCount == i) {
-                    overlappingUniqueCounts[i] ++;
+                    overlappingUniqueCounts[i]++;
                 }
             }
         }
 
         // Percentage unique per bin
         double[] overlappingPercentages = new double[indexNumber];
-        for (int i=0; i < indexNumber; i++) {
+        for (int i = 0; i < indexNumber; i++) {
             overlappingPercentages[i] = ((double) overlappingUniqueCounts[i] / (double) allUniqueCounts[i]) * 100;
         }
 
@@ -160,57 +160,25 @@ public class MakeSummaries {
         // Overlapping counts per bin
         output = new GenericFile(params.getOutputPrefix() + ".barcodeOverlapPerBin.tsv").getAsBufferedWriter();
 
-        for (int i : allUniqueCounts) { output.write(i + "\t"); }
+        for (int i : allUniqueCounts) {
+            output.write(i + "\t");
+        }
         output.newLine();
 
-        for (int i : overlappingUniqueCounts) { output.write(i + "\t"); }
+        for (int i : overlappingUniqueCounts) {
+            output.write(i + "\t");
+        }
         output.newLine();
 
-        for (double i : overlappingPercentages) { output.write(i + "\t"); }
+        for (double i : overlappingPercentages) {
+            output.write(i + "\t");
+        }
         output.newLine();
 
         output.flush();
         output.close();
     }
 
-    /**
-     * Overlap two sets of barcodes and write the result into overlapping and non overlapping files.
-     * Can take INFO or CNDA files as input
-     * TODO: Generalize this and integrate with BarcodeOverlap
-     *
-     * @throws IOException the io exception
-     */
-    public void barcodeOverlapWriteOut() throws IOException {
-
-        // How many of the cDNA barcodes come back in the iPCR
-        Set<String> ipcrBarcodes = readIpcrBarcodesAsSet();
-
-        // Write overlapping barcodes
-        List<InfoRecordFilter> filters = new ArrayList<>();
-        filters.add(new FivePrimeFragmentLengthEqualsFilter(20));
-
-        InfoFileReader cdnaBarcodeReader = new SparseInfoFileReader(params.getOutputPrefix(), false);
-        List<String> cdnaBarcodes = cdnaBarcodeReader.getBarcodeList(new GenericFile(params.getInputBarcodes()), filters);
-        cdnaBarcodeReader.flushAndClose();
-
-        BufferedWriter overlappingOutputWriter = new BufferedWriter(new OutputStreamWriter(new GenericFile(params.getOutputPrefix() + ".overlapping.barcodes").getAsOutputStream()));
-        BufferedWriter nonOverlappingOutputWriter = new BufferedWriter(new OutputStreamWriter(new GenericFile(params.getOutputPrefix() + ".non.overlapping.barcodes").getAsOutputStream()));
-
-        for (String curBarcode : cdnaBarcodes) {
-            if (ipcrBarcodes.contains(curBarcode)) {
-                overlappingOutputWriter.write(curBarcode);
-                overlappingOutputWriter.newLine();
-            } else {
-                nonOverlappingOutputWriter.write(curBarcode);
-                nonOverlappingOutputWriter.newLine();
-            }
-        }
-
-        overlappingOutputWriter.flush();
-        overlappingOutputWriter.close();
-        nonOverlappingOutputWriter.flush();
-        nonOverlappingOutputWriter.close();
-    }
 
     /**
      * Calculate the insert size of iPCR fragments. Takes IPCR file as input. Prints histogram.
@@ -223,7 +191,12 @@ public class MakeSummaries {
 
         long insertSizeTotal = 0;
         long totalIpcrCount = 0;
-        StreamingHistogram hist = new StreamingHistogram(10, 20);
+
+        BufferedWriter histogramWriter = new GenericFile(params.getOutputPrefix() + ".insert.size.histogram.tsv").getAsBufferedWriter();
+        BufferedWriter outputWriter = new GenericFile(params.getOutputPrefix() + ".insert.size.tsv").getAsBufferedWriter();
+        outputWriter.write("source\ttotalCount\tmean\tapproxMedian\n");
+
+        StreamingHistogram hist = new StreamingHistogram(1, 500);
 
         for (String file : params.getInputIpcr()) {
             switch (params.getInputType()) {
@@ -233,11 +206,15 @@ public class MakeSummaries {
                     long curRecordCount = 0;
                     long curInsertSizeTotal = 0;
 
+                    // Little bit ugly, but works to get median value
+                    StreamingHistogram curHist = new StreamingHistogram(1, 500);
+
                     while (curRecord != null) {
                         logProgress(curRecordCount, 1000000, "MakeSummaries");
 
                         int curInsertSize = curRecord.getOrientationIndependentEnd() - curRecord.getOrientationIndependentStart();
                         hist.addPostiveValue(curInsertSize);
+                        curHist.addPostiveValue(curInsertSize);
 
                         insertSizeTotal = insertSizeTotal + curInsertSize;
                         curInsertSizeTotal = curInsertSizeTotal + curInsertSize;
@@ -248,24 +225,46 @@ public class MakeSummaries {
                         curRecord = ipcrRecordProvider.getNextRecord();
                     }
                     System.out.print("\n"); // Flush progress bar
+                    LOGGER.info("Mean for: " + file + "\t" + Math.round((double) curInsertSizeTotal / (double) curRecordCount));
 
-                    LOGGER.info("CurInsertSize: " + curInsertSizeTotal);
-                    LOGGER.info("CurRecordCount: " + curRecordCount);
-                    LOGGER.info(file + "\t" + Math.round((double) curInsertSizeTotal / (double) curRecordCount));
-
+                    outputWriter.write(new GenericFile(file).getBaseName());
+                    outputWriter.write("\t");
+                    outputWriter.write(Long.toString(curRecordCount));
+                    outputWriter.write("\t");
+                    outputWriter.write(Double.toString(curHist.getMean()));
+                    outputWriter.write("\t");
+                    outputWriter.write(Double.toString(curHist.getValueOfMedianBin()));
+                    outputWriter.write("\n");
                     break;
+
                 default:
                     throw new IllegalArgumentException("Insert Sizes only supports IPCR input");
             }
         }
 
-        LOGGER.info("Total insert size: " + insertSizeTotal);
-        LOGGER.info("Total ipcr count size: " + totalIpcrCount);
-        LOGGER.info("Average insert size: " + Math.round((double) insertSizeTotal / (double) totalIpcrCount));
-        LOGGER.info("Histrogram:");
+        LOGGER.info("Average insert size: " + hist.getMean());
+        LOGGER.info("Median insert size: " + hist.getValueOfMedianBin());
+        LOGGER.info("Histogram:");
 
         System.out.print(hist.getHistAsString());
 
+        histogramWriter.write(hist.getHistAsTsv());
+        histogramWriter.flush();
+        histogramWriter.close();
+
+        outputWriter.write("total");
+        outputWriter.write("\t");
+        outputWriter.write(Long.toString(totalIpcrCount));
+        outputWriter.write("\t");
+        outputWriter.write(Double.toString(hist.getMean()));
+        outputWriter.write("\t");
+        outputWriter.write(Double.toString(hist.getValueOfMedianBin()));
+        outputWriter.write("\n");
+
+        outputWriter.flush();
+        outputWriter.close();
+
+        LOGGER.info("done");
     }
 
     /**
@@ -275,7 +274,10 @@ public class MakeSummaries {
      * @throws IOException the io exception
      */
     public void makeBarcodeCountHist() throws IOException {
-        Map<String, Integer> barcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputIpcr()[0]));
+        if (params.getTrimBarcodesToLength() > 0) {
+            LOGGER.info("Trimming barcodes to length: " + params.getTrimBarcodesToLength());
+        }
+        Map<String, Integer> barcodeCounts = GenericInfoFileReader.readBarcodeCountFile(new GenericFile(params.getInputIpcr()[0]), params.getTrimBarcodesToLength());
         StreamingHistogram histogram = new StreamingHistogram(1, 20);
 
         int i = 0;
@@ -478,10 +480,12 @@ public class MakeSummaries {
     /**
      * Reads all provided IPCR of INFO files and reads their barcodes into a set.
      *
+     * @param trimBarcodesToLength if zero do not trim barcodes, else trim barcodes to specified length, trims bases from
+     *            left side (5' end) of string.
      * @return Set of unique barcodes
      * @throws IOException the io exception
      */
-    private Set<String> readIpcrBarcodesAsSet() throws IOException {
+    private Set<String> readIpcrBarcodesAsSet(int trimBarcodesToLength) throws IOException {
         Set<String> ipcrBarcodes = new HashSet<>();
 
         for (String file : params.getInputIpcr()) {
@@ -499,7 +503,15 @@ public class MakeSummaries {
                     throw new IllegalArgumentException("No valid input type provided");
             }
 
-            ipcrBarcodes.addAll(currentBarcodes);
+            if (trimBarcodesToLength == 0) {
+                ipcrBarcodes.addAll(currentBarcodes);
+            } else {
+                for (String barcode : currentBarcodes) {
+                    // Inclusive so this works correctly
+                    ipcrBarcodes.add(barcode.substring(barcode.length() - trimBarcodesToLength, barcode.length()));
+                }
+            }
+
         }
 
         return ipcrBarcodes;

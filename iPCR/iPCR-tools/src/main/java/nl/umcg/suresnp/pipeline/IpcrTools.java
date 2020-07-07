@@ -58,10 +58,6 @@ public class IpcrTools {
                     MakeSummaries getInsertSizes = new MakeSummaries(new MakeSummariesParameters(args));
                     getInsertSizes.getInsertSizes();
                     break;
-                case "GetOverlappingBarcodes":
-                    MakeSummaries getOverlappingBarcodes = new MakeSummaries(new MakeSummariesParameters(args));
-                    getOverlappingBarcodes.barcodeOverlapWriteOut();
-                    break;
                 case "MakeBarcodeCountHist":
                     MakeSummaries barcodeCountHist = new MakeSummaries(new MakeSummariesParameters(args));
                     barcodeCountHist.makeBarcodeCountHist();

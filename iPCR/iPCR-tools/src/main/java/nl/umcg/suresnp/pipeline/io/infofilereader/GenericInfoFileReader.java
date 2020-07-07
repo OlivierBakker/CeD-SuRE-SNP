@@ -107,6 +107,10 @@ public class GenericInfoFileReader implements InfoFileReader {
     }
 
     public static Map<String, Integer> readBarcodeCountFile(GenericFile inputBarcodes) throws IOException {
+        return readBarcodeCountFile(inputBarcodes, 0);
+    }
+
+    public static Map<String, Integer> readBarcodeCountFile(GenericFile inputBarcodes, int trimBarcodesToLength) throws IOException {
         // Open a new CSV reader
         CsvReader reader = new CsvReader(inputBarcodes.getAsBufferedReader(), "\t");
         Map<String, Integer> readBarcodePairs = new HashMap<>();
@@ -122,7 +126,16 @@ public class GenericInfoFileReader implements InfoFileReader {
             if (line.length != 2) {
                 continue;
             } else {
-                readBarcodePairs.put(line[0], Integer.parseInt(line[1]));
+                if (trimBarcodesToLength == 0) {
+                    readBarcodePairs.put(line[0], Integer.parseInt(line[1]));
+                } else {
+                    String trimmedBC = line[0].substring(line[0].length() - trimBarcodesToLength);
+                    if (readBarcodePairs.containsKey(trimmedBC)) {
+                        readBarcodePairs.replace(trimmedBC, readBarcodePairs.get(trimmedBC) + Integer.parseInt(line[1]));
+                    } else {
+                        readBarcodePairs.put(trimmedBC, Integer.parseInt(line[1]));
+                    }
+                }
             }
         }
         System.out.print("\n"); // Flush progress bar

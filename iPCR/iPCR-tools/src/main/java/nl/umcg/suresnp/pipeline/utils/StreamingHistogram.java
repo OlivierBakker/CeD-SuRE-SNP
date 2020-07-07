@@ -6,6 +6,8 @@ import java.util.List;
 
 public class StreamingHistogram {
 
+    long totalValue;
+    long totalValuesAdded;
     long binSize;
     List<Long> bins;
     int scalingFactor;
@@ -14,15 +16,22 @@ public class StreamingHistogram {
         this.binSize = binSize;
         this.bins = new ArrayList<>(Collections.nCopies(startingBins, (long)0));
         this.scalingFactor = 30;
+        this.totalValue = 0;
+        this.totalValuesAdded = 0;
     }
 
     public StreamingHistogram(long binSize) {
         this.binSize = binSize;
         this.bins = new ArrayList<>();
         this.scalingFactor = 30;
+        this.totalValue = 0;
+        this.totalValuesAdded = 0;
     }
 
     public void addPostiveValue(long value) {
+        this.totalValue = totalValue + value;
+        this.totalValuesAdded ++;
+
         int idx = (int) Math.round((double)value / (double) binSize) - 1;
 
         if (idx < 0) {
@@ -41,10 +50,47 @@ public class StreamingHistogram {
         long newVal = bins.get(idx);
         newVal ++;
         bins.set(idx, newVal);
-
     }
 
 
+    /**
+     * Returns the mean value in the data
+     * @return the mean value
+     */
+    public double getMean() {
+        return (double) totalValue / totalValuesAdded;
+    }
+
+
+    /**
+     * Retrieves the value of the bin that the median value is contained in.
+     * If binsize is equal to one, and only positive integers are included,
+     * is the same as median value.
+     *
+     * @return the value of the bin in which the median is contained
+     */
+    public double getValueOfMedianBin() {
+        long medianCount = totalValuesAdded / 2;
+
+        int medianBinIndex = 0;
+        long totalBinCount = 0;
+        for (long curBinCount : bins) {
+            totalBinCount += curBinCount;
+            if (totalBinCount < medianCount) {
+                medianBinIndex ++;
+                continue;
+            } else {
+                break;
+            }
+        }
+
+        return medianBinIndex * binSize;
+    }
+
+    /**
+     * Returns a string representation of the histogram in ASCII art
+     * @return a string representation of the histogram
+     */
     public String getHistAsString(){
 
         StringBuilder b = new StringBuilder();
@@ -74,6 +120,10 @@ public class StreamingHistogram {
         return b.toString();
     }
 
+    /**
+     * Gets the histogram as a TSV
+     * @return a TSV representation of the histogram
+     */
     public String getHistAsTsv() {
         StringBuilder b = new StringBuilder();
 

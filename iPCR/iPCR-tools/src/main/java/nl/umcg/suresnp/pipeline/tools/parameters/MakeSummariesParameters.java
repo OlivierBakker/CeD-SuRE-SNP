@@ -20,6 +20,7 @@ public class MakeSummariesParameters {
 
     private String outputPrefix;
     private String outputSuffix;
+    private int trimBarcodesToLength;
 
     // General arguments
     private String toolType;
@@ -65,6 +66,14 @@ public class MakeSummariesParameters {
                 .hasArg(true)
                 .desc("Output prefix")
                 .argName("path/to/output")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("c")
+                .longOpt("trim-barcodes")
+                .hasArg(true)
+                .desc("Trim barcodes to this length")
+                .argName("barcode length")
                 .build();
         OPTIONS.addOption(option);
 
@@ -124,6 +133,16 @@ public class MakeSummariesParameters {
         }
 
 
+        // Input files
+        if (cmd.hasOption('c')) {
+            trimBarcodesToLength = Integer.parseInt(cmd.getOptionValue('c'));
+
+            if (trimBarcodesToLength < 0) {
+                throw new IllegalArgumentException("Barcode length cannot be < 0");
+            }
+        } else {
+            trimBarcodesToLength = 0;
+        }
     }
 
     public CommandLine getCmd() {
@@ -144,6 +163,10 @@ public class MakeSummariesParameters {
 
     public String getOutputSuffix() {
         return outputSuffix;
+    }
+
+    public int getTrimBarcodesToLength() {
+        return trimBarcodesToLength;
     }
 
     public static Options getOPTIONS() {
