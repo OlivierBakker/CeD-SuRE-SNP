@@ -1,7 +1,11 @@
 package nl.umcg.suresnp.pipeline.records.bedrecord;
 
 import htsjdk.samtools.util.IntervalTreeMap;
+import htsjdk.samtools.util.Locatable;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+
+import java.util.Collection;
+import java.util.List;
 
 public class GenericGenomicAnnotation {
 
@@ -40,5 +44,10 @@ public class GenericGenomicAnnotation {
 
     public String[] getHeader() {
         return header;
+    }
+
+
+    public Collection<GenericGenomicAnnotationRecord> query(Locatable key) {
+        return records.getOverlapping(key);
     }
 }

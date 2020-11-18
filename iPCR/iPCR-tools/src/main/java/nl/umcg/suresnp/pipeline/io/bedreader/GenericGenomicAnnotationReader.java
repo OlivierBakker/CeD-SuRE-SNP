@@ -108,15 +108,8 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
                 Integer.parseInt(curLine[1]),
                 Integer.parseInt(curLine[2]));
 
-        if (header == null) {
-            header = new String[curLine.length];
-            for (int i = 0; i < curLine.length; i++) {
-                header[i] = String.valueOf(i);
-            }
-        }
-
         for (int i = 3; i < curLine.length; i++) {
-            curAnnot.addAnnotation(header[i], curLine[i]);
+            curAnnot.addAnnotation(curLine[i]);
         }
 
         return curAnnot;

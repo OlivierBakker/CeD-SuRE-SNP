@@ -4,6 +4,7 @@ import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
+import nl.umcg.suresnp.pipeline.io.ExcelWriter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.bedreader.GenericGenomicAnnotationReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.GenomicAnnotationProvider;
@@ -17,10 +18,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class CreateExcel {
 
@@ -71,12 +69,15 @@ public class CreateExcel {
                     records.put(tmp, tmp);
                 }
 
-                regionAnnotations.add(new GenericGenomicAnnotation(file, reader.getHeader(), records));
+                regionAnnotations.add(new GenericGenomicAnnotation(file,
+                        Arrays.copyOfRange(reader.getHeader(), 3, reader.getHeader().length),
+                        records));
             }
         }
 
 
-
+        ExcelWriter excelWriter = new ExcelWriter(new GenericFile(params.getOutputPrefix() + ".xlsx"));
+        excelWriter.saveSnpAnnotationExcel(variantCache, regionAnnotations);
 
 
         LOGGER.info("debug");

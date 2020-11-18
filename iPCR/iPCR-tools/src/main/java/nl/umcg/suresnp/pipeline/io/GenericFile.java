@@ -112,6 +112,10 @@ public class GenericFile {
         }
     }
 
+    public FileOutputStream getAsFileOutputStream() throws IOException {
+        return new FileOutputStream(new File(path));
+    }
+
     public BufferedWriter getAsBufferedWriter() throws IOException {
         return new BufferedWriter(new OutputStreamWriter(getAsOutputStream(), charset));
     }
