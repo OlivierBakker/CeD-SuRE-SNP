@@ -92,7 +92,8 @@ public class BinnedDensityGenomicPileup implements GenomicRegionPileup {
 
                 // If current and previous recs zero merge them
                 if (curRec.getScore() == 0 && prevRec.getScore() == 0) {
-                    prevRec.setEnd(curRec.getEnd());
+                    //prevRec.setEnd(curRec.getEnd());
+                    prevRec = new BedRecord(prevRec.getContig(), prevRec.getStart(), curRec.getEnd(), prevRec.getScore());
                 } else  if (curRec.getScore() == 0  && prevRec.getScore() != 0) {
                     collapsedRecords.add(prevRec);
                     prevRec = curRec;

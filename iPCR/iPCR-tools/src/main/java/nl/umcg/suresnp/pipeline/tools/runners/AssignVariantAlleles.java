@@ -80,9 +80,10 @@ public class AssignVariantAlleles {
                     "@RG tags in the read headers.");
         }
 
+        LOGGER.warn("Make sure genomic positions are based on the same reference sequence!");
+
         // Create genotype data iterator
         RandomAccessGenotypeData genotypeData = readGenotypeData();
-
         discaredOutputWriter.writeHeader("source\treason");
 
         if (!params.getOutputType().equals("MINIMAL")) {
@@ -135,6 +136,7 @@ public class AssignVariantAlleles {
             Map<String, PairedSamRecord> currentSamRecords = getOverlappingSamRecords(curVariant);
 
             // Get iPCR records overlapping a variant. Is done in window alignment info maybe shifted by GATK
+            // When using locally re-aligned BAM from GATK which may be out of sync with iPCR file.
             // Inside an active window.
             Map<String, IpcrRecord> currentIpcrRecords = getOverlappingIpcrRecords(curVariant, 500);
 
@@ -145,7 +147,7 @@ public class AssignVariantAlleles {
             //LOGGER.debug(overlappingReads.size() + " are intersecting");
 
             for (String curRead : overlappingReads) {
-                // Assign a allele to the current read
+                // Assign an allele to the current read
                 AlleleSpecificIpcrRecord rec = assignVariantAlleleToIpcrRecord(
                         currentIpcrRecords.get(curRead),
                         currentSamRecords.get(curRead),
@@ -154,13 +156,14 @@ public class AssignVariantAlleles {
                         currentSamRecords.get(curRead).getSource());
 
                 // Update position if needed since GATK does local re-alignment
-                if (rec !=null && currentSamRecords.get(curRead).getSource().equals("PrimarySamReader")) {
+                if (rec != null && currentSamRecords.get(curRead).getSource().equals("PrimarySamReader")) {
                     rec.updatePositions(currentSamRecords.get(curRead));
                 }
                 evaluateIpcrRecord(rec, currentSamRecords.get(curRead).getSource(), sampleIdx);
             }
         }
 
+        // bamout stuff
         if (params.isPrimaryBamOut()) {
             // Write the output
             LOGGER.info("Writing BAM");
@@ -207,8 +210,14 @@ public class AssignVariantAlleles {
 
         // Get the variant alleles as string, could be refactored to Allele objects from GenotypeIO
         // For now this works fine
+        if (!curVariant.isBiallelic()) {
+            throw new IllegalArgumentException("Only bi-allelic variants are supported");
+        }
+
         String referenceAllele = curVariant.getRefAllele().getAlleleAsString();
         String alternativeAllele = String.join("", curVariant.getAlternativeAlleles().getAllelesAsString());
+
+
         int variantPos = curVariant.getStartPos();
 
         // Get the variant position in the read. SAM positions are 1 based, so are VCFs
@@ -227,6 +236,7 @@ public class AssignVariantAlleles {
         String tmpReadAllele1;
         String tmpReadAllele2;
 
+/*
         // Determine what the expected allele is based on the genotype if HOM_REF or HOM_ALT. if HET leave as NULL
         // as in this case both alleles are valid.
         String expectedAlleleBasedOnSampleGenotype = null;
@@ -239,6 +249,7 @@ public class AssignVariantAlleles {
                 expectedAlleleBasedOnSampleGenotype = curVariant.getVariantAlleles().getAllelesAsString().get(1);
             }
         }
+*/
 
         // Switch on the variant type.
         switch (variantType) {
@@ -263,8 +274,6 @@ public class AssignVariantAlleles {
                     break;
                 }
             case INSERTION:
-                // The REF allele is the 1st base of the position
-                tmpReadAllele1 = Character.toString(read.charAt(variantPosInRead));
                 int insertEnd = variantPosInRead + alternativeAllele.length();
 
                 // If the variant is at the end of the read and the read does not fully cover the insertion, discard the read
@@ -272,24 +281,24 @@ public class AssignVariantAlleles {
                 if (insertEnd > read.length()) {
                     readAllele = Character.toString(read.charAt(variantPosInRead));
                     altReadAllele = read.substring(variantPosInRead);
-
                     reason = "FullAltAlleleNotAvailable";
                     discarded = true;
                     break;
                 }
+
+                // With a insertion ALT is always longer, and we want to match the longest match
+                // The REF allele is the 1st base of the position
+                tmpReadAllele1 = Character.toString(read.charAt(variantPosInRead));
                 // Determine the ALT allele
                 tmpReadAllele2 = read.substring(variantPosInRead, insertEnd);
 
-                // TODO: verify
-                // Cascade to assign the current allele, both REF and ALT need to be checked
-                if (tmpReadAllele1.equals(expectedAlleleBasedOnSampleGenotype)) {
+                if (referenceAllele.equals(tmpReadAllele1) && !alternativeAllele.equals(tmpReadAllele2)) {
                     readAllele = tmpReadAllele1;
+                    altReadAllele = tmpReadAllele2;
                     break;
-                } else if (tmpReadAllele1.equals(referenceAllele) && !tmpReadAllele2.equals(alternativeAllele)) {
-                    readAllele = tmpReadAllele1;
-                    break;
-                } else if (tmpReadAllele2.equals(alternativeAllele)) {
+                } else if (alternativeAllele.equals(tmpReadAllele2)) {
                     readAllele = tmpReadAllele2;
+                    altReadAllele = tmpReadAllele1;
                     break;
                 } else {
                     readAllele = tmpReadAllele1;
@@ -308,17 +317,18 @@ public class AssignVariantAlleles {
                     discarded = true;
                     break;
                 }
+
+                // With a deletion REF is always longer, and we want to match the longest match
                 tmpReadAllele1 = read.substring(variantPosInRead, deletionEnd);
                 tmpReadAllele2 = Character.toString(read.charAt(variantPosInRead));
-                // TODO: verify
-                if (tmpReadAllele2.equals(expectedAlleleBasedOnSampleGenotype)) {
-                    readAllele = tmpReadAllele2;
-                    break;
-                } else if (tmpReadAllele1.equals(referenceAllele)) {
+
+                if (referenceAllele.equals(tmpReadAllele1)) {
                     readAllele = tmpReadAllele1;
+                    altReadAllele = tmpReadAllele2;
                     break;
-                } else if (tmpReadAllele2.equals(alternativeAllele)) {
+                } else if (alternativeAllele.equals(tmpReadAllele2)) {
                     readAllele = tmpReadAllele2;
+                    altReadAllele = tmpReadAllele1;
                     break;
                 } else {
                     readAllele = tmpReadAllele1;
@@ -327,6 +337,7 @@ public class AssignVariantAlleles {
                     discarded = true;
                     break;
                 }
+
             case INVALID:
                 reason = "InvalidVariantType";
                 discarded = true;
@@ -343,7 +354,8 @@ public class AssignVariantAlleles {
         }
     }
 
-    private boolean evaluateIpcrRecord(AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord, String source, int sampleIdx) throws IOException {
+    private boolean evaluateIpcrRecord(AlleleSpecificIpcrRecord curAlleleSpecificIpcrRecord, String source,
+                                       int sampleIdx) throws IOException {
 
         if (curAlleleSpecificIpcrRecord != null) {
             curAlleleSpecificIpcrRecord.setSampleId(params.getSampleGenotypeId());
@@ -397,7 +409,7 @@ public class AssignVariantAlleles {
         }
 
         if (referenceAllele.length() == 1 && alternativeAllele.length() > 1) {
-            return INSERTION;
+            return VariantType.INSERTION;
         }
 
         if (referenceAllele.length() > 1 && alternativeAllele.length() == 1) {
@@ -435,7 +447,8 @@ public class AssignVariantAlleles {
         return (gt);
     }
 
-    private Map<String, IpcrRecord> getOverlappingIpcrRecords(GeneticVariant curVariant, int window) throws IOException {
+    private Map<String, IpcrRecord> getOverlappingIpcrRecords(GeneticVariant curVariant, int window) throws
+            IOException {
         Map<String, IpcrRecord> output = new HashMap<>();
 
         for (BlockCompressedIpcrFileReader ipcrReader : ipcrReaders) {
@@ -447,17 +460,22 @@ public class AssignVariantAlleles {
         return output;
     }
 
+
     private Map<String, PairedSamRecord> getOverlappingSamRecords(GeneticVariant curVariant) {
+        return getOverlappingSamRecords(curVariant, 0);
+    }
+
+    private Map<String, PairedSamRecord> getOverlappingSamRecords(GeneticVariant curVariant, int window) {
 
         Map<String, PairedSamRecord> output = new HashMap<>();
         SAMRecordIterator samRecordIterator;
         // Get the sam records overlapping the variant
         for (SamReader primarySamReader : primarySamReaders) {
 
-             samRecordIterator = primarySamReader.queryOverlapping(
+            samRecordIterator = primarySamReader.queryOverlapping(
                     curVariant.getSequenceName(),
-                    curVariant.getStartPos(),
-                    curVariant.getStartPos() + 1);
+                    curVariant.getStartPos() - window,
+                    curVariant.getStartPos() + 1 + window);
 
             while (samRecordIterator.hasNext()) {
                 // Retrieve the current record
@@ -490,8 +508,8 @@ public class AssignVariantAlleles {
                 // Get the sam records overlapping the variant
                 samRecordIterator = secondarySamReader.queryOverlapping(
                         curVariant.getSequenceName(),
-                        curVariant.getStartPos(),
-                        curVariant.getStartPos() + 1);
+                        curVariant.getStartPos() - window,
+                        curVariant.getStartPos() + 1 + window);
 
                 while (samRecordIterator.hasNext()) {
                     // Retrieve the current record

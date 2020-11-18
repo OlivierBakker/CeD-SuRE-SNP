@@ -127,10 +127,12 @@ public class EfficientBinnedDensityGenomicPileup implements GenomicRegionPileup 
             return curRec;
         } else {
             // Iterate until curRec.score != 0
-            prevRec.setStart(prevRec.getEnd());
+            //prevRec.setStart(prevRec.getEnd());
+            prevRec = new BedRecord(prevRec.getContig(), prevRec.getEnd(), prevRec.getEnd(), prevRec.getScore());
             prevRec.setScore(0);
             while (curRec.getScore() == 0) {
-                prevRec.setEnd(curRec.getEnd());
+                //prevRec.setEnd(curRec.getEnd());
+                prevRec = new BedRecord(prevRec.getContig(), prevRec.getStart(), curRec.getEnd(), prevRec.getScore());
                 index++;
                 if (hasNext(contig)) {
                     curRec = new BedRecord(contig, prevRec.getEnd(), prevRec.getEnd() + binWidth, scores[index]);

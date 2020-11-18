@@ -85,7 +85,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
                 cachedRegion = regions.next();
             }
 
-            if (cachedIterator == null || !cachedIterator.hasNext()) {
+            if ((cachedIterator == null || !cachedIterator.hasNext()) && cachedRegion != null) {
                 cachedIterator = this.query(cachedRegion.getContig(), cachedRegion.getStart(), cachedRegion.getEnd());
                 cachedRegion = regions.next();
             }

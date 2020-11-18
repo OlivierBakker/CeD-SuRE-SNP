@@ -15,7 +15,7 @@ public class FourColBedFileReader implements BedRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(FourColBedFileReader.class);
     private BufferedReader reader;
-    private String sep = "\t";
+    private static String sep = "\t";
 
     public FourColBedFileReader(GenericFile inputFile) throws IOException {
         this.reader = inputFile.getAsBufferedReader();
@@ -24,7 +24,7 @@ public class FourColBedFileReader implements BedRecordProvider {
     public BedRecord getNextRecord() throws IOException {
         String line = reader.readLine();
         if (line != null) {
-            return parseFourColBedRecord(line);
+            return parseBedRecord(line);
         } else {
             return null;
         }
@@ -49,8 +49,15 @@ public class FourColBedFileReader implements BedRecordProvider {
         reader.close();
     }
 
-    private BedRecord parseFourColBedRecord(String line) {
+    protected static BedRecord parseBedRecord(String line) {
         String[] content = line.split(sep);
+
+        if (content.length == 3) {
+            return new BedRecord(content[0],
+                    Integer.parseInt(content[1]),
+                    Integer.parseInt(content[2]),
+                    0);
+        }
         return new BedRecord(content[0],
                 Integer.parseInt(content[1]),
                 Integer.parseInt(content[2]),

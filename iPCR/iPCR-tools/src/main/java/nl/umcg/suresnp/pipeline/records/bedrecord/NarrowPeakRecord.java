@@ -30,7 +30,7 @@ public class NarrowPeakRecord extends BedRecord implements Feature, Locatable {
         this.name = name;
     }
 
-    public char getStrand() {
+    public char getStrandAsChar() {
         return strand;
     }
 

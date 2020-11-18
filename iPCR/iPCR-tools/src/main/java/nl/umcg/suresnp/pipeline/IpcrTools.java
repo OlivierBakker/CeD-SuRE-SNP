@@ -82,6 +82,11 @@ public class IpcrTools {
                     MakeSummaries index = new MakeSummaries(new MakeSummariesParameters(args));
                     index.indexIpcr();
                     break;
+                case "CreateExcel":
+                    CreateExcel createExcel = new CreateExcel(new CreateExcelParameters(args));
+                    createExcel.run();
+                    break;
+
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();

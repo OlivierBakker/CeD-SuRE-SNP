@@ -3,6 +3,7 @@ package nl.umcg.suresnp.pipeline.records.ipcrrecord.filters;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,9 +12,11 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
-public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord> {
+public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, Iterable<BedRecord> {
 
+    private static final Logger LOGGER = Logger.getLogger(InRegionFilter.class);
     private static final IpcrRecordFilterType type = IpcrRecordFilterType.IN_REGION;
     private boolean filterFailed;
     private int currentIndex;
@@ -57,10 +60,13 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord> {
         BufferedReader reader = new BufferedReader(new InputStreamReader(regionFile.getAsInputStream()));
         String line = reader.readLine();
 
+        if (line.split("\t").length > 3) {
+            LOGGER.warn("More that 3 columns detected, assuming the first 3 are in BED format");
+        }
+
         while (line != null) {
             String[] record = line.split("\t");
-
-            if (record.length == 3) {
+            if (record.length >= 3) {
                 contigs.add(record[0]);
                 starts.add(Integer.parseInt(record[1]));
                 stops.add(Integer.parseInt(record[2]));
@@ -71,6 +77,8 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord> {
         }
 
         reader.close();
+
+        LOGGER.info("Instantiated region filter for " + contigs.size() + " loci");
     }
 
     public void addRegion(String contig, int start, int stop) {
@@ -122,7 +130,13 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord> {
 
     @Override
     public boolean hasNext() {
-        return currentIndex < contigs.size();
+        if (!(currentIndex < contigs.size())) {
+            // reset the index if it is the exit condition
+            currentIndex = 0;
+            return false;
+        } else {
+            return true;
+        }
     }
 
     @Override
@@ -135,5 +149,10 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord> {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public Iterator<BedRecord> iterator() {
+        return this;
     }
 }

@@ -55,7 +55,7 @@ public class GenericFile {
     }
 
     public String getFullExtension() {
-        String cur = FilenameUtils.getBaseName(this.path);
+        String cur = this.getPath().getFileName().toString();
         int idx = cur.indexOf(".");
         if (idx > 0) {
             return (cur.substring(idx));

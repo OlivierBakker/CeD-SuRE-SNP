@@ -26,6 +26,7 @@ public class BlockCompressedIpcrRecordWriter extends GenericIpcrRecordWriter imp
     public BlockCompressedIpcrRecordWriter(String outputPrefix) throws IOException {
         super(null, "\t");
         constructWriters(outputPrefix);
+        //TabixFormat.
     }
 
     public BlockCompressedIpcrRecordWriter(String outputPrefix, String[] barcodeCountFilesSampleNames) throws IOException {

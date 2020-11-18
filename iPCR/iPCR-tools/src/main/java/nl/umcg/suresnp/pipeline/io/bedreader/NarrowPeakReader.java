@@ -16,7 +16,7 @@ public class NarrowPeakReader implements BedRecordProvider {
 
     private static final Logger LOGGER = Logger.getLogger(NarrowPeakReader.class);
     private BufferedReader reader;
-    private String sep = "\t";
+    private static String sep = "\t";
 
     public NarrowPeakReader(GenericFile inputFile) throws IOException {
         this.reader = inputFile.getAsBufferedReader();
@@ -68,7 +68,7 @@ public class NarrowPeakReader implements BedRecordProvider {
         reader.close();
     }
 
-    private NarrowPeakRecord parseNarrowPeakRecord(String line) {
+    protected static NarrowPeakRecord parseNarrowPeakRecord(String line) {
         String[] content = line.split(sep);
         return new NarrowPeakRecord(content[0],
                 Integer.parseInt(content[1]),
