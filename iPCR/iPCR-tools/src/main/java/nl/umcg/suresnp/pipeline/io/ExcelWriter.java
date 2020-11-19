@@ -4,10 +4,10 @@ import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.GeneticVariant;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatistic;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatisticRecord;
 import org.apache.poi.ss.SpreadsheetVersion;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.AreaReference;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.*;
@@ -16,6 +16,7 @@ import org.apache.poi.xssf.usermodel.*;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -28,14 +29,14 @@ public class ExcelWriter {
         this.output = output;
     }
 
-    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations) throws IOException {
+    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<SummaryStatistic> variantAnnotations) throws IOException {
 
         System.setProperty("java.awt.headless", "true");
         Workbook enrichmentWorkbook = new XSSFWorkbook();
         excelStyles = new ExcelStyles(enrichmentWorkbook);
 
         // Put the content
-        populateSnpAnntoationSheet(enrichmentWorkbook, targetVariants, genomicAnnotations);
+        populateSnpAnntoationSheet(enrichmentWorkbook, targetVariants, genomicAnnotations, variantAnnotations);
 
         // write
         enrichmentWorkbook.write(output.getAsFileOutputStream());
@@ -43,11 +44,15 @@ public class ExcelWriter {
     }
 
 
-    private void populateSnpAnntoationSheet(Workbook workbook, Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations) {
+    private void populateSnpAnntoationSheet(Workbook workbook, Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<SummaryStatistic> variantAnnotations) {
         int numberOfCols = 6;
         int numberOfRows = targetVariants.size();
         for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
             numberOfCols += curAnnot.getHeader().length;
+        }
+
+        for (SummaryStatistic curAnnot : variantAnnotations) {
+            numberOfCols += 2;
         }
 
         // Create the sheet
@@ -69,11 +74,17 @@ public class ExcelWriter {
 
         int hc = 0;
         headerRow.createCell(hc++, CellType.STRING).setCellValue("id");
-        headerRow.createCell(hc++, CellType.STRING).setCellValue("Variant id");
-        headerRow.createCell(hc++, CellType.STRING).setCellValue("Chromosome");
-        headerRow.createCell(hc++, CellType.STRING).setCellValue("Position");
-        headerRow.createCell(hc++, CellType.STRING).setCellValue("Allele1");
-        headerRow.createCell(hc++, CellType.STRING).setCellValue("Allele2");
+        headerRow.createCell(hc++, CellType.STRING).setCellValue("variant_id");
+        headerRow.createCell(hc++, CellType.STRING).setCellValue("chromosome");
+        headerRow.createCell(hc++, CellType.STRING).setCellValue("position");
+        headerRow.createCell(hc++, CellType.STRING).setCellValue("allele_1");
+        headerRow.createCell(hc++, CellType.STRING).setCellValue("allele_2");
+
+        for (SummaryStatistic curAnnot : variantAnnotations) {
+            headerRow.createCell(hc++, CellType.STRING).setCellValue(curAnnot.getName() + "_beta");
+            headerRow.createCell(hc++, CellType.STRING).setCellValue(curAnnot.getName() + "_pvalue");
+        }
+
         for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
             for (String curHeader : curAnnot.getHeader()) {
                 headerRow.createCell(hc++, CellType.STRING).setCellValue(curHeader);
@@ -83,46 +94,74 @@ public class ExcelWriter {
         // Populate rows
         int i = 0;
         int r = 1; //+1 for header
+        boolean flipFlop = false;
+
         for (String variantId : targetVariants.keySet()) {
             GeneticVariant curVariant = targetVariants.get(variantId);
 
             XSSFRow row = variantOverview.createRow(r);
 
+            int c = 0;
+
             // Locus ID
-            XSSFCell idCell = row.createCell(0, CellType.STRING);
+            XSSFCell idCell = row.createCell(c++, CellType.STRING);
             idCell.setCellValue(i);
 
             // Variant id
-            XSSFCell locusNameCell = row.createCell(1, CellType.STRING);
+            XSSFCell locusNameCell = row.createCell(c++, CellType.STRING);
             locusNameCell.setCellValue(curVariant.getPrimaryVariantId());
+            locusNameCell.setCellStyle(excelStyles.getBoldStyle());
 
             // Chromosome
-            XSSFCell chrCell = row.createCell(2, CellType.NUMERIC);
+            XSSFCell chrCell = row.createCell(c++, CellType.NUMERIC);
             chrCell.setCellValue(curVariant.getContig());
+            chrCell.setCellStyle(excelStyles.getBoldStyle());
 
             // Position
-            XSSFCell startCell = row.createCell(3, CellType.NUMERIC);
+            XSSFCell startCell = row.createCell(c++, CellType.NUMERIC);
             startCell.setCellValue(curVariant.getPosition());
-            startCell.setCellStyle(excelStyles.getGenomicPositionStyle());
+            startCell.setCellStyle(excelStyles.getBoldGenomicPositionStyle());
 
             // Allele 1
-            XSSFCell a1Cell = row.createCell(4, CellType.NUMERIC);
+            XSSFCell a1Cell = row.createCell(c++, CellType.NUMERIC);
             a1Cell.setCellValue(curVariant.getAllele1());
+            a1Cell.setCellStyle(excelStyles.getBoldStyle());
 
             // Allele 2
-            XSSFCell a2Cell = row.createCell(5, CellType.NUMERIC);
+            XSSFCell a2Cell = row.createCell(c++, CellType.NUMERIC);
             a2Cell.setCellValue(curVariant.getAllele2());
+            a2Cell.setCellStyle(excelStyles.getBoldStyle());
 
-            int c = 6;
+            // Variant annotations
+            for (SummaryStatistic curAnnot : variantAnnotations) {
+                SummaryStatisticRecord curRec = curAnnot.queryVariant(curVariant);
 
+                // Beta
+                XSSFCell betaCell = row.createCell(c++, CellType.NUMERIC);
+                betaCell.setCellStyle(excelStyles.getZscoreStyle());
+
+                // Pvalues
+                XSSFCell pvalCell = row.createCell(c++, CellType.NUMERIC);
+                pvalCell.setCellStyle(excelStyles.getSmallPvalueStyle());
+
+                if (curRec != null) {
+                    betaCell.setCellValue(curRec.getBeta());
+                    pvalCell.setCellValue(curRec.getPvalue());
+                } else {
+                    betaCell.setBlank();
+                    pvalCell.setBlank();
+
+                }
+            }
+
+            // Genomic annotations
             for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
                 Collection<GenericGenomicAnnotationRecord> curRecords = curAnnot.query(curVariant);
                 for (int j = 0; j < curAnnot.getHeader().length; j++) {
                     int subRow = 0;
-                    for (GenericGenomicAnnotationRecord curRecord: curRecords) {
+                    for (GenericGenomicAnnotationRecord curRecord : curRecords) {
 
                         row = variantOverview.getRow(r + subRow);
-
                         if (row == null) {
                             row = variantOverview.createRow(r + subRow);
                         }
@@ -141,9 +180,13 @@ public class ExcelWriter {
                 c += curAnnot.getHeader().length;
             }
 
-            r = variantOverview.getLastRowNum() +1;
+
+
             i++;
+            r = variantOverview.getLastRowNum() + 1;
+            flipFlop = (i % 2) > 0;
         }
+
 
         for (int c = 0; c < numberOfCols; c++) {
             variantOverview.autoSizeColumn(c);

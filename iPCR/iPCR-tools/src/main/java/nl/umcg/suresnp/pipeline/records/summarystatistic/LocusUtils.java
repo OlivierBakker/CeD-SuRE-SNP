@@ -263,9 +263,10 @@ public class LocusUtils {
         List<Locus> loci = new ArrayList<>();
 
         // first sort the statistics by pvalue
+        LOGGER.warn("Sorting pvalues. Does not properly support ties & 0 p-values");
         List<SummaryStatisticRecord> statisticsList = new ArrayList<>(records.values());
-        Collections.sort(statisticsList);
-        //LOGGER.warn("Sorting pvalues. Does not properly support ties & 0 p-values");
+        statisticsList.sort(Comparator.comparingDouble(SummaryStatisticRecord::getPvalue));
+        //Collections.sort(statisticsList);
 
         for (SummaryStatisticRecord curRecord : statisticsList) {
 

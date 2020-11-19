@@ -1,9 +1,11 @@
 package nl.umcg.suresnp.pipeline.records.summarystatistic;
 
+import htsjdk.samtools.util.Interval;
+
 /**
  * Created by olivier on 06/12/2017.
  */
-public class SummaryStatisticRecord extends GeneticVariant implements Comparable<SummaryStatisticRecord> {
+public class SummaryStatisticRecord extends GeneticVariant  {
 
 	//TODO: refactoring to more appropriate names
 	private double beta;
@@ -13,11 +15,7 @@ public class SummaryStatisticRecord extends GeneticVariant implements Comparable
 	private String traitName;
 
 	public SummaryStatisticRecord(SummaryStatisticRecord other) {
-		this.setAllele1(other.getAllele1());
-		this.setAllele2(other.getAllele2());
-		this.setPosition(other.getPosition());
-		this.setSequenceName(other.getContig());
-		this.setPrimaryVariantId(other.getPrimaryVariantId());
+		super(other.getPrimaryVariantId(), other.getAllele1(), other.getAllele2(), other.getPosition(), other.getContig());
 		this.beta = other.getBeta();
 		this.pvalue = other.getPvalue();
 		this.standardError = other.getStandardError();
@@ -26,11 +24,7 @@ public class SummaryStatisticRecord extends GeneticVariant implements Comparable
 	}
 
 	public SummaryStatisticRecord(GeneticVariant other, double beta, double pvalue, double standardError, double falseDiscoveryRate, String traitName) {
-		this.setAllele1(other.getAllele1());
-		this.setAllele2(other.getAllele2());
-		this.setPosition(other.getPosition());
-		this.setSequenceName(other.getContig());
-		this.setPrimaryVariantId(other.getPrimaryVariantId());
+		super(other.getPrimaryVariantId(), other.getAllele1(), other.getAllele2(), other.getPosition(), other.getContig());
 		this.beta = beta;
 		this.pvalue = pvalue;
 		this.standardError = standardError;
@@ -38,29 +32,25 @@ public class SummaryStatisticRecord extends GeneticVariant implements Comparable
 		this.traitName = traitName;
 	}
 
+	public SummaryStatisticRecord(GeneticVariant other, double beta, double pvalue) {
+		super(other.getPrimaryVariantId(), other.getAllele1(), other.getAllele2(), other.getPosition(), other.getContig());
+		this.beta = beta;
+		this.pvalue = pvalue;
+	}
+
 
 	/**
 	 * Instantiates a new minimal Summary statistic record. based on gentic
-	 * variant
+	 * variant (molgenis)
 	 */
 	public SummaryStatisticRecord(org.molgenis.genotype.variant.GeneticVariant variant, double pvalue) {
+		super(variant.getPrimaryVariantId(),null, null, variant.getStartPos(), variant.getSequenceName());
 		this.pvalue = pvalue;
-		this.primaryVariantId = variant.getPrimaryVariantId();
-		this.position = variant.getStartPos();
-		this.sequenceName = variant.getSequenceName();
 	}
 
 	public SummaryStatisticRecord(String id, String chr, int pos, double pvalue) {
+		super(id,null, null, pos, chr);
 		this.pvalue = pvalue;
-		this.primaryVariantId = id;
-		this.position = pos;
-		this.sequenceName = chr;
-	}
-
-	/**
-	 * Instantiates a new Summary statistic record.
-	 */
-	public SummaryStatisticRecord() {
 	}
 
 	/**
@@ -259,12 +249,11 @@ public class SummaryStatisticRecord extends GeneticVariant implements Comparable
 		return output.toString();
 	}
 
-	@Override
-	public int compareTo(SummaryStatisticRecord o) {
+/*	public int compareTo(SummaryStatisticRecord o) {
 		// In case on ties sort on the effect size
 		if (this.pvalue == o.getPvalue() && this.beta != 0) {
 			return Double.compare(Math.abs(this.beta), Math.abs(o.getBeta()));
 		}
 		return Double.compare(this.pvalue, o.getPvalue());
-	}
+	}*/
 }

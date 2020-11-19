@@ -51,6 +51,10 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
 
 
     public InRegionFilter(GenericFile regionFile) throws IOException, ParseException {
+        new InRegionFilter(regionFile, false);
+    }
+
+    public InRegionFilter(GenericFile regionFile, boolean skipFirstLine) throws IOException, ParseException {
         this.contigs = new ArrayList<>();
         this.starts = new ArrayList<>();
         this.stops = new ArrayList<>();
@@ -62,6 +66,10 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
 
         if (line.split("\t").length > 3) {
             LOGGER.warn("More that 3 columns detected, assuming the first 3 are in BED format");
+        }
+
+        if (skipFirstLine) {
+            line = reader.readLine();
         }
 
         while (line != null) {

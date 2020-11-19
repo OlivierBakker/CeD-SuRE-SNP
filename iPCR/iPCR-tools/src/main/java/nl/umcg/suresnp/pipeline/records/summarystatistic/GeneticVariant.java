@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.records.summarystatistic;
 
+import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.Feature;
 
@@ -8,7 +9,7 @@ import java.io.Serializable;
 /**
  * The type Snp.
  */
-public class GeneticVariant implements Feature, Locatable {
+public class GeneticVariant extends Interval implements Feature, Locatable {
 
     /**
      * The primary variant id.
@@ -31,10 +32,8 @@ public class GeneticVariant implements Feature, Locatable {
      */
     protected String sequenceName;
 
-    public GeneticVariant() {
-    }
-
     public GeneticVariant(String primaryVariantId, String allele1, String allele2, int position, String sequenceName) {
+        super(sequenceName, position, position);
         this.primaryVariantId = primaryVariantId;
         this.allele1 = allele1;
         this.allele2 = allele2;
@@ -105,14 +104,14 @@ public class GeneticVariant implements Feature, Locatable {
         return position;
     }
 
-    /**
+/*    *//**
      * Sets position.
      *
      * @param position the position
-     */
+     *//*
     public void setPosition(int position) {
         this.position = position;
-    }
+    }*/
 
     /**
      * Gets human chromosome.
@@ -133,14 +132,14 @@ public class GeneticVariant implements Feature, Locatable {
         }
     }
 
-    /**
+/*    *//**
      * Sets sequence name.
      *
      * @param sequenceName the sequence name
-     */
+     *//*
     public void setSequenceName(String sequenceName) {
         this.sequenceName = sequenceName;
-    }
+    }*/
 
     @Override
     public int getStart() {

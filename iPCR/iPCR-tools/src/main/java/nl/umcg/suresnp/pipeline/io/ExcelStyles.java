@@ -21,6 +21,7 @@ public class ExcelStyles {
 	private final CellStyle genomicPositionStyle;
 	private final CellStyle boldGenomicPositionStyle;
 	private final CellStyle rightAlignedText;
+	private final CellStyle subRowStyle;
 
 	public ExcelStyles(Workbook wb) {
 
@@ -56,6 +57,13 @@ public class ExcelStyles {
 
 		rightAlignedText = wb.createCellStyle();
 		rightAlignedText.setAlignment(HorizontalAlignment.RIGHT);
+
+		subRowStyle = wb.createCellStyle();
+		subRowStyle.setBorderBottom(BorderStyle.NONE);
+		subRowStyle.setBorderTop(BorderStyle.NONE);
+		subRowStyle.setBorderLeft(BorderStyle.NONE);
+		subRowStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		subRowStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.index);
 
 	}
 
@@ -95,7 +103,8 @@ public class ExcelStyles {
 	public CellStyle getRightAlignedText() {
 		return rightAlignedText;
 	}
-	
-	
 
+	public CellStyle getSubRowStyle() {
+		return subRowStyle;
+	}
 }
