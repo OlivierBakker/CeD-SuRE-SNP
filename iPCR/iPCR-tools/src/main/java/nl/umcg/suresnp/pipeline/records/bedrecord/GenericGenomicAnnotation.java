@@ -7,15 +7,16 @@ import nl.umcg.suresnp.pipeline.io.GenericFile;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public class GenericGenomicAnnotation {
 
-    private GenericFile path;
+    private final GenericFile path;
+    private final String[] header;
     private String name;
-    private String[] header;
-    private IntervalTreeMap<List<GenericGenomicAnnotationRecord>> records;
+    private IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records;
 
-    public GenericGenomicAnnotation(GenericFile path, String[] header, IntervalTreeMap<List<GenericGenomicAnnotationRecord>> records) {
+    public GenericGenomicAnnotation(GenericFile path, String[] header, IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records) {
         this.path = path;
         this.records = records;
         this.header = header;
@@ -30,11 +31,11 @@ public class GenericGenomicAnnotation {
         this.name = name;
     }
 
-    public IntervalTreeMap<List<GenericGenomicAnnotationRecord>> getRecords() {
+    public IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> getRecords() {
         return records;
     }
 
-    public void setRecords(IntervalTreeMap<List<GenericGenomicAnnotationRecord>> records) {
+    public void setRecords(IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records) {
         this.records = records;
     }
 

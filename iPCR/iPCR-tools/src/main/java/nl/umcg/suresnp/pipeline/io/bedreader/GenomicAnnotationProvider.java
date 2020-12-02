@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public interface GenomicAnnotationProvider extends BedRecordProvider, Iterator<GenericGenomicAnnotationRecord>, Iterable<GenericGenomicAnnotationRecord>  {
-    GenericGenomicAnnotationRecord getNextGenomicAnnotation() throws IOException;
     List<GenericGenomicAnnotationRecord> getGenericGenomicAnnotationsAsList() throws IOException;
     String[] getHeader();
 }

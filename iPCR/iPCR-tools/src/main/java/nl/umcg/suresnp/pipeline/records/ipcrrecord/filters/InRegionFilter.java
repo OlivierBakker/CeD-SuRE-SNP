@@ -24,22 +24,6 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
     private List<Integer> starts;
     private List<Integer> stops;
 
-    public InRegionFilter() {
-        this.contigs = new ArrayList<>();
-        this.starts = new ArrayList<>();
-        this.stops = new ArrayList<>();
-        this.currentIndex = 0;
-        this.filterFailed = false;
-    }
-
-    public InRegionFilter(List<String> contigs, List<Integer> starts, List<Integer> stops) {
-        this.contigs = contigs;
-        this.starts = starts;
-        this.stops = stops;
-        this.currentIndex = 0;
-        this.filterFailed = false;
-    }
-
     public InRegionFilter(String contig, int start, int stop) {
         this.contigs = new ArrayList<>();
         this.starts = new ArrayList<>();
@@ -49,10 +33,6 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
         addRegion(contig, start, stop);
     }
 
-
-    public InRegionFilter(GenericFile regionFile) throws IOException, ParseException {
-        new InRegionFilter(regionFile, false);
-    }
 
     public InRegionFilter(GenericFile regionFile, boolean skipFirstLine) throws IOException, ParseException {
         this.contigs = new ArrayList<>();

@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import static java.lang.System.exit;
+import static java.lang.System.in;
 
 public class IpcrTools {
 
@@ -107,10 +108,14 @@ public class IpcrTools {
     }
 
     public static void logProgress(long curCount, long interval, String classname) {
+        logProgress(curCount, interval, classname, "million");
+    }
+
+    public static void logProgress(long curCount, long interval, String classname, String unit) {
         if (curCount > 0) {
             if (curCount % interval == 0) {
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss,SSS");
-                System.out.print(formatter.format(new Date()) + " INFO  [" + classname + "] Processed " + curCount / interval + " million records\r");
+                System.out.print(formatter.format(new Date()) + " INFO  [" + classname + "] Processed " + curCount / interval + " " + unit + " records\r");
             }
         }
     }

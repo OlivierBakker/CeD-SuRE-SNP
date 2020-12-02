@@ -1,13 +1,18 @@
 package nl.umcg.suresnp.pipeline.records.bedrecord;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.broad.igv.bbfile.BedFeature;
+
+import java.util.*;
 
 public class GenericGenomicAnnotationRecord extends BedRecord {
 
-    private List<String> annotations;
+    private final List<String> annotations;
+
+    public GenericGenomicAnnotationRecord(BedFeature record) {
+        super(record.getChromosome(), record.getStartBase(), record.getEndBase(), 0);
+        annotations = Arrays.asList(record.getRestOfFields());
+        //annotations.put("score", String.valueOf(record.getScore()));
+    }
 
     public GenericGenomicAnnotationRecord(BedRecord record) {
         super(record.getContig(), record.getStart(), record.getEnd(), record.getScore());
@@ -30,12 +35,17 @@ public class GenericGenomicAnnotationRecord extends BedRecord {
 
     public GenericGenomicAnnotationRecord(String contig, int start, int end) {
         super(contig, start, end);
-        annotations = new ArrayList<>();
+        this.annotations = new ArrayList<>();
+    }
+
+    public GenericGenomicAnnotationRecord(String contig, int start, int end, String[] annotations) {
+        super(contig, start, end);
+        this.annotations = Arrays.asList(annotations);
     }
 
     public GenericGenomicAnnotationRecord(String contig, int start, int end, double score) {
         super(contig, start, end, score);
-        annotations = new ArrayList<>();
+        this.annotations = new ArrayList<>();
     }
 
     public void addAnnotation(String annotation) {
@@ -46,7 +56,17 @@ public class GenericGenomicAnnotationRecord extends BedRecord {
         return annotations;
     }
 
-    public void setAnnotations(List<String> annotations) {
-        this.annotations = annotations;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        GenericGenomicAnnotationRecord that = (GenericGenomicAnnotationRecord) o;
+        return Objects.equals(annotations, that.annotations);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), annotations);
     }
 }

@@ -23,16 +23,6 @@ public class NarrowPeakReader implements BedRecordProvider {
     }
 
     @Override
-    public NarrowPeakRecord getNextRecord() throws IOException {
-        String line = reader.readLine();
-        if (line != null) {
-            return parseNarrowPeakRecord(line);
-        } else {
-            return null;
-        }
-    }
-
-    @Override
     public List<BedRecord> getBedRecordAsList() throws IOException {
         List<BedRecord> output = new TreeList<>();
         NarrowPeakRecord curRecord = getNextRecord();
@@ -80,5 +70,15 @@ public class NarrowPeakReader implements BedRecordProvider {
                 Double.parseDouble(content[7]),
                 Double.parseDouble(content[8]),
                 Integer.parseInt(content[9]));
+    }
+
+
+    private NarrowPeakRecord getNextRecord() throws IOException {
+        String line = reader.readLine();
+        if (line != null) {
+            return parseNarrowPeakRecord(line);
+        } else {
+            return null;
+        }
     }
 }

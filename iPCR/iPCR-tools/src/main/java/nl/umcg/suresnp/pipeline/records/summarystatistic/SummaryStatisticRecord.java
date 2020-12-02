@@ -222,11 +222,11 @@ public class SummaryStatisticRecord extends GeneticVariant  {
 					.append(separator);
 		}
 		if (includeInOutput[1]) {
-			output.append(sequenceName)
+			output.append(getContig())
 					.append(separator);
 		}
 		if (includeInOutput[2]) {
-			output.append(Long.toString(position))
+			output.append(Long.toString(getStart()))
 					.append(separator);
 		}
 		if (includeInOutput[3]) {

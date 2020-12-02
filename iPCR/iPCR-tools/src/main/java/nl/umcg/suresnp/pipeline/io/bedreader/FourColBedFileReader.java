@@ -21,14 +21,6 @@ public class FourColBedFileReader implements BedRecordProvider {
         this.reader = inputFile.getAsBufferedReader();
     }
 
-    public BedRecord getNextRecord() throws IOException {
-        String line = reader.readLine();
-        if (line != null) {
-            return parseBedRecord(line);
-        } else {
-            return null;
-        }
-    }
 
     public List<BedRecord> getBedRecordAsList() throws IOException {
         List<BedRecord> output = new TreeList<>();
@@ -62,5 +54,14 @@ public class FourColBedFileReader implements BedRecordProvider {
                 Integer.parseInt(content[1]),
                 Integer.parseInt(content[2]),
                 Double.parseDouble(content[3]));
+    }
+
+    private BedRecord getNextRecord() throws IOException {
+        String line = reader.readLine();
+        if (line != null) {
+            return parseBedRecord(line);
+        } else {
+            return null;
+        }
     }
 }

@@ -15,30 +15,29 @@ public class GeneticVariant extends Interval implements Feature, Locatable {
      * The primary variant id.
      */
     protected String primaryVariantId;
+
     /**
      * The Allele 1.
      */
     protected String allele1;
+
     /**
      * The Allele 2.
      */
     protected String allele2;
-    /**
-     * The Position.
-     */
-    protected int position;
-    /**
-     * The Sequence name.
-     */
-    protected String sequenceName;
+
+    public GeneticVariant(GeneticVariant other) {
+        super(other.getContig(), other.getStart(), other.getEnd());
+        this.primaryVariantId = other.getPrimaryVariantId();
+        this.allele1 = other.getAllele1();
+        this.allele2 = other.getAllele2();
+    }
 
     public GeneticVariant(String primaryVariantId, String allele1, String allele2, int position, String sequenceName) {
         super(sequenceName, position, position);
         this.primaryVariantId = primaryVariantId;
         this.allele1 = allele1;
         this.allele2 = allele2;
-        this.position = position;
-        this.sequenceName = sequenceName;
     }
 
     /**
@@ -101,17 +100,9 @@ public class GeneticVariant extends Interval implements Feature, Locatable {
      * @return the position
      */
     public int getPosition() {
-        return position;
+        return this.getStart();
     }
 
-/*    *//**
-     * Sets position.
-     *
-     * @param position the position
-     *//*
-    public void setPosition(int position) {
-        this.position = position;
-    }*/
 
     /**
      * Gets human chromosome.
@@ -120,44 +111,17 @@ public class GeneticVariant extends Interval implements Feature, Locatable {
      */
     public int getHumanChromosome() {
 
-        if (sequenceName.toLowerCase().equals("x")) {
+        if (getContig().toLowerCase().equals("x")) {
             return (23);
-        } else if (sequenceName.toLowerCase().equals("y")) {
+        } else if (getContig().toLowerCase().equals("y")) {
             return (24);
-        } else if (sequenceName.toLowerCase().equals("mt")) {
+        } else if (getContig().toLowerCase().equals("mt")) {
             return (25);
         } else {
-            String curSeq = sequenceName;
+            String curSeq = getContig();
             return Integer.parseInt(curSeq.replace("chr", ""));
         }
     }
-
-/*    *//**
-     * Sets sequence name.
-     *
-     * @param sequenceName the sequence name
-     *//*
-    public void setSequenceName(String sequenceName) {
-        this.sequenceName = sequenceName;
-    }*/
-
-    @Override
-    public int getStart() {
-        return position;
-    }
-
-    @Override
-    public int getEnd() {
-        return position;
-    }
-
-    /**
-     * Get sequence name string.
-     *
-     * @return the string
-     */
-    @Override
-    public String getContig(){return sequenceName;}
 
     /**
      * Is transition boolean.

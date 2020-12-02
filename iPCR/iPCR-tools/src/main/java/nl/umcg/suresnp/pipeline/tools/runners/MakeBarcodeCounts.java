@@ -149,6 +149,9 @@ public class MakeBarcodeCounts {
 
         histogramWriter.write(histogram.getHistAsTsv());
 
+        LOGGER.info("Histogram of counts:");
+        System.out.println(histogram.getHistAsString());
+
         outputWriter.flush();
         outputWriter.close();
 

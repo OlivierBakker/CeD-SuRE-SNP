@@ -3,10 +3,14 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
+import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
+import nl.umcg.suresnp.pipeline.IpcrTools;
 import nl.umcg.suresnp.pipeline.io.ExcelWriter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.io.bedreader.BigBedGenomicAnnotationReader;
+import nl.umcg.suresnp.pipeline.io.bedreader.BlockCompressedGenomicAnnotationReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.GenericGenomicAnnotationReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.GenomicAnnotationProvider;
 import nl.umcg.suresnp.pipeline.io.summarystatisticreader.ReferenceDependentSummaryStatisticReader;
@@ -14,15 +18,14 @@ import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.GeneticVariant;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatistic;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatisticRecord;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.*;
 import nl.umcg.suresnp.pipeline.tools.parameters.CreateExcelParameters;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CreateExcel {
 
@@ -62,49 +65,79 @@ public class CreateExcel {
             }
         }
 
+        // List of variants
+        List<Locatable> variantsAsLocatable = new ArrayList<>(variantCache.values());
+
         // Genomic annotations, currently unaffected by the region filter option
         List<GenericGenomicAnnotation> regionAnnotations = new ArrayList<>();
         if (params.getRegionAnnotationFiles() != null) {
-            for(GenericFile file : params.getRegionAnnotationFiles()) {
-                GenomicAnnotationProvider reader = new GenericGenomicAnnotationReader(file, true);
-                IntervalTreeMap<List<GenericGenomicAnnotationRecord>> records = new IntervalTreeMap<>();
+            for (GenericFile file : params.getRegionAnnotationFiles()) {
 
-                for (GenericGenomicAnnotationRecord tmp : reader) {
-                    if (records.containsKey(tmp)) {
-                        records.get(tmp).add(tmp);
-                    } else {
-                        List<GenericGenomicAnnotationRecord> bla = new ArrayList(1);
-                        bla.add(tmp);
-                        records.put(tmp, bla);
-                    }
+                IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records = new IntervalTreeMap<>();
+                GenomicAnnotationProvider reader;
 
+                if (file.isTabixIndexed()) {
+                    reader = new BlockCompressedGenomicAnnotationReader(file, variantsAsLocatable, true);
+                } else if (file.isBigBed()) {
+                    // TODO: hardcoded that bigBed file should have chr as a contig prefix
+                    LOGGER.warn("Hardcoded that bigBed file should have chr as a contig prefix");
+                    reader = new BigBedGenomicAnnotationReader(file, variantsAsLocatable, true);
+                } else {
+                    reader = new GenericGenomicAnnotationReader(file, true);
                 }
 
+                LOGGER.debug("Instantiated reader for file: " + file.getPath());
+                int i = 0;
+                for (GenericGenomicAnnotationRecord curRec : reader) {
+                    if (curRec != null) {
+                        if (records.containsKey(curRec)) {
+                            records.get(curRec).add(curRec);
+                        } else {
+                            Set<GenericGenomicAnnotationRecord> bla = new HashSet<>(1);
+                            bla.add(curRec);
+                            records.put(curRec, bla);
+                        }
+                    }
+                    IpcrTools.logProgress(i, 1000, reader.getClass().getSimpleName(), "thousand");
+                    i++;
+                }
+                System.out.print("\n"); // Flush progress bar
+                LOGGER.info("Read " + records.size() + " unique, non null locations");
+
+                String[] header = Arrays.copyOfRange(reader.getHeader(), 3, reader.getHeader().length);
                 reader.close();
+
                 regionAnnotations.add(new GenericGenomicAnnotation(file,
-                        Arrays.copyOfRange(reader.getHeader(), 3, reader.getHeader().length),
+                        header,
                         records));
             }
             LOGGER.info("Read genomic annotations");
         }
 
         // Variant annotations, currently unaffected by the region filter option
-        List<SummaryStatistic> variantAnnotations = new ArrayList<>();
+        List<VariantBasedNumericGenomicAnnotation> variantAnnotations = new ArrayList<>();
         if (params.getVariantAnnotationFiles() != null) {
-            for(GenericFile file : params.getVariantAnnotationFiles()) {
+            for (GenericFile file : params.getVariantAnnotationFiles()) {
+
                 ReferenceDependentSummaryStatisticReader reader = new ReferenceDependentSummaryStatisticReader(file,
                         new GenericFile(params.getOutputPrefix() + "missingVariants.txt"),
                         variantCache,
-                        false);
-                IntervalTreeMap<SummaryStatisticRecord> records = new IntervalTreeMap<>();
+                        true);
 
-                for (SummaryStatisticRecord tmp : reader) {
+                Map<String, VariantBasedNumericGenomicAnnotationRecord> records = new HashMap<>();
+                String[] header = Arrays.copyOfRange(reader.getHeader(), 1, reader.getHeader().length);
+
+                for (int i = 0; i < header.length; i++) {
+                    header[i] = file.getBaseName() + "_" + header[i];
+                }
+
+                for (VariantBasedNumericGenomicAnnotationRecord tmp : reader) {
                     if (tmp != null) {
-                        records.put(tmp, tmp);
+                        records.put(tmp.getPrimaryVariantId(), tmp);
                     }
                 }
 
-                variantAnnotations.add(new SummaryStatistic(file, records));
+                variantAnnotations.add(new VariantBasedNumericGenomicAnnotation(file, header, records));
             }
             LOGGER.info("Read variant annotations");
         }

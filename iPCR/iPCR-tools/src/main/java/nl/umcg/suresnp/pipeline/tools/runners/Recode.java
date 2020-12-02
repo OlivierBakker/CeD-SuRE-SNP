@@ -9,6 +9,8 @@ import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilterType;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.filters.FilterType;
 import nl.umcg.suresnp.pipeline.tools.parameters.RecodeParameters;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
@@ -54,13 +56,13 @@ public class Recode {
             // When not using tabix indexed file reader apply classical filtering
             if (params.getRegionFilterFile() != null) {
                 LOGGER.info("Will loop over all records to extract loci");
-                filters.add(new InRegionFilter(params.getRegionFilterFile()));
+                filters.add(new InRegionFilter(params.getRegionFilterFile(), false));
             }
         } else {
             LOGGER.info("Using BlockCompressedIpcrFileReader");
             if (params.getRegionFilterFile() != null) {
                 LOGGER.info("Using Tabix for fast extraction of loci");
-                ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), new InRegionFilter(params.getRegionFilterFile()));
+                ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), new InRegionFilter(params.getRegionFilterFile(), false));
             } else {
                 ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
             }

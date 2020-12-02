@@ -3,9 +3,7 @@ package nl.umcg.suresnp.pipeline.io;
 import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.GeneticVariant;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatistic;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatisticRecord;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.*;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.AreaReference;
@@ -29,7 +27,7 @@ public class ExcelWriter {
         this.output = output;
     }
 
-    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<SummaryStatistic> variantAnnotations) throws IOException {
+    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) throws IOException {
 
         System.setProperty("java.awt.headless", "true");
         Workbook enrichmentWorkbook = new XSSFWorkbook();
@@ -44,15 +42,18 @@ public class ExcelWriter {
     }
 
 
-    private void populateSnpAnntoationSheet(Workbook workbook, Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<SummaryStatistic> variantAnnotations) {
+    private void populateSnpAnntoationSheet(Workbook workbook, Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) {
         int numberOfCols = 6;
         int numberOfRows = targetVariants.size();
+
+        // Determine number of columns
         for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
             numberOfCols += curAnnot.getHeader().length;
         }
 
-        for (SummaryStatistic curAnnot : variantAnnotations) {
-            numberOfCols += 2;
+        // Determine number of rows
+        for (VariantBasedNumericGenomicAnnotation curAnnot : variantAnnotations) {
+            numberOfCols += curAnnot.getHeader().length;
         }
 
         // Create the sheet
@@ -80,9 +81,10 @@ public class ExcelWriter {
         headerRow.createCell(hc++, CellType.STRING).setCellValue("allele_1");
         headerRow.createCell(hc++, CellType.STRING).setCellValue("allele_2");
 
-        for (SummaryStatistic curAnnot : variantAnnotations) {
-            headerRow.createCell(hc++, CellType.STRING).setCellValue(curAnnot.getName() + "_beta");
-            headerRow.createCell(hc++, CellType.STRING).setCellValue(curAnnot.getName() + "_pvalue");
+        for (VariantBasedNumericGenomicAnnotation curAnnot : variantAnnotations) {
+            for (String curHeader : curAnnot.getHeader()) {
+                headerRow.createCell(hc++, CellType.STRING).setCellValue(curHeader);
+            }
         }
 
         for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
@@ -132,29 +134,25 @@ public class ExcelWriter {
             a2Cell.setCellValue(curVariant.getAllele2());
             a2Cell.setCellStyle(excelStyles.getBoldStyle());
 
-            // Variant annotations
-            for (SummaryStatistic curAnnot : variantAnnotations) {
-                SummaryStatisticRecord curRec = curAnnot.queryVariant(curVariant);
-
-                // Beta
-                XSSFCell betaCell = row.createCell(c++, CellType.NUMERIC);
-                betaCell.setCellStyle(excelStyles.getZscoreStyle());
-
-                // Pvalues
-                XSSFCell pvalCell = row.createCell(c++, CellType.NUMERIC);
-                pvalCell.setCellStyle(excelStyles.getSmallPvalueStyle());
+            // Variant annotations, only one per row
+            for (VariantBasedNumericGenomicAnnotation curAnnot : variantAnnotations) {
+                VariantBasedNumericGenomicAnnotationRecord curRec = curAnnot.query(curVariant.getPrimaryVariantId());
 
                 if (curRec != null) {
-                    betaCell.setCellValue(curRec.getBeta());
-                    pvalCell.setCellValue(curRec.getPvalue());
+                    for (int j = 0; j < curAnnot.getHeader().length; j++) {
+                        XSSFCell betaCell = row.createCell(c++, CellType.NUMERIC);
+                        betaCell.setCellStyle(excelStyles.getZscoreStyle());
+                        betaCell.setCellValue(curRec.getAnnotations().get(j));
+                    }
                 } else {
-                    betaCell.setBlank();
-                    pvalCell.setBlank();
-
+                    for (int j = 0; j < curAnnot.getHeader().length; j++) {
+                        row.createCell(c++, CellType.BLANK);
+                    }
                 }
+
             }
 
-            // Genomic annotations
+            // Genomic annotations, multiple per row
             for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
                 Collection<GenericGenomicAnnotationRecord> curRecords = curAnnot.query(curVariant);
                 for (int j = 0; j < curAnnot.getHeader().length; j++) {
@@ -166,20 +164,22 @@ public class ExcelWriter {
                             row = variantOverview.createRow(r + subRow);
                         }
 
-                        // ID
-                        idCell = row.createCell(0, CellType.STRING);
-                        idCell.setCellValue(i);
+                        if (curRecord.getAnnotations().size() == curAnnot.getHeader().length) {
+                            // ID
+                            idCell = row.createCell(0, CellType.STRING);
+                            idCell.setCellValue(i);
 
-                        // Dynamic annotation
-                        XSSFCell curCell = row.createCell(c + j, CellType.STRING);
-                        curCell.setCellValue(curRecord.getAnnotations().get(j));
-                        subRow++;
+                            // Dynamic annotation
+                            XSSFCell curCell = row.createCell(c + j, CellType.STRING);
+                            curCell.setCellValue(curRecord.getAnnotations().get(j));
+                            subRow++;
+                        }
+
                     }
 
                 }
                 c += curAnnot.getHeader().length;
             }
-
 
 
             i++;
@@ -188,12 +188,13 @@ public class ExcelWriter {
         }
 
 
+        variantOverview.createFreezePane(1,1);
+        variantOverview.setZoom(75);
         for (int c = 0; c < numberOfCols; c++) {
             variantOverview.autoSizeColumn(c);
             variantOverview.setColumnWidth(c, variantOverview.getColumnWidth(c) + 200); //compensate for with auto filter and inaccuracies
-            if (c > 1 && variantOverview.getColumnWidth(c) > 20000) {
-                //max col width. Not for first column.
-                variantOverview.setColumnWidth(c, 20000);
+            if (variantOverview.getColumnWidth(c) > 5000) {
+                variantOverview.setColumnWidth(c, 5000);
             }
         }
     }

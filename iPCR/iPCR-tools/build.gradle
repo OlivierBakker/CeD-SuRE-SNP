@@ -52,6 +52,7 @@ dependencies {
     compile group: 'org.utgenome.thirdparty', name: 'picard', version: '1.102.0'
     compile group: 'com.github.samtools', name: 'htsjdk', version: '2.21.1'
     compile group: 'org.molgenis', name: 'vcf-io', version: '1.1.1'
+   // compile group: 'org.clojars.chapmanb', name: 'bigwig', version: 'r39'
     //compile group: 'com.github.samtools', name: 'htsjdk', version: '2.16.0'
     compile group: 'org.apache.poi', name: 'poi', version: '4.1.2'
     compile group: 'org.apache.poi', name: 'poi-ooxml', version: '4.1.2'
@@ -60,6 +61,7 @@ dependencies {
     testCompile group: 'org.testng', name: 'testng', version: '6.4'
     compile files("libs/Genotype-IO-1.0.6-SNAPSHOT.jar")
     compile files("libs/genetica-libraries-1.0.10-SNAPSHOT.jar")
+    compile files("libs/igv.jar")
 
     // for genetica libraries
     compile group: 'com.itextpdf', name: 'itextpdf', version: '5.0.6'

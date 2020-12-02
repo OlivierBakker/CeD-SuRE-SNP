@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public interface BedRecordProvider {
-    BedRecord getNextRecord() throws IOException;
     List<BedRecord> getBedRecordAsList() throws IOException;
     void close() throws IOException;
 }

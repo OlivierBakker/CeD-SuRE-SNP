@@ -73,7 +73,7 @@ public class MakeIpcrFile {
             // Region filter
             IpcrRecordFilter inRegionFilter = null;
             if (params.getRegionFilterFile() != null) {
-                inRegionFilter = new InRegionFilter(params.getRegionFilterFile());
+                inRegionFilter = new InRegionFilter(params.getRegionFilterFile(), false);
             }
 
             // Init variables for logging some statistics

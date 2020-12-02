@@ -48,33 +48,15 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
     }
 
     @Override
-    public GenericGenomicAnnotationRecord getNextGenomicAnnotation() throws IOException {
-        String line = reader.readLine();
-        if (line != null) {
-            switch (type) {
-                case "NARROW_PEAK":
-                    return new GenericGenomicAnnotationRecord(NarrowPeakReader.parseNarrowPeakRecord(line));
-                case "BED":
-                    return new GenericGenomicAnnotationRecord(FourColBedFileReader.parseBedRecord(line));
-                default:
-                    return parseGenomicAnnotation(line);
-            }
-        } else {
-            return null;
-        }
-    }
-
-    @Override
     public List<GenericGenomicAnnotationRecord> getGenericGenomicAnnotationsAsList() throws IOException {
         List<GenericGenomicAnnotationRecord> output = new TreeList<>();
-        GenericGenomicAnnotationRecord curRecord = getNextGenomicAnnotation();
         int i = 0;
 
-        while (curRecord != null) {
+        while (hasNext()) {
             logProgress(i, 10000, "GenericGenomicAnnotationReader");
             i++;
+            GenericGenomicAnnotationRecord curRecord = getNextGenomicAnnotation();
             output.add(curRecord);
-            curRecord = getNextGenomicAnnotation();
         }
         LOGGER.info("Read " + i + " records");
         return output;
@@ -83,11 +65,6 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
     @Override
     public String[] getHeader() {
         return header;
-    }
-
-    @Override
-    public BedRecord getNextRecord() throws IOException {
-        return this.getNextGenomicAnnotation();
     }
 
     @Override
@@ -101,7 +78,7 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
         reader.close();
     }
 
-    protected GenericGenomicAnnotationRecord parseGenomicAnnotation(String line) {
+    protected static GenericGenomicAnnotationRecord parseGenomicAnnotation(String line) {
         String[] curLine = line.split(sep);
         GenericGenomicAnnotationRecord curAnnot = new GenericGenomicAnnotationRecord(
                 curLine[0],
@@ -144,4 +121,21 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
 
         return result;
     }
+
+    private GenericGenomicAnnotationRecord getNextGenomicAnnotation() throws IOException {
+        String line = reader.readLine();
+        if (line != null) {
+            switch (type) {
+                case "NARROW_PEAK":
+                    return new GenericGenomicAnnotationRecord(NarrowPeakReader.parseNarrowPeakRecord(line));
+                case "BED":
+                    return new GenericGenomicAnnotationRecord(FourColBedFileReader.parseBedRecord(line));
+                default:
+                    return parseGenomicAnnotation(line);
+            }
+        } else {
+            return null;
+        }
+    }
+
 }

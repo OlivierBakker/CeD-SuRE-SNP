@@ -3,15 +3,15 @@ package nl.umcg.suresnp.pipeline.io.summarystatisticreader;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.GeneticVariant;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatisticRecord;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.VariantBasedNumericGenomicAnnotationRecord;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
-public class ReferenceDependentSummaryStatisticReader implements Iterator<SummaryStatisticRecord>, Iterable<SummaryStatisticRecord> {
+public class ReferenceDependentSummaryStatisticReader implements Iterator<VariantBasedNumericGenomicAnnotationRecord>, Iterable<VariantBasedNumericGenomicAnnotationRecord> {
 
     private static final Logger LOGGER = Logger.getLogger(ReferenceDependentSummaryStatisticReader.class);
     private BufferedReader reader;
@@ -41,7 +41,7 @@ public class ReferenceDependentSummaryStatisticReader implements Iterator<Summar
     }
 
     @Override
-    public Iterator<SummaryStatisticRecord> iterator() {
+    public Iterator<VariantBasedNumericGenomicAnnotationRecord> iterator() {
         return this;
     }
 
@@ -58,8 +58,8 @@ public class ReferenceDependentSummaryStatisticReader implements Iterator<Summar
     }
 
     @Override
-    public SummaryStatisticRecord next() {
-        SummaryStatisticRecord result = null;
+    public VariantBasedNumericGenomicAnnotationRecord next() {
+        VariantBasedNumericGenomicAnnotationRecord result = null;
         try {
             result = getNextSummaryStatisticRecord();
         } catch (IOException e) {
@@ -75,7 +75,11 @@ public class ReferenceDependentSummaryStatisticReader implements Iterator<Summar
         missingFile.close();
     }
 
-    private SummaryStatisticRecord getNextSummaryStatisticRecord() throws IOException {
+    public String[] getHeader() {
+        return header;
+    }
+
+    private VariantBasedNumericGenomicAnnotationRecord getNextSummaryStatisticRecord() throws IOException {
         String line = reader.readLine();
         if (line != null) {
             try {
@@ -90,12 +94,14 @@ public class ReferenceDependentSummaryStatisticReader implements Iterator<Summar
         }
     }
 
-    private SummaryStatisticRecord parseSummaryStatisticRecord(String line) throws MissingVariantException {
+    private VariantBasedNumericGenomicAnnotationRecord parseSummaryStatisticRecord(String line) throws MissingVariantException {
         String[] curs = line.split(sep);
         if (referenceStatistics.containsKey(curs[0])) {
-            return new SummaryStatisticRecord(referenceStatistics.get(curs[0]),
-                    Double.parseDouble(curs[1]),
-                    Double.parseDouble(curs[2]));
+            List<Double> curAnnots = new ArrayList<>();
+            for (int i = 1; i < header.length; i++) {
+                curAnnots.add(Double.parseDouble(curs[i]));
+            }
+            return new VariantBasedNumericGenomicAnnotationRecord(referenceStatistics.get(curs[0]), curAnnots);
         } else {
             throw new MissingVariantException(curs[0] + " is not available");
         }

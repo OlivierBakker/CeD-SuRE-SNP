@@ -84,6 +84,33 @@ public class GenericFile {
         return (getExtention().endsWith("bgz"));
     }
 
+    public boolean isTabixIndexed() {
+        if (isBgZipped()) {
+            File curFile = new File(path + ".tbi");
+            if (curFile.exists()) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public boolean isBigBed() {
+        return getExtention().endsWith("bb");
+    }
+
+    public GenericFile getTabixFile() throws FileNotFoundException {
+
+       if (isTabixIndexed()) {
+           return new GenericFile(path + ".tbi");
+       } else {
+           throw new FileNotFoundException("File either not tabixed or bgZipped: " + path);
+       }
+
+    }
+
     public Charset getCharset() {
         return charset;
     }
