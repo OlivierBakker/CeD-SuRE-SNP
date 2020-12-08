@@ -56,23 +56,27 @@ public class CreateExcelParameters {
                 .longOpt("region-filter")
                 .hasArg(true)
                 .desc("BED formatted file with regions to include")
-                .argName("path/to/file")
+                .argName("path/to/file.bed")
                 .build();
         OPTIONS.addOption(option);
 
         option = Option.builder("v")
                 .longOpt("variant-annot")
                 .hasArg(true)
-                .desc("File with variant info to annotate with")
-                .argName("path/to/file")
+                .desc("File with variant info to annotate with. First column must be rsIDs. " +
+                        "Subseqeunt columns must be numeric. " +
+                        "To annotate all sheets this file use \"AllSheets\" as the name")
+                .argName("<name>=<path/to/file[.*|.bgz]>")
                 .build();
         OPTIONS.addOption(option);
 
         option = Option.builder("r")
                 .longOpt("region-annot")
                 .hasArg(true)
-                .desc("4 col BED with region info to annotate with")
-                .argName("path/to/file")
+                .desc("3 + n col BED (optionally tabixed with .bgz) with region info to annotate with. " +
+                        "Subsequent columns will be interpreted as strings. " +
+                        "To annotate all sheets with this file use \"AllSheets\" as the name")
+                .argName("<name>=<path/to/file>")
                 .build();
         OPTIONS.addOption(option);
 
