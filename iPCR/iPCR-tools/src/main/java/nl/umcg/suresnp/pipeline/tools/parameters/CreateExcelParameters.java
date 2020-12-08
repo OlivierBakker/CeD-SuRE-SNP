@@ -2,8 +2,10 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
+import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.VariantBasedNumericGenomicAnnotation;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -24,8 +26,8 @@ public class CreateExcelParameters {
     private File inputVcf;
     private GenericFile regionFilterFile;
 
-    private List<GenericFile> variantAnnotationFiles;
-    private List<GenericFile> regionAnnotationFiles;
+    private List<VariantBasedNumericGenomicAnnotation> variantAnnotationFiles;
+    private List<GenericGenomicAnnotation> regionAnnotationFiles;
 
     // General arguments
     private String toolType;
@@ -110,15 +112,24 @@ public class CreateExcelParameters {
             String[] curFiles = cmd.getOptionValues("r");
             regionAnnotationFiles = new ArrayList<>(curFiles.length);
             for (String file: curFiles) {
-                regionAnnotationFiles.add(new GenericFile(file));
+                String[] params = file.split("=");
+                if (params.length != 2) {
+                    throw new IllegalArgumentException("Annotations not provided in proper manner");
+                }
+                regionAnnotationFiles.add(new GenericGenomicAnnotation(new GenericFile(params[1]), params[0]));
             }
         }
 
         if (cmd.hasOption("v")) {
             String[] curFiles = cmd.getOptionValues("v");
             variantAnnotationFiles = new ArrayList<>(curFiles.length);
+
             for (String file: curFiles) {
-                variantAnnotationFiles.add(new GenericFile(file));
+                String[] params = file.split("=");
+                if (params.length != 2) {
+                    throw new IllegalArgumentException("Annotations not provided in proper manner");
+                }
+                variantAnnotationFiles.add(new VariantBasedNumericGenomicAnnotation(new GenericFile(params[1]), params[0]));
             }
         }
 
@@ -165,11 +176,11 @@ public class CreateExcelParameters {
         return regionFilterFile;
     }
 
-    public List<GenericFile> getVariantAnnotationFiles() {
+    public List<VariantBasedNumericGenomicAnnotation> getVariantAnnotationFiles() {
         return variantAnnotationFiles;
     }
 
-    public List<GenericFile> getRegionAnnotationFiles() {
+    public List<GenericGenomicAnnotation> getRegionAnnotationFiles() {
         return regionAnnotationFiles;
     }
 

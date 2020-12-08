@@ -12,9 +12,16 @@ import java.util.Set;
 public class GenericGenomicAnnotation {
 
     private final GenericFile path;
-    private final String[] header;
+    private String[] header;
     private String name;
+    private String group;
     private IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records;
+
+    public GenericGenomicAnnotation(GenericFile path, String group) {
+        this.path = path;
+        this.group = group;
+        this.name = path.getBaseName();
+    }
 
     public GenericGenomicAnnotation(GenericFile path, String[] header, IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records) {
         this.path = path;
@@ -29,6 +36,14 @@ public class GenericGenomicAnnotation {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setHeader(String[] header) {
+        this.header = header;
+    }
+
+    public String getGroup() {
+        return group;
     }
 
     public IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> getRecords() {

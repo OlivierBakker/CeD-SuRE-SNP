@@ -69,10 +69,11 @@ public class CreateExcel {
         List<Locatable> variantsAsLocatable = new ArrayList<>(variantCache.values());
 
         // Genomic annotations, currently unaffected by the region filter option
-        List<GenericGenomicAnnotation> regionAnnotations = new ArrayList<>();
+        Map<String, List<GenericGenomicAnnotation>> regionAnnotations = new HashMap<>();
         if (params.getRegionAnnotationFiles() != null) {
-            for (GenericFile file : params.getRegionAnnotationFiles()) {
+            for (GenericGenomicAnnotation curAnnotation : params.getRegionAnnotationFiles()) {
 
+                GenericFile file = curAnnotation.getPath();
                 IntervalTreeMap<Set<GenericGenomicAnnotationRecord>> records = new IntervalTreeMap<>();
                 GenomicAnnotationProvider reader;
 
@@ -107,17 +108,28 @@ public class CreateExcel {
                 String[] header = Arrays.copyOfRange(reader.getHeader(), 3, reader.getHeader().length);
                 reader.close();
 
-                regionAnnotations.add(new GenericGenomicAnnotation(file,
-                        header,
-                        records));
+                // Set header and record information
+                curAnnotation.setHeader(header);
+                curAnnotation.setRecords(records);
+
+                List<GenericGenomicAnnotation> annotations;
+                if (regionAnnotations.containsKey(curAnnotation.getGroup())) {
+                    annotations = regionAnnotations.get(curAnnotation.getGroup());
+                    annotations.add(curAnnotation);
+                } else {
+                    annotations = new ArrayList<>(1);
+                    annotations.add(curAnnotation);
+                    regionAnnotations.put(curAnnotation.getGroup(), annotations);
+                }
             }
             LOGGER.info("Read genomic annotations");
         }
 
         // Variant annotations, currently unaffected by the region filter option
-        List<VariantBasedNumericGenomicAnnotation> variantAnnotations = new ArrayList<>();
+        Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations = new HashMap<>();
         if (params.getVariantAnnotationFiles() != null) {
-            for (GenericFile file : params.getVariantAnnotationFiles()) {
+            for (VariantBasedNumericGenomicAnnotation curAnnotation: params.getVariantAnnotationFiles()) {
+                GenericFile file = curAnnotation.getPath();
 
                 ReferenceDependentSummaryStatisticReader reader = new ReferenceDependentSummaryStatisticReader(file,
                         new GenericFile(params.getOutputPrefix() + "missingVariants.txt"),
@@ -137,7 +149,19 @@ public class CreateExcel {
                     }
                 }
 
-                variantAnnotations.add(new VariantBasedNumericGenomicAnnotation(file, header, records));
+                curAnnotation.setHeader(header);
+                curAnnotation.setRecords(records);
+
+                if (variantAnnotations.containsKey(curAnnotation.getGroup())) {
+                    variantAnnotations.get(curAnnotation.getGroup()).add(curAnnotation);
+                } else {
+                    List<VariantBasedNumericGenomicAnnotation> annotations = new ArrayList<>();
+                    annotations.add(curAnnotation);
+                    variantAnnotations.put(curAnnotation.getGroup(), annotations);
+                }
+
+
+
             }
             LOGGER.info("Read variant annotations");
         }

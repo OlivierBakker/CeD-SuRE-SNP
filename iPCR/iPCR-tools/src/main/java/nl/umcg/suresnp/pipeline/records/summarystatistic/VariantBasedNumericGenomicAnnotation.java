@@ -13,9 +13,16 @@ import java.util.Map;
 public class VariantBasedNumericGenomicAnnotation {
 
     private final GenericFile path;
-    private final String[] header;
+    private String[] header;
     private String name;
+    private String group;
     private Map<String, VariantBasedNumericGenomicAnnotationRecord> records;
+
+    public VariantBasedNumericGenomicAnnotation(GenericFile path, String group) {
+        this.path = path;
+        this.group = group;
+        this.name = path.getBaseName();
+    }
 
     public VariantBasedNumericGenomicAnnotation(GenericFile path, String[] header, Map<String, VariantBasedNumericGenomicAnnotationRecord> records) {
         this.path = path;
@@ -31,6 +38,14 @@ public class VariantBasedNumericGenomicAnnotation {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setHeader(String[] header) {
+        this.header = header;
+    }
+
+    public String getGroup() {
+        return group;
     }
 
     public Map<String, VariantBasedNumericGenomicAnnotationRecord> getRecords() {

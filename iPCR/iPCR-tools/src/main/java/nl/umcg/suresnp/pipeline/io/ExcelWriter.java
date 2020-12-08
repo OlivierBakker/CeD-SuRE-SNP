@@ -10,7 +10,9 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 public class ExcelWriter {
@@ -22,14 +24,53 @@ public class ExcelWriter {
         this.output = output;
     }
 
-    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) throws IOException {
+    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Map<String, List<GenericGenomicAnnotation>> genomicAnnotations, Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations) throws IOException {
 
         System.setProperty("java.awt.headless", "true");
         Workbook enrichmentWorkbook = new XSSFWorkbook();
         excelStyles = new ExcelStyles(enrichmentWorkbook);
 
+
+        // Determine the shared genomic annotations
+        List<GenericGenomicAnnotation> universalGenomicAnnotations = null;
+        if (genomicAnnotations.containsKey("AllSheets")) {
+            universalGenomicAnnotations = genomicAnnotations.get("AllSheets");
+            genomicAnnotations.remove("AllSheets");
+        }
+
+        // Determine the shared variant annotations
+        List<VariantBasedNumericGenomicAnnotation> universalVariantAnnotations = null;
+        if (variantAnnotations.containsKey("AllSheets")) {
+            universalVariantAnnotations = variantAnnotations.get("AllSheets");
+            variantAnnotations.remove("AllSheets");
+        }
+
         // Put the content
-        populateUncollapsedSnpAnntoationSheet(enrichmentWorkbook, "VariantOverview", targetVariants, genomicAnnotations, variantAnnotations);
+        for (String sheet: variantAnnotations.keySet()) {
+
+            // Define genomic annotations for this sheet
+            List<GenericGenomicAnnotation> curGenomicAnnotations = genomicAnnotations.get(sheet);
+            if (curGenomicAnnotations == null) {
+                curGenomicAnnotations = new ArrayList<>();
+            }
+
+            if (universalGenomicAnnotations != null) {
+                curGenomicAnnotations.addAll(universalGenomicAnnotations);
+            }
+
+            // Define genomic annotations for this sheet
+            List<VariantBasedNumericGenomicAnnotation> curVariantAnnotations = variantAnnotations.get(sheet);
+            if (curVariantAnnotations == null) {
+                curVariantAnnotations = new ArrayList<>();
+            }
+
+            if (universalVariantAnnotations != null) {
+                curVariantAnnotations.addAll(universalVariantAnnotations);
+            }
+
+            // Populate the sheet
+            populateUncollapsedSnpAnntoationSheet(enrichmentWorkbook, sheet, targetVariants, curGenomicAnnotations, curVariantAnnotations);
+        }
 
         // write
         enrichmentWorkbook.write(output.getAsFileOutputStream());
@@ -92,7 +133,7 @@ public class ExcelWriter {
         variantOverview.setZoom(75);
 
         // Size columns
-        autoSizeColumns(variantOverview, numberOfCols);
+        autoSizeColumns(variantOverview, numberOfCols-1);
     }
 
 
