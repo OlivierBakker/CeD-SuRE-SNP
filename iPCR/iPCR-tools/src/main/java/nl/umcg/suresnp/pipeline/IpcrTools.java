@@ -12,7 +12,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import static java.lang.System.exit;
-import static java.lang.System.in;
 
 public class IpcrTools {
 
@@ -52,24 +51,28 @@ public class IpcrTools {
                     makeBarcodeCounts.run();
                     break;
                 case "MakeBarcodeStats":
-                    MakeSummaries makeBcStats = new MakeSummaries(new MakeSummariesParameters(args));
+                    SureSnpUtils makeBcStats = new SureSnpUtils(new SureSnpUtilsParameters(args));
                     makeBcStats.barcodeOverlap();
                     break;
                 case "GetInsertSizes":
-                    MakeSummaries getInsertSizes = new MakeSummaries(new MakeSummariesParameters(args));
+                    SureSnpUtils getInsertSizes = new SureSnpUtils(new SureSnpUtilsParameters(args));
                     getInsertSizes.getInsertSizes();
                     break;
                 case "MakeBarcodeCountHist":
-                    MakeSummaries barcodeCountHist = new MakeSummaries(new MakeSummariesParameters(args));
+                    SureSnpUtils barcodeCountHist = new SureSnpUtils(new SureSnpUtilsParameters(args));
                     barcodeCountHist.makeBarcodeCountHist();
                     break;
                 case "GetCdnaCorrelations":
-                    MakeSummaries cdnaCorrelations = new MakeSummaries(new MakeSummariesParameters(args));
+                    SureSnpUtils cdnaCorrelations = new SureSnpUtils(new SureSnpUtilsParameters(args));
                     cdnaCorrelations.getCdnaCorrelations();
                     break;
                 case "GetPeakCorrelations":
-                    MakeSummaries correlatePeaks = new MakeSummaries(new MakeSummariesParameters(args));
+                    PeakUtils correlatePeaks = new PeakUtils(new PeakUtilsParameters(args));
                     correlatePeaks.getPeakCorrelations();
+                    break;
+                case "OverlapPeaks":
+                    PeakUtils overlapPeaks = new PeakUtils(new PeakUtilsParameters(args));
+                    overlapPeaks.createConsensusPeaks();
                     break;
                 case "Recode":
                     Recode recode = new Recode(new RecodeParameters(args));
@@ -80,7 +83,7 @@ public class IpcrTools {
                     subsetBam.run();
                     break;
                 case "IndexIpcr":
-                    MakeSummaries index = new MakeSummaries(new MakeSummariesParameters(args));
+                    SureSnpUtils index = new SureSnpUtils(new SureSnpUtilsParameters(args));
                     index.indexIpcr();
                     break;
                 case "CreateExcel":

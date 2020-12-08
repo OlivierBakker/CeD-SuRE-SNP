@@ -1,25 +1,34 @@
 package nl.umcg.suresnp.pipeline.io.bedreader;
 
+import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
+import nl.umcg.suresnp.pipeline.records.bedrecord.filters.NarrowPeakFilter;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 
-public class NarrowPeakReader implements BedRecordProvider {
+public class NarrowPeakReader implements BedRecordProvider, Iterable<NarrowPeakRecord>, Iterator<NarrowPeakRecord> {
 
     private static final Logger LOGGER = Logger.getLogger(NarrowPeakReader.class);
     private BufferedReader reader;
     private static String sep = "\t";
+    private String pattern;
 
     public NarrowPeakReader(GenericFile inputFile) throws IOException {
         this.reader = inputFile.getAsBufferedReader();
+        this.pattern = null;
+    }
+
+    public NarrowPeakReader(GenericFile inputFile, String pattern) throws IOException {
+        this.reader = inputFile.getAsBufferedReader();
+        this.pattern = pattern;
     }
 
     @Override
@@ -53,9 +62,66 @@ public class NarrowPeakReader implements BedRecordProvider {
         return output;
     }
 
+    public IntervalTreeMap<NarrowPeakRecord> getNarrowPeakRecordsAsTreeMap() throws IOException {
+        return getNarrowPeakRecordsAsTreeMap(new ArrayList<>());
+    }
+
+    public IntervalTreeMap<NarrowPeakRecord> getNarrowPeakRecordsAsTreeMap(Collection<NarrowPeakFilter> filters) throws IOException {
+        IntervalTreeMap<NarrowPeakRecord> output = new IntervalTreeMap<>();
+        NarrowPeakRecord curRecord = getNextRecord();
+        int i = 0;
+
+        while (curRecord != null) {
+            logProgress(i, 1000000, "NarrowPeakReader");
+            i++;
+            boolean passes = true;
+            for (NarrowPeakFilter curFilter : filters) {
+                if (!curFilter.passesFilter(curRecord)) {
+                    passes = false;
+                    break;
+                }
+            }
+
+            if (passes) {
+                output.put(curRecord, curRecord);
+            }
+            curRecord = getNextRecord();
+        }
+        LOGGER.info("Read " + i + " records");
+        return output;
+    }
+
     @Override
     public void close() throws IOException {
         reader.close();
+    }
+
+    @Override
+    public Iterator<NarrowPeakRecord> iterator() {
+        return this;
+    }
+
+    @Override
+    public boolean hasNext() {
+        try {
+            return reader.ready();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public NarrowPeakRecord next() {
+        if (hasNext()) {
+            try {
+                return getNextRecord();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        return null;
     }
 
     protected static NarrowPeakRecord parseNarrowPeakRecord(String line) {
@@ -72,13 +138,18 @@ public class NarrowPeakReader implements BedRecordProvider {
                 Integer.parseInt(content[9]));
     }
 
-
     private NarrowPeakRecord getNextRecord() throws IOException {
+
         String line = reader.readLine();
         if (line != null) {
-            return parseNarrowPeakRecord(line);
+            NarrowPeakRecord record = parseNarrowPeakRecord(line);
+            if (pattern != null) {
+                record.setName(record.getName().replace(pattern, ""));
+            }
+            return record;
         } else {
             return null;
         }
     }
+
 }

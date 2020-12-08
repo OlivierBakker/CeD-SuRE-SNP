@@ -1,26 +1,28 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
+import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.records.bedrecord.filters.NarrowPeakFilter;
+import nl.umcg.suresnp.pipeline.records.bedrecord.filters.ScoreGtThanFilter;
+import nl.umcg.suresnp.pipeline.records.bedrecord.filters.SignalValueGtThanFilter;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.System.exit;
 
-public class MakeSummariesParameters {
-    private final Logger LOGGER = Logger.getLogger(MakeBarcodeComplexityCurveParameters.class);
+public class PeakUtilsParameters {
+
+    private final Logger LOGGER = Logger.getLogger(PeakUtilsParameters.class);
     private final CommandLine cmd;
 
     // IO arguments
-    private String[] inputIpcr;
-    private String inputBarcodes;
-
-    // Yes, should be an enum, but I couldn't be bothered
-    private String inputType;
-
+    private GenericFile[] inputFiles;
     private String outputPrefix;
-    private String outputSuffix;
-    private int trimBarcodesToLength;
+    private List<NarrowPeakFilter> filters;
+    private String pattern;
 
     // General arguments
     private String toolType;
@@ -46,18 +48,10 @@ public class MakeSummariesParameters {
         OPTIONS.addOption(option);
 
         option = Option.builder("t")
-                .longOpt("input-type")
+                .longOpt("trim-pattern")
                 .hasArg(true)
-                .desc("The input type")
-                .argName("IPCR|INFO")
-                .build();
-        OPTIONS.addOption(option);
-
-        option = Option.builder("b")
-                .longOpt("barcode-info")
-                .hasArg(true)
-                .desc("The file containing read names and barcodes")
-                .argName("path/to/file")
+                .desc("Regex pattern to use to trim peaknames")
+                .argName("pattern")
                 .build();
         OPTIONS.addOption(option);
 
@@ -69,11 +63,11 @@ public class MakeSummariesParameters {
                 .build();
         OPTIONS.addOption(option);
 
-        option = Option.builder("c")
-                .longOpt("trim-barcodes")
+        option = Option.builder("fs")
+                .longOpt("score-filter")
                 .hasArg(true)
-                .desc("Trim barcodes to this length")
-                .argName("barcode length")
+                .desc("Relative enrichment to filter on")
+                .argName("[0-9]")
                 .build();
         OPTIONS.addOption(option);
 
@@ -82,11 +76,10 @@ public class MakeSummariesParameters {
                 .desc("Print usage")
                 .build();
         OPTIONS.addOption(option);
-
     }
 
 
-    public MakeSummariesParameters(String[] args) throws ParseException, IOException {
+    public PeakUtilsParameters(String[] args) throws ParseException, IOException {
         CommandLineParser parser = new DefaultParser();
         cmd = parser.parse(OPTIONS, args);
 
@@ -98,32 +91,29 @@ public class MakeSummariesParameters {
 
         // Input files
         if (cmd.hasOption('i')) {
-            inputIpcr = cmd.getOptionValues('i');
-        }
-
-        if (cmd.hasOption('t')) {
-            inputType = cmd.getOptionValue('t');
-
-            switch (inputType) {
-                case "IPCR":
-                    break;
-                case "BC_COUNT":
-                    break;
-                case "INFO":
-                    break;
-                default:
-                    LOGGER.error("Invalid input type, must be either IPCR or INFO");
-                    printHelp();
-                    exit(-1);
+            inputFiles = new GenericFile[cmd.getOptionValues('i').length];
+            for (int i=0; i < inputFiles.length; i ++) {
+                inputFiles[i] = new GenericFile(cmd.getOptionValues('i')[i]);
             }
-        } else {
-            inputType = "IPCR";
         }
 
-        if (cmd.hasOption('b')) {
-            inputBarcodes = cmd.getOptionValue('b').trim();
+        // Filters
+        filters = new ArrayList<>();
+
+        if (cmd.hasOption("fs")) {
+            filters.add(new SignalValueGtThanFilter(Double.parseDouble(cmd.getOptionValue("fs"))));
         }
-        toolType = "MakeSummaries";
+
+        LOGGER.info("Applying the following filters BEFORE intersecting:");
+        for (NarrowPeakFilter filter: filters) {
+            LOGGER.info(filter.getFilterType());
+        }
+
+        toolType = "PeakUtils";
+
+        if (cmd.hasOption("t")) {
+            pattern = cmd.getOptionValue("t");
+        }
 
         // Define the output writer, either stdout or to file
         if (cmd.hasOption('o')) {
@@ -131,42 +121,24 @@ public class MakeSummariesParameters {
         } else {
             outputPrefix = "ipcrtools";
         }
-
-
-        // Input files
-        if (cmd.hasOption('c')) {
-            trimBarcodesToLength = Integer.parseInt(cmd.getOptionValue('c'));
-
-            if (trimBarcodesToLength < 0) {
-                throw new IllegalArgumentException("Barcode length cannot be < 0");
-            }
-        } else {
-            trimBarcodesToLength = 0;
-        }
     }
 
     public CommandLine getCmd() {
         return cmd;
     }
 
-    public String getInputBarcodes() {
-        return inputBarcodes;
-    }
-
-    public String[] getInputIpcr(){ return inputIpcr;}
-
-    public String getInputType(){ return inputType;}
+    public GenericFile[] getInputFiles(){ return inputFiles;}
 
     public String getOutputPrefix() {
         return outputPrefix;
     }
 
-    public String getOutputSuffix() {
-        return outputSuffix;
+    public List<NarrowPeakFilter> getFilters() {
+        return filters;
     }
 
-    public int getTrimBarcodesToLength() {
-        return trimBarcodesToLength;
+    public String getPattern() {
+        return pattern;
     }
 
     public static Options getOPTIONS() {

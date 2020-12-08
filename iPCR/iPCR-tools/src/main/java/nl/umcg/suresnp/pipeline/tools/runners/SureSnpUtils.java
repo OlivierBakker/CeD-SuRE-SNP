@@ -18,7 +18,7 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.BlockCompressedIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
-import nl.umcg.suresnp.pipeline.tools.parameters.MakeSummariesParameters;
+import nl.umcg.suresnp.pipeline.tools.parameters.SureSnpUtilsParameters;
 import nl.umcg.suresnp.pipeline.utils.BedUtils;
 import nl.umcg.suresnp.pipeline.utils.StreamingHistogram;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
@@ -27,7 +27,6 @@ import umcg.genetica.graphics.Grid;
 import umcg.genetica.graphics.panels.ScatterplotPanel;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -36,17 +35,17 @@ import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
 /**
  * The type Make summaries. Collection of small utillities / tools taking iPCR files as an input.
  */
-public class MakeSummaries {
+public class SureSnpUtils {
 
-    private static final Logger LOGGER = Logger.getLogger(MakeSummaries.class);
-    private static MakeSummariesParameters params;
+    private static final Logger LOGGER = Logger.getLogger(SureSnpUtils.class);
+    private static SureSnpUtilsParameters params;
 
     /**
      * Instantiates a new Make summaries.
      *
      * @param parameters the parameters
      */
-    public MakeSummaries(MakeSummariesParameters parameters) {
+    public SureSnpUtils(SureSnpUtilsParameters parameters) {
         this.params = parameters;
     }
 
@@ -359,79 +358,6 @@ public class MakeSummaries {
         grid.addPanel(p);
         grid.draw("output.png");
 
-    }
-
-    /**
-     * Correlate two score profiles (from .narrowPeak or 4 col bed files)
-     * TODO: Cleanup and better plotting
-     *
-     * @throws Exception the exception
-     */
-    public void getPeakCorrelations() throws Exception {
-        LOGGER.info("Correlating peaks");
-
-        // Reading the input files, can be .bed or .narrowPeak
-        List<BedRecord>[] inputFiles = new List[params.getInputIpcr().length];
-        int i = 0;
-        for (String file : params.getInputIpcr()) {
-            GenericFile curFile = new GenericFile(file);
-            BedRecordProvider reader;
-
-            LOGGER.info("Reading file: " + curFile.getFileName());
-            if (curFile.getFileName().contains(".bed")) {
-                reader = new FourColBedFileReader(curFile);
-            } else {
-                reader = new NarrowPeakReader(curFile);
-            }
-
-            inputFiles[i] = reader.getBedRecordAsList();
-            reader.close();
-            i++;
-        }
-        LOGGER.info("Done reading");
-
-        // Intersect overlapping bed records. Remove others
-        List<BedRecord>[] output = BedUtils.intersectSortedBedRecords(inputFiles[0], inputFiles[1]);
-        LOGGER.info("Output " + output.length);
-
-        // Calculate correlations and make plot
-        i = 0;
-        double[] x = new double[output[0].size()];
-        double[] y = new double[output[1].size()];
-
-        BufferedWriter writer = new GenericFile(params.getOutputPrefix() + ".xy.tsv").getAsBufferedWriter();
-        writer.write("x\ty");
-        while (i < output[0].size()) {
-            // X records
-            BedRecord cur = output[0].get(i);
-            writer.write(Double.toString(cur.getScore()) + "\t");
-            x[i] = Math.log(cur.getScore()) / Math.log(10);
-
-            // Y records
-            cur = output[1].get(i);
-            writer.write(Double.toString(cur.getScore()));
-            y[i] = Math.log(cur.getScore()) / Math.log(10);
-
-            writer.newLine();
-            i++;
-        }
-        writer.flush();
-        writer.close();
-
-        LOGGER.info("Calculating pearson R");
-        PearsonsCorrelation test = new PearsonsCorrelation();
-        LOGGER.info("Pearson R: " + test.correlation(x, y));
-
-        // Make the plot
-        Grid grid = new Grid(500, 500, 1, 1, 100, 100);
-        ScatterplotPanel p = new ScatterplotPanel(1, 1);
-        p.setData(x, y);
-        //p.setDataRange(new Range(0, 0, 500, 500));
-        p.setAlpha((float) 0.5);
-        p.setLabels("X", "Y");
-        p.setPlotElems(true, false);
-        grid.addPanel(p);
-        grid.draw(params.getOutputPrefix() + ".png");
     }
 
 
