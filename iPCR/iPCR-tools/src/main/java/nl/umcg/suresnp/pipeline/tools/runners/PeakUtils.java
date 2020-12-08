@@ -1,6 +1,7 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import htsjdk.samtools.util.IntervalTreeMap;
+import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.bedreader.BedRecordProvider;
 import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
@@ -53,7 +54,13 @@ public class PeakUtils {
                 Collection<NarrowPeakRecord> overlappingRecords = otherPeaks.getOverlapping(curRecord);
 
                 if (overlappingRecords.size() >=1) {
-                    output.add(makeConsensusRecord(curRecord, overlappingRecords));
+                    NarrowPeakRecord curConsensus = makeConsensusRecord(curRecord, overlappingRecords);
+                    output.add(curConsensus);
+
+                    // Algo is greedy, so only the first overlap is reported
+                    for (NarrowPeakRecord curOverlap: overlappingRecords) {
+                        otherPeaks.remove(curOverlap);
+                    }
                 }
 
             }
@@ -62,7 +69,7 @@ public class PeakUtils {
             output.sort(Comparator.comparing(NarrowPeakRecord::getContig).thenComparing(NarrowPeakRecord::getStart));
 
             LOGGER.info("Done sorting, writing output");
-            writer = new NarrowPeakWriter(new GenericFile(params.getOutputPrefix()));
+            writer = new NarrowPeakWriter(new GenericFile(params.getOutputPrefix() + FileExtensions.NARROW_PEAK));
             writer.writeRecords(output);
             writer.flushAndClose();
 

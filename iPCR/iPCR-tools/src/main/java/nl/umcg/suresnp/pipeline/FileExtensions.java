@@ -9,7 +9,7 @@ public enum FileExtensions {
     IPCR_DISCARD(IPCR + ".discarded"),
     IPCR_ALLELE_SPECIFIC(IPCR + ".ase"),
     IPCR_ALLELE_SPECIFIC_MINIMAL(IPCR + ".ase.minimal"),
-
+    NARROW_PEAK(".narrowPeak"),
 
     CDNA(".cdna"),
     CDNA_BARCODE_COUNT(CDNA + ".barcode.counts"),
