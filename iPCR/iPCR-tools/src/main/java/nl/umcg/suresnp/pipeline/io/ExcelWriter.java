@@ -24,12 +24,11 @@ public class ExcelWriter {
         this.output = output;
     }
 
-    public void saveSnpAnnotationExcel(Map<String, GeneticVariant> targetVariants, Map<String, List<GenericGenomicAnnotation>> genomicAnnotations, Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations) throws IOException {
+    public void saveSnpAnnotationExcel(Map<String, GeneticVariantInterval> targetVariants, Map<String, List<GenericGenomicAnnotation>> genomicAnnotations, Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations) throws IOException {
 
         System.setProperty("java.awt.headless", "true");
         Workbook enrichmentWorkbook = new XSSFWorkbook();
         excelStyles = new ExcelStyles(enrichmentWorkbook);
-
 
         // Determine the shared genomic annotations
         List<GenericGenomicAnnotation> universalGenomicAnnotations = null;
@@ -80,7 +79,7 @@ public class ExcelWriter {
 
     private void populateUncollapsedSnpAnntoationSheet(Workbook workbook,
                                                        String name,
-                                                       Map<String, GeneticVariant> targetVariants,
+                                                       Map<String, GeneticVariantInterval> targetVariants,
                                                        Collection<GenericGenomicAnnotation> genomicAnnotations,
                                                        Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) {
         int numberOfCols = 6;
@@ -107,7 +106,7 @@ public class ExcelWriter {
         int r = 1; //+1 for header
 
         for (String variantId : targetVariants.keySet()) {
-            GeneticVariant curVariant = targetVariants.get(variantId);
+            GeneticVariantInterval curVariant = targetVariants.get(variantId);
             XSSFRow row = variantOverview.createRow(r);
 
             // Keeps track of column
@@ -137,7 +136,7 @@ public class ExcelWriter {
     }
 
 
-    private int fillVariantAnnotationCells(XSSFRow row, int c, int id, GeneticVariant curVariant) {
+    private int fillVariantAnnotationCells(XSSFRow row, int c, int id, GeneticVariantInterval curVariant) {
         // Locus ID
         XSSFCell idCell = row.createCell(c++, CellType.STRING);
         idCell.setCellValue(id);
@@ -170,10 +169,37 @@ public class ExcelWriter {
         return c;
     }
 
-    private int fillDynamicVariantBasedAnnotationCells(XSSFRow row, int c, GeneticVariant curVariant, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) {
+    private int fillDynamicVariantBasedAnnotationCells(XSSFRow row, int c, GeneticVariantInterval curVariant, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) {
+
+        XSSFCell idCell = row.createCell(c++, CellType.STRING);
+
         // Variant annotations, only one per row
         for (VariantBasedNumericGenomicAnnotation curAnnot : variantAnnotations) {
             VariantBasedNumericGenomicAnnotationRecord curRec = curAnnot.query(curVariant.getPrimaryVariantId());
+
+            // Lookup if any of the proxies have the info available
+            LdProxy proxyUsed = null;
+            if (curAnnot.useLdProxies()) {
+                if (curRec == null && curVariant.hasLdProxies()) {
+                    for (LdProxy proxy : curVariant.getLdOrderedLdProxies()) {
+                        curRec = curAnnot.query(proxy.getVariantId());
+                        if (curRec != null) {
+                            proxyUsed = proxy;
+                            break;
+                        }
+                    }
+                }
+
+                if (proxyUsed != null) {
+                    if (!idCell.getStringCellValue().equals("")) {
+                        idCell.setCellValue(idCell.getStringCellValue() + "|" + proxyUsed.toString());
+                    } else {
+                        idCell.setCellValue(proxyUsed.toString());
+                    }
+                }
+
+            }
+
 
             if (curRec != null) {
                 for (int j = 0; j < curAnnot.getHeader().length; j++) {
@@ -192,7 +218,7 @@ public class ExcelWriter {
         return c;
     }
 
-    private int fillDynamicGenomicAnnotationCells(XSSFSheet variantOverview, int c, int r, int id, GeneticVariant curVariant, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations, boolean populateVariantAnnotationsInSubRows) {
+    private int fillDynamicGenomicAnnotationCells(XSSFSheet variantOverview, int c, int r, int id, GeneticVariantInterval curVariant, Collection<GenericGenomicAnnotation> genomicAnnotations, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations, boolean populateVariantAnnotationsInSubRows) {
         for (GenericGenomicAnnotation curAnnot : genomicAnnotations) {
             Collection<GenericGenomicAnnotationRecord> curRecords = curAnnot.query(curVariant);
             for (int j = 0; j < curAnnot.getHeader().length; j++) {
@@ -240,6 +266,7 @@ public class ExcelWriter {
         headerRow.createCell(hc++, CellType.STRING).setCellValue("position");
         headerRow.createCell(hc++, CellType.STRING).setCellValue("allele_1");
         headerRow.createCell(hc++, CellType.STRING).setCellValue("allele_2");
+        headerRow.createCell(hc++, CellType.STRING).setCellValue("ld_proxy");
 
         for (VariantBasedNumericGenomicAnnotation curAnnot : variantAnnotations) {
             for (String curHeader : curAnnot.getHeader()) {
@@ -257,10 +284,11 @@ public class ExcelWriter {
     private static void autoSizeColumns(XSSFSheet variantOverview, int numberOfCols) {
         for (int c = 0; c < numberOfCols; c++) {
             variantOverview.autoSizeColumn(c);
-            variantOverview.setColumnWidth(c, variantOverview.getColumnWidth(c) + 200); //compensate for with auto filter and inaccuracies
             if (variantOverview.getColumnWidth(c) > 5000) {
                 variantOverview.setColumnWidth(c, 5000);
             }
+            variantOverview.setColumnWidth(c, variantOverview.getColumnWidth(c) + 200); //compensate for with auto filter and inaccuracies
+
         }
     }
 

@@ -1,11 +1,9 @@
 package nl.umcg.suresnp.pipeline.records.summarystatistic;
 
-import htsjdk.samtools.util.Interval;
-
 /**
  * Created by olivier on 06/12/2017.
  */
-public class SummaryStatisticRecord extends GeneticVariant  {
+public class SummaryStatisticRecord extends GeneticVariantInterval {
 
 	//TODO: refactoring to more appropriate names
 	private double beta;
@@ -23,7 +21,7 @@ public class SummaryStatisticRecord extends GeneticVariant  {
 		this.traitName = other.getTraitName();
 	}
 
-	public SummaryStatisticRecord(GeneticVariant other, double beta, double pvalue, double standardError, double falseDiscoveryRate, String traitName) {
+	public SummaryStatisticRecord(GeneticVariantInterval other, double beta, double pvalue, double standardError, double falseDiscoveryRate, String traitName) {
 		super(other.getPrimaryVariantId(), other.getAllele1(), other.getAllele2(), other.getPosition(), other.getContig());
 		this.beta = beta;
 		this.pvalue = pvalue;
@@ -32,7 +30,7 @@ public class SummaryStatisticRecord extends GeneticVariant  {
 		this.traitName = traitName;
 	}
 
-	public SummaryStatisticRecord(GeneticVariant other, double beta, double pvalue) {
+	public SummaryStatisticRecord(GeneticVariantInterval other, double beta, double pvalue) {
 		super(other.getPrimaryVariantId(), other.getAllele1(), other.getAllele2(), other.getPosition(), other.getContig());
 		this.beta = beta;
 		this.pvalue = pvalue;

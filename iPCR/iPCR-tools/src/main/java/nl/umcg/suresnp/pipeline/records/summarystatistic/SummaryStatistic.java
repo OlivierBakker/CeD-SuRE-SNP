@@ -4,8 +4,6 @@ import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.Locatable;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
-import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,7 +65,7 @@ public class SummaryStatistic {
      * @param key
      * @return
      */
-    public SummaryStatisticRecord queryVariant(GeneticVariant key) {
+    public SummaryStatisticRecord queryVariant(GeneticVariantInterval key) {
         Collection<SummaryStatisticRecord> tmp = this.query(key);
         for (SummaryStatisticRecord curRecord : tmp) {
             if (curRecord.getPrimaryVariantId().equals(key.getPrimaryVariantId())) {

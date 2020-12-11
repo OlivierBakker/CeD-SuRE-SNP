@@ -1,8 +1,7 @@
 package nl.umcg.suresnp.pipeline.io.summarystatisticreader;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.GeneticVariant;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.SummaryStatisticRecord;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.GeneticVariantInterval;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.VariantBasedNumericGenomicAnnotationRecord;
 import org.apache.log4j.Logger;
 
@@ -18,9 +17,9 @@ public class ReferenceDependentSummaryStatisticReader implements Iterator<Varian
     private BufferedWriter missingFile;
     private static String sep = "\t";
     private String[] header;
-    private Map<String, GeneticVariant> referenceStatistics;
+    private Map<String, GeneticVariantInterval> referenceStatistics;
 
-    public ReferenceDependentSummaryStatisticReader(GenericFile inputFile, GenericFile outputFile, Map<String, GeneticVariant> referenceStatistics, boolean hasHeader) throws IOException {
+    public ReferenceDependentSummaryStatisticReader(GenericFile inputFile, GenericFile outputFile, Map<String, GeneticVariantInterval> referenceStatistics, boolean hasHeader) throws IOException {
         this.reader = inputFile.getAsBufferedReader();
         // Preserve the first buffer, header may not be longer than 8k characters
         this.reader.mark(8192);

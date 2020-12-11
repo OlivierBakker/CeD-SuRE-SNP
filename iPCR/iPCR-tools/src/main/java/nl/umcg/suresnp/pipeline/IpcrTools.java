@@ -74,6 +74,10 @@ public class IpcrTools {
                     PeakUtils overlapPeaks = new PeakUtils(new PeakUtilsParameters(args));
                     overlapPeaks.createConsensusPeaks();
                     break;
+                case "CollapseEncodeTfbs":
+                    PeakUtils collapseEncode = new PeakUtils(new PeakUtilsParameters(args));
+                    collapseEncode.collapseEncodeChipSeq();
+                    break;
                 case "Recode":
                     Recode recode = new Recode(new RecodeParameters(args));
                     recode.run();

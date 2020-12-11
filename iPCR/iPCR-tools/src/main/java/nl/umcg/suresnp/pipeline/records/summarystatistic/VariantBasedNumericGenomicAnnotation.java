@@ -16,12 +16,19 @@ public class VariantBasedNumericGenomicAnnotation {
     private String[] header;
     private String name;
     private String group;
+    private boolean useLdProxies;
     private Map<String, VariantBasedNumericGenomicAnnotationRecord> records;
 
     public VariantBasedNumericGenomicAnnotation(GenericFile path, String group) {
         this.path = path;
         this.group = group;
         this.name = path.getBaseName();
+        if (group.startsWith("UseLd")) {
+            useLdProxies = true;
+            this.group = this.group.substring(5);
+        } else {
+            useLdProxies = false;
+        }
     }
 
     public VariantBasedNumericGenomicAnnotation(GenericFile path, String[] header, Map<String, VariantBasedNumericGenomicAnnotationRecord> records) {
@@ -29,8 +36,8 @@ public class VariantBasedNumericGenomicAnnotation {
         this.records = records;
         this.header = header;
         this.name = path.getBaseName();
+        this.useLdProxies=false;
     }
-
 
     public String getName() {
         return name;
@@ -46,6 +53,10 @@ public class VariantBasedNumericGenomicAnnotation {
 
     public String getGroup() {
         return group;
+    }
+
+    public boolean useLdProxies() {
+        return useLdProxies;
     }
 
     public Map<String, VariantBasedNumericGenomicAnnotationRecord> getRecords() {

@@ -38,6 +38,11 @@ public class GenericGenomicAnnotationRecord extends BedRecord {
         this.annotations = new ArrayList<>();
     }
 
+    public GenericGenomicAnnotationRecord(String contig, int start, int end, List<String> annotations) {
+        super(contig, start, end);
+        this.annotations = annotations;
+    }
+
     public GenericGenomicAnnotationRecord(String contig, int start, int end, String[] annotations) {
         super(contig, start, end);
         this.annotations = Arrays.asList(annotations);

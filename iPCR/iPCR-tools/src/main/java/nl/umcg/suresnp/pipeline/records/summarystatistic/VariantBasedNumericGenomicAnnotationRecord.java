@@ -2,18 +2,17 @@ package nl.umcg.suresnp.pipeline.records.summarystatistic;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class VariantBasedNumericGenomicAnnotationRecord extends GeneticVariant {
+public class VariantBasedNumericGenomicAnnotationRecord extends GeneticVariantInterval {
 
     private final List<Double> annotations;
 
-    public VariantBasedNumericGenomicAnnotationRecord(GeneticVariant variant) {
+    public VariantBasedNumericGenomicAnnotationRecord(GeneticVariantInterval variant) {
         super(variant);
         this.annotations = new ArrayList<>();
     }
 
-    public VariantBasedNumericGenomicAnnotationRecord(GeneticVariant variant, List<Double> annotations) {
+    public VariantBasedNumericGenomicAnnotationRecord(GeneticVariantInterval variant, List<Double> annotations) {
         super(variant);
         this.annotations = annotations;
     }

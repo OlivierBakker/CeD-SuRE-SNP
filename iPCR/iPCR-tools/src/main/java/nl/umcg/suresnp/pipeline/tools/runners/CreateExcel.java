@@ -1,7 +1,6 @@
 package nl.umcg.suresnp.pipeline.tools.runners;
 
 import htsjdk.samtools.util.CloseableIterator;
-import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -21,11 +20,16 @@ import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.*;
 import nl.umcg.suresnp.pipeline.tools.parameters.CreateExcelParameters;
 import org.apache.log4j.Logger;
+import org.molgenis.genotype.RandomAccessGenotypeData;
+import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
+import org.molgenis.genotype.annotation.Annotation;
+import org.molgenis.genotype.util.LdCalculatorException;
+import org.molgenis.genotype.variant.GeneticVariant;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class CreateExcel {
 
@@ -37,15 +41,15 @@ public class CreateExcel {
         this.params = params;
     }
 
-    public void run() throws IOException, ParseException {
+    public void run() throws IOException, ParseException, LdCalculatorException {
         createSnpExcel();
     }
 
 
-    private void createSnpExcel() throws IOException, ParseException {
+    private void createSnpExcel() throws IOException, ParseException, LdCalculatorException {
 
         VCFFileReader vcfReader = new VCFFileReader(params.getInputVcf(), true);
-        Map<String, GeneticVariant> variantCache = new HashMap<>();
+        Map<String, GeneticVariantInterval> variantCache = new HashMap<>();
 
         // Either only include reference SNPs from
         if (params.getRegionFilterFile() != null) {
@@ -54,15 +58,20 @@ public class CreateExcel {
             for (BedRecord curRec : regionFilter) {
                 for (CloseableIterator<VariantContext> it = vcfReader.query(curRec); it.hasNext(); ) {
                     VariantContext curContext = it.next();
-                    GeneticVariant curGeneticVariant = createSnpFromVariantContext(curContext);
-                    variantCache.put(curGeneticVariant.getPrimaryVariantId(), curGeneticVariant);
+                    GeneticVariantInterval curGeneticVariantInterval = createSnpFromVariantContext(curContext);
+                    variantCache.put(curGeneticVariantInterval.getPrimaryVariantId(), curGeneticVariantInterval);
                 }
             }
         } else {
             for (VariantContext curContext : vcfReader) {
-                GeneticVariant curGeneticVariant = createSnpFromVariantContext(curContext);
-                variantCache.put(curGeneticVariant.getPrimaryVariantId(), curGeneticVariant);
+                GeneticVariantInterval curGeneticVariantInterval = createSnpFromVariantContext(curContext);
+                variantCache.put(curGeneticVariantInterval.getPrimaryVariantId(), curGeneticVariantInterval);
             }
+        }
+
+        // LD proxy lookup
+        if (params.getLdReference() != null) {
+            annotateGeneticVariantsWithLdProxies(variantCache);
         }
 
         // List of variants
@@ -102,7 +111,7 @@ public class CreateExcel {
                     IpcrTools.logProgress(i, 1000, reader.getClass().getSimpleName(), "thousand");
                     i++;
                 }
-                System.out.print("\n"); // Flush progress bar
+                System.out.print(""); // Flush progress bar
                 LOGGER.info("Read " + records.size() + " unique, non null locations");
 
                 String[] header = Arrays.copyOfRange(reader.getHeader(), 3, reader.getHeader().length);
@@ -128,7 +137,7 @@ public class CreateExcel {
         // Variant annotations, currently unaffected by the region filter option
         Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations = new HashMap<>();
         if (params.getVariantAnnotationFiles() != null) {
-            for (VariantBasedNumericGenomicAnnotation curAnnotation: params.getVariantAnnotationFiles()) {
+            for (VariantBasedNumericGenomicAnnotation curAnnotation : params.getVariantAnnotationFiles()) {
                 GenericFile file = curAnnotation.getPath();
 
                 ReferenceDependentSummaryStatisticReader reader = new ReferenceDependentSummaryStatisticReader(file,
@@ -161,7 +170,6 @@ public class CreateExcel {
                 }
 
 
-
             }
             LOGGER.info("Read variant annotations");
         }
@@ -174,18 +182,60 @@ public class CreateExcel {
     }
 
 
-    private static GeneticVariant createSnpFromVariantContext(VariantContext curContext) {
+    private static GeneticVariantInterval createSnpFromVariantContext(VariantContext curContext) {
 
-        GeneticVariant outputGeneticVariant = new GeneticVariant(curContext.getID(),
+        GeneticVariantInterval outputGeneticVariantInterval = new GeneticVariantInterval(curContext.getID(),
                 curContext.getReference().getBaseString(),
                 curContext.getAlternateAllele(0).getBaseString(),
                 curContext.getStart(),
                 curContext.getContig());
 
         if (curContext.getID().equals(".")) {
-            outputGeneticVariant.setPrimaryVariantId(outputGeneticVariant.getContig() + ":" + outputGeneticVariant.getStart() + ";" + outputGeneticVariant.getAllele1() + ";" + outputGeneticVariant.getAllele2());
+            outputGeneticVariantInterval.setPrimaryVariantId(outputGeneticVariantInterval.getContig() + ":" + outputGeneticVariantInterval.getStart() + ";" + outputGeneticVariantInterval.getAllele1() + ";" + outputGeneticVariantInterval.getAllele2());
         }
 
-        return outputGeneticVariant;
+        return outputGeneticVariantInterval;
+    }
+
+    private void annotateGeneticVariantsWithLdProxies(Map<String, GeneticVariantInterval> variants) throws IOException, LdCalculatorException {
+
+        double ldThresh = params.getLdThreshold();
+        int window = params.getLdWindow();
+        File ldReferenceFile = params.getLdReference();
+
+        RandomAccessGenotypeDataReaderFormats format = RandomAccessGenotypeDataReaderFormats.matchFormatToPath(ldReferenceFile.getAbsolutePath());
+        RandomAccessGenotypeData ldReference = format.createGenotypeData(ldReferenceFile.getAbsolutePath());
+        Map<String, GeneticVariant> ldReferenceMap = ldReference.getVariantIdMap();
+
+        LOGGER.info(variants.size() + " query variants given as input");
+
+        Set<String> availableQueryVariants = variants.keySet();
+        availableQueryVariants.retainAll(ldReferenceMap.keySet());
+        int proxyCount = 0;
+
+        LOGGER.info("Overlapped " + availableQueryVariants.size() + " query variants available in reference genotypes");
+
+        int i = 0;
+        for (String queryVariantId: availableQueryVariants) {
+            GeneticVariant queryVariant = ldReferenceMap.get(queryVariantId);
+            GeneticVariantInterval queryVariantInterval = variants.get(queryVariantId);
+
+            Iterable<GeneticVariant> windowVariants = ldReference.getVariantsByRange(queryVariant.getSequenceName(),
+                    queryVariant.getStartPos() - window,
+                    queryVariant.getStartPos() + window);
+
+            for (GeneticVariant overlappingVariant : windowVariants) {
+                double r2 = overlappingVariant.calculateLd(queryVariant).getR2();
+                if (r2 >= ldThresh) {
+                    queryVariantInterval.addLdProxy(overlappingVariant.getPrimaryVariantId(), r2);
+                    proxyCount++;
+                }
+            }
+
+            i++;
+            IpcrTools.logProgress(i, 1000, "CreateExcel", "thousand query");
+        }
+
+        LOGGER.info("Done, found " + proxyCount + " LD proxies for " + availableQueryVariants.size() + " query variants");
     }
 }

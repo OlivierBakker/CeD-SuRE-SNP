@@ -1,10 +1,7 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.*;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.VariantBasedNumericGenomicAnnotation;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
@@ -24,6 +21,9 @@ public class CreateExcelParameters {
     private String outputPrefix;
 
     private File inputVcf;
+    private File ldReference;
+    private double ldThreshold;
+    private int ldWindow;
     private GenericFile regionFilterFile;
 
     private List<VariantBasedNumericGenomicAnnotation> variantAnnotationFiles;
@@ -59,6 +59,32 @@ public class CreateExcelParameters {
                 .argName("path/to/file.bed")
                 .build();
         OPTIONS.addOption(option);
+
+        option = Option.builder("ldr")
+                .longOpt("ld-reference")
+                .hasArg(true)
+                .desc("VCF, TriTyper or Plink file with reference genotypes")
+                .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("ldt")
+                .longOpt("ld-threshold")
+                .hasArg(true)
+                .desc("ld threshold to annotate snps with.")
+                .argName("<ld threshold>[DEFAULT: 0.8]")
+                .build();
+        OPTIONS.addOption(option);
+
+
+        option = Option.builder("ldw")
+                .longOpt("ld-window")
+                .hasArg(true)
+                .desc("The window (+-) to search for LD proxies")
+                .argName("<window in bp>[DEFAULT: +-500.000]")
+                .build();
+        OPTIONS.addOption(option);
+
 
         option = Option.builder("v")
                 .longOpt("variant-annot")
@@ -105,13 +131,15 @@ public class CreateExcelParameters {
             exit(0);
         }
 
+        // File with SNPs to annotate
         inputVcf = new File(cmd.getOptionValue("i").trim());
 
-
+        // Filter regions
         if (cmd.hasOption("rf")) {
             regionFilterFile = new GenericFile(cmd.getOptionValue("rf").trim());
         }
 
+        // Region annotations
         if (cmd.hasOption("r")) {
             String[] curFiles = cmd.getOptionValues("r");
             regionAnnotationFiles = new ArrayList<>(curFiles.length);
@@ -124,6 +152,7 @@ public class CreateExcelParameters {
             }
         }
 
+        // Variant annotations
         if (cmd.hasOption("v")) {
             String[] curFiles = cmd.getOptionValues("v");
             variantAnnotationFiles = new ArrayList<>(curFiles.length);
@@ -137,8 +166,26 @@ public class CreateExcelParameters {
             }
         }
 
+        // LD threshold
+        if (cmd.hasOption("ldt")) {
+            ldThreshold = Double.parseDouble(cmd.getOptionValue("ldt"));
+        } else {
+            ldThreshold = 0.8;
+        }
 
-        // Define the output writer, either stdout or to file
+        // LD window
+        if (cmd.hasOption("ldw")) {
+            ldWindow = Integer.parseInt(cmd.getOptionValue("ldw"));
+        } else {
+            ldWindow = 500000;
+        }
+
+        // Reference genotypes
+        if (cmd.hasOption("ldr")) {
+            ldReference = new File(cmd.getOptionValue("ldr"));
+        }
+
+        // Output file
         if (cmd.hasOption('o')) {
             outputPrefix = cmd.getOptionValue("o").trim();
         } else {
@@ -186,6 +233,18 @@ public class CreateExcelParameters {
 
     public List<GenericGenomicAnnotation> getRegionAnnotationFiles() {
         return regionAnnotationFiles;
+    }
+
+    public File getLdReference() {
+        return ldReference;
+    }
+
+    public double getLdThreshold() {
+        return ldThreshold;
+    }
+
+    public int getLdWindow() {
+        return ldWindow;
     }
 
     public static void printHelp() {
