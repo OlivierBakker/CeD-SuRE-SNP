@@ -42,6 +42,7 @@ public class AnnotatedGeneReader {
                 curAnnotatedGene.addTranscript(parseAsTranscript(args));
             } else {
                 genes.put(args[0], parseAsGene(args));
+                genes.get(args[0]).addTranscript(parseAsTranscript(args));
             }
         }
         return genes;
