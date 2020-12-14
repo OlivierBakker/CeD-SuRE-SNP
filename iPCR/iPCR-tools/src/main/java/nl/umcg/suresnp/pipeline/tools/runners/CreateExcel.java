@@ -6,6 +6,7 @@ import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFileReader;
 import nl.umcg.suresnp.pipeline.IpcrTools;
+import nl.umcg.suresnp.pipeline.io.AnnotatedGeneReader;
 import nl.umcg.suresnp.pipeline.io.ExcelWriter;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.bedreader.BigBedGenomicAnnotationReader;
@@ -16,6 +17,8 @@ import nl.umcg.suresnp.pipeline.io.summarystatisticreader.ReferenceDependentSumm
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
+import nl.umcg.suresnp.pipeline.records.ensemblrecord.AnnotatedGene;
+import nl.umcg.suresnp.pipeline.records.ensemblrecord.GeneBasedGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.*;
 import nl.umcg.suresnp.pipeline.tools.parameters.CreateExcelParameters;
@@ -141,7 +144,7 @@ public class CreateExcel {
                 GenericFile file = curAnnotation.getPath();
 
                 ReferenceDependentSummaryStatisticReader reader = new ReferenceDependentSummaryStatisticReader(file,
-                        new GenericFile(params.getOutputPrefix() + "missingVariants.txt"),
+                        new GenericFile(params.getOutputPrefix() + ".missingVariants.txt"),
                         variantCache,
                         true);
 
@@ -174,8 +177,15 @@ public class CreateExcel {
             LOGGER.info("Read variant annotations");
         }
 
+        // Gene annotations
+        GeneBasedGenomicAnnotation geneAnnotations = null;
+        if (params.getEnsemblGenesFile() != null) {
+            AnnotatedGeneReader reader = new AnnotatedGeneReader(params.getEnsemblGenesFile(), true);
+            geneAnnotations = reader.readGenesAsGenomicAnnotation();
+        }
+
         ExcelWriter excelWriter = new ExcelWriter(new GenericFile(params.getOutputPrefix() + ".xlsx"));
-        excelWriter.saveSnpAnnotationExcel(variantCache, regionAnnotations, variantAnnotations);
+        excelWriter.saveSnpAnnotationExcel(variantCache, regionAnnotations, variantAnnotations, geneAnnotations);
 
 
         LOGGER.info("debug");

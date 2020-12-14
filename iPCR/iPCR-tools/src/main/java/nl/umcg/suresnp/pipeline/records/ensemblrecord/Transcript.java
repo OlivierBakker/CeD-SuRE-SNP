@@ -1,11 +1,13 @@
 package nl.umcg.suresnp.pipeline.records.ensemblrecord;
 
-public class Transcript extends Gene {
+import htsjdk.samtools.util.Interval;
+
+public class Transcript extends Interval {
 
     private String transcriptId;
 
-    public Transcript(String gene, String chr, int start, int stop, String band, String geneSymbol, boolean strand, String transcriptId) {
-        super(gene, chr, start, stop, band, geneSymbol, strand);
+    public Transcript(String chr, int start, int stop, String transcriptId) {
+        super(chr, start, stop);
         this.transcriptId = transcriptId;
     }
 

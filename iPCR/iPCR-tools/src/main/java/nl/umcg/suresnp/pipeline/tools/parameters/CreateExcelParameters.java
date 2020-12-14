@@ -25,6 +25,7 @@ public class CreateExcelParameters {
     private double ldThreshold;
     private int ldWindow;
     private GenericFile regionFilterFile;
+    private GenericFile ensemblGenesFile;
 
     private List<VariantBasedNumericGenomicAnnotation> variantAnnotationFiles;
     private List<GenericGenomicAnnotation> regionAnnotationFiles;
@@ -76,15 +77,13 @@ public class CreateExcelParameters {
                 .build();
         OPTIONS.addOption(option);
 
-
         option = Option.builder("ldw")
                 .longOpt("ld-window")
                 .hasArg(true)
-                .desc("The window (+-) to search for LD proxies")
+                .desc("The window (+-) to search for LD proxies and closest TSS")
                 .argName("<window in bp>[DEFAULT: +-500.000]")
                 .build();
         OPTIONS.addOption(option);
-
 
         option = Option.builder("v")
                 .longOpt("variant-annot")
@@ -114,6 +113,18 @@ public class CreateExcelParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("e")
+                .longOpt("ensembl")
+                .hasArg(true)
+                .desc("(ENSEMBL) genes file, needs to be formatted with the following columns in order." +
+                        "First line is assumed to be the header. Subsequent columns are interpreted as additional annotations " +
+                        "Gene stable ID;Gene stable ID version;Transcript stable ID;Gene start (bp);Gene end (bp);" +
+                        "Transcript start (bp);Transcript end (bp);Strand;Karyotype band;Gene name;Gene type;" +
+                        "Chromosome/scaffold name;<Additional annotations>")
+                .argName("path/to/file")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
@@ -137,6 +148,11 @@ public class CreateExcelParameters {
         // Filter regions
         if (cmd.hasOption("rf")) {
             regionFilterFile = new GenericFile(cmd.getOptionValue("rf").trim());
+        }
+
+        // ENSEMBL genes
+        if (cmd.hasOption("e")) {
+            ensemblGenesFile = new GenericFile(cmd.getOptionValue("e"));
         }
 
         // Region annotations
@@ -233,6 +249,10 @@ public class CreateExcelParameters {
 
     public List<GenericGenomicAnnotation> getRegionAnnotationFiles() {
         return regionAnnotationFiles;
+    }
+
+    public GenericFile getEnsemblGenesFile() {
+        return ensemblGenesFile;
     }
 
     public File getLdReference() {

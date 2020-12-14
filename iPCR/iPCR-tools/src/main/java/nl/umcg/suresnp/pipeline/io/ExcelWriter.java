@@ -1,19 +1,21 @@
 package nl.umcg.suresnp.pipeline.io;
 
+import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
+import nl.umcg.suresnp.pipeline.records.ensemblrecord.AnnotatedGene;
+import nl.umcg.suresnp.pipeline.records.ensemblrecord.GeneBasedGenomicAnnotation;
+import nl.umcg.suresnp.pipeline.records.ensemblrecord.OverlapType;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.*;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.AreaReference;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
+import org.apache.xmlbeans.impl.xb.xsdschema.Annotated;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ExcelWriter {
 
@@ -24,7 +26,10 @@ public class ExcelWriter {
         this.output = output;
     }
 
-    public void saveSnpAnnotationExcel(Map<String, GeneticVariantInterval> targetVariants, Map<String, List<GenericGenomicAnnotation>> genomicAnnotations, Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations) throws IOException {
+    public void saveSnpAnnotationExcel(Map<String, GeneticVariantInterval> targetVariants,
+                                       Map<String, List<GenericGenomicAnnotation>> genomicAnnotations,
+                                       Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations,
+                                       GeneBasedGenomicAnnotation geneAnnotations) throws IOException {
 
         System.setProperty("java.awt.headless", "true");
         Workbook enrichmentWorkbook = new XSSFWorkbook();
@@ -45,7 +50,7 @@ public class ExcelWriter {
         }
 
         // Put the content
-        for (String sheet: variantAnnotations.keySet()) {
+        for (String sheet : variantAnnotations.keySet()) {
 
             // Define genomic annotations for this sheet
             List<GenericGenomicAnnotation> curGenomicAnnotations = genomicAnnotations.get(sheet);
@@ -68,7 +73,7 @@ public class ExcelWriter {
             }
 
             // Populate the sheet
-            populateUncollapsedSnpAnntoationSheet(enrichmentWorkbook, sheet, targetVariants, curGenomicAnnotations, curVariantAnnotations);
+            populateUncollapsedSnpAnntoationSheet(enrichmentWorkbook, sheet, targetVariants, curGenomicAnnotations, curVariantAnnotations, geneAnnotations);
         }
 
         // write
@@ -81,7 +86,8 @@ public class ExcelWriter {
                                                        String name,
                                                        Map<String, GeneticVariantInterval> targetVariants,
                                                        Collection<GenericGenomicAnnotation> genomicAnnotations,
-                                                       Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations) {
+                                                       Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations,
+                                                       GeneBasedGenomicAnnotation geneAnnotations) {
         int numberOfCols = 6;
         int numberOfRows = targetVariants.size();
 
@@ -90,16 +96,19 @@ public class ExcelWriter {
             numberOfCols += curAnnot.getHeader().length;
         }
 
-        // Determine number of rows
         for (VariantBasedNumericGenomicAnnotation curAnnot : variantAnnotations) {
             numberOfCols += curAnnot.getHeader().length;
+        }
+
+        if (geneAnnotations != null) {
+            numberOfCols += 4 + geneAnnotations.getHeader().length;
         }
 
         // Init the sheet
         XSSFSheet variantOverview = initializeSheet(workbook, name, numberOfRows, numberOfCols);
 
         // Header
-        setVariantBasedHeader(variantOverview, variantAnnotations, genomicAnnotations);
+        setVariantBasedHeader(variantOverview, variantAnnotations, genomicAnnotations, geneAnnotations);
 
         // Populate rows
         int idNumber = 0;
@@ -121,6 +130,11 @@ public class ExcelWriter {
             // Genomic annotations, multiple per row
             c = fillDynamicGenomicAnnotationCells(variantOverview, c, r, idNumber, curVariant, genomicAnnotations, variantAnnotations, true);
 
+            // Gene annotations, multiple per row
+            if (geneAnnotations !=null) {
+                c = fillGeneAnnotationCells(variantOverview, c, r, idNumber, curVariant, variantAnnotations, geneAnnotations, true);
+            }
+
             idNumber++;
             r = variantOverview.getLastRowNum() + 1;
         }
@@ -132,7 +146,7 @@ public class ExcelWriter {
         variantOverview.setZoom(75);
 
         // Size columns
-        autoSizeColumns(variantOverview, numberOfCols-1);
+        autoSizeColumns(variantOverview, numberOfCols - 1);
     }
 
 
@@ -242,7 +256,7 @@ public class ExcelWriter {
                     }
 
                     if (populateVariantAnnotationsInSubRows) {
-                        int tmp  = fillVariantAnnotationCells(row, 0, id, curVariant);
+                        int tmp = fillVariantAnnotationCells(row, 0, id, curVariant);
                         fillDynamicVariantBasedAnnotationCells(row, tmp, curVariant, variantAnnotations);
                     }
                 }
@@ -254,7 +268,87 @@ public class ExcelWriter {
         return c;
     }
 
-    private static void setVariantBasedHeader(XSSFSheet variantOverview, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations, Collection<GenericGenomicAnnotation> genomicAnnotations) {
+    private int fillGeneAnnotationCells(XSSFSheet variantOverview, int c, int r, int id, GeneticVariantInterval curVariant, Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations, GeneBasedGenomicAnnotation geneAnnotations, boolean populateVariantAnnotationsInSubRows) {
+        Set<AnnotatedGene> curRecords = new HashSet<>(geneAnnotations.queryOverlapping(curVariant));
+        AnnotatedGene closest = geneAnnotations.queryClosestTssWindow(curVariant, 1000000);
+        curRecords.add(closest);
+
+        int cOriginal = c;
+        int subRow = 0;
+        for (AnnotatedGene curRecord : curRecords) {
+
+            if (curRecord == null) {
+                continue;
+            }
+
+            XSSFRow row = variantOverview.getRow(r + subRow);
+            if (row == null) {
+                row = variantOverview.createRow(r + subRow);
+            }
+            c = cOriginal;
+
+            // Gene ID
+            XSSFCell geneIdCell = row.createCell(c++, CellType.STRING);
+            geneIdCell.setCellValue(curRecord.getGene());
+
+            // Gene name
+            XSSFCell geneNameCell = row.createCell(c++, CellType.STRING);
+            geneNameCell.setCellValue(curRecord.getGeneSymbol());
+
+            // Gene type
+            XSSFCell geneTypeCell = row.createCell(c++, CellType.STRING);
+            geneTypeCell.setCellValue(curRecord.getGeneType());
+
+            // Gene overlap type
+            XSSFCell geneOverlapTypeCell = row.createCell(c++, CellType.STRING);
+            OverlapType curType = curRecord.determineOverlapType(curVariant);
+            if (curRecord.equals(closest) && curType == OverlapType.EXTERNAL) {
+                curType = OverlapType.CLOSEST_TSS;
+            }
+
+            if (curRecord.equals(closest)) {
+                if (curType != OverlapType.CLOSEST_TSS) {
+                    geneOverlapTypeCell.setCellValue(curType.toString() + ";" +OverlapType.CLOSEST_TSS.toString() );
+                } else {
+                    geneOverlapTypeCell.setCellValue(curType.toString());
+                }
+            } else {
+                geneOverlapTypeCell.setCellValue(curType.toString());
+
+            }
+
+            // Dynamic cells
+            for (int j = 0; j < geneAnnotations.getHeader().length; j++) {
+
+                if (curRecord.getAnnotations().size() == geneAnnotations.getHeader().length) {
+                    // ID
+                    XSSFCell idCell = row.createCell(0, CellType.STRING);
+                    idCell.setCellValue(id);
+
+                    // Dynamic annotation
+                    XSSFCell curCell = row.createCell(c + j, CellType.STRING);
+                    curCell.setCellValue(curRecord.getAnnotations().get(j));
+                }
+
+                if (populateVariantAnnotationsInSubRows) {
+                    int tmp = fillVariantAnnotationCells(row, 0, id, curVariant);
+                    fillDynamicVariantBasedAnnotationCells(row, tmp, curVariant, variantAnnotations);
+                }
+            }
+
+            subRow++;
+
+        }
+        c += geneAnnotations.getHeader().length;
+
+        return c;
+    }
+
+
+    private static void setVariantBasedHeader(XSSFSheet variantOverview,
+                                              Collection<VariantBasedNumericGenomicAnnotation> variantAnnotations,
+                                              Collection<GenericGenomicAnnotation> genomicAnnotations,
+                                              GeneBasedGenomicAnnotation geneAnnotations) {
 
         // Header
         XSSFRow headerRow = variantOverview.createRow(0);
@@ -279,6 +373,17 @@ public class ExcelWriter {
                 headerRow.createCell(hc++, CellType.STRING).setCellValue(curHeader);
             }
         }
+
+        if (geneAnnotations != null) {
+            headerRow.createCell(hc++, CellType.STRING).setCellValue("gene_id");
+            headerRow.createCell(hc++, CellType.STRING).setCellValue("gene_name");
+            headerRow.createCell(hc++, CellType.STRING).setCellValue("gene_type");
+            headerRow.createCell(hc++, CellType.STRING).setCellValue("overlap_type");
+
+            for (String curHeader : geneAnnotations.getHeader()) {
+                headerRow.createCell(hc++, CellType.STRING).setCellValue(curHeader);
+            }
+        }
     }
 
     private static void autoSizeColumns(XSSFSheet variantOverview, int numberOfCols) {
@@ -288,7 +393,6 @@ public class ExcelWriter {
                 variantOverview.setColumnWidth(c, 5000);
             }
             variantOverview.setColumnWidth(c, variantOverview.getColumnWidth(c) + 200); //compensate for with auto filter and inaccuracies
-
         }
     }
 

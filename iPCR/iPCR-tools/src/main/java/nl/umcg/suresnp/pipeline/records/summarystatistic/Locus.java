@@ -2,7 +2,7 @@ package nl.umcg.suresnp.pipeline.records.summarystatistic;
 
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.Feature;
-import nl.umcg.suresnp.pipeline.records.ensemblrecord.Gene;
+import nl.umcg.suresnp.pipeline.records.ensemblrecord.AnnotatedGene;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.filters.SummaryStatisticsRecordFilter;
 
 import java.util.*;
@@ -21,7 +21,7 @@ public class Locus implements Feature, Locatable {
     private Set<String> indepVariants;
     private SummaryStatisticRecord cachedTopHit;
     private ldMatrix ldMatrix;
-    private List<Gene> genes;
+    private List<AnnotatedGene> annotatedGenes;
 
     /**
      * Instantiates a new Region.
@@ -43,7 +43,7 @@ public class Locus implements Feature, Locatable {
         this.records.put(record.getPrimaryVariantId(), record);
         this.indepVariants = new HashSet<>();
         this.cachedTopHit = null;
-        this.genes = new ArrayList<>();
+        this.annotatedGenes = new ArrayList<>();
     }
 
     /**
@@ -131,10 +131,10 @@ public class Locus implements Feature, Locatable {
     /**
      * Add a gene to the locus.
      *
-     * @param gene
+     * @param annotatedGene
      */
-    public void addGene(Gene gene) {
-        genes.add(gene);
+    public void addGene(AnnotatedGene annotatedGene) {
+        annotatedGenes.add(annotatedGene);
     }
 
 
@@ -143,8 +143,8 @@ public class Locus implements Feature, Locatable {
      *
      * @param genesToAdd
      */
-    public void addGenes(Collection<Gene> genesToAdd) {
-        genes.addAll(genesToAdd);
+    public void addGenes(Collection<AnnotatedGene> genesToAdd) {
+        annotatedGenes.addAll(genesToAdd);
     }
 
     /**
@@ -282,7 +282,7 @@ public class Locus implements Feature, Locatable {
     }
 */
 
-    public List<Gene> getGenes() {
-        return genes;
+    public List<AnnotatedGene> getGenes() {
+        return annotatedGenes;
     }
 }
