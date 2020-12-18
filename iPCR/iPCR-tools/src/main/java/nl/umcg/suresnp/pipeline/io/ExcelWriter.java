@@ -139,6 +139,14 @@ public class ExcelWriter {
             r = variantOverview.getLastRowNum() + 1;
         }
 
+        // Update the table size to actual row number
+        for (XSSFTable curTable : variantOverview.getTables()){
+            curTable.setArea(new AreaReference(
+                    new CellReference(0, 0),
+                    new CellReference(r, numberOfCols),
+                    SpreadsheetVersion.EXCEL2007));
+        }
+
         // Freeze the header and first row
         variantOverview.createFreezePane(1, 1);
 

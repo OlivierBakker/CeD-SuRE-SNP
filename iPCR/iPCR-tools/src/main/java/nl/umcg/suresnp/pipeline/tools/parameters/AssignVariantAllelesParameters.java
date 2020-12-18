@@ -115,7 +115,7 @@ public class AssignVariantAllelesParameters {
                 .longOpt("variant-filter")
                 .hasArg(true)
                 .desc("One or more variant id's")
-                .argName("<variant id> [-c <variant id>]")
+                .argName("<variant id> [-vf <variant id>]")
                 .build();
         OPTIONS.addOption(option);
 
@@ -150,7 +150,7 @@ public class AssignVariantAllelesParameters {
         option = Option.builder("bo")
                 .longOpt("bam-out")
                 .hasArg(false)
-                .desc("Should the bam be written, only usefull for debugging and whern using -vf")
+                .desc("Should the bam be written, only usefull for debugging and when using -vf")
                 .build();
         OPTIONS.addOption(option);
 

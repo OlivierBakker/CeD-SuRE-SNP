@@ -92,7 +92,7 @@ public class CreateExcel {
                 if (file.isTabixIndexed()) {
                     reader = new BlockCompressedGenomicAnnotationReader(file, variantsAsLocatable, true);
                 } else if (file.isBigBed()) {
-                    // TODO: hardcoded that bigBed file should have chr as a contig prefix
+                    // TODO: hardcoded that bigBed file should have chr as a contig prefix, needs to be made an option
                     LOGGER.warn("Hardcoded that bigBed file should have chr as a contig prefix");
                     reader = new BigBedGenomicAnnotationReader(file, variantsAsLocatable, true);
                 } else {
