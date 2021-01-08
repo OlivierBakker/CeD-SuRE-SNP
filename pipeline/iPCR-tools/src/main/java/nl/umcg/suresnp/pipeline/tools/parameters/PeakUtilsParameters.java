@@ -26,6 +26,8 @@ public class PeakUtilsParameters {
 
     // General arguments
     private String toolType;
+    private boolean discardUnique;
+    private String[] inputIpcr;
 
     private static final Options OPTIONS;
 
@@ -71,6 +73,22 @@ public class PeakUtilsParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("u")
+                .longOpt("discard-unique")
+                .hasArg(false)
+                .desc("Discard unique peaks")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("ipcr")
+                .longOpt("input-ipcr")
+                .hasArg(true)
+                .desc("Block compressed iPCR file to derive the cDNA scores from. Argument may be specified multiple" +
+                        "times to argegate multiple iPCR files.")
+                .argName("<file>")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("h")
                 .longOpt("help")
                 .desc("Print usage")
@@ -110,9 +128,14 @@ public class PeakUtilsParameters {
         }
 
         toolType = "PeakUtils";
+        discardUnique = !cmd.hasOption("u");
 
         if (cmd.hasOption("t")) {
             pattern = cmd.getOptionValue("t");
+        }
+
+        if (cmd.hasOption("ipcr")) {
+            inputIpcr = cmd.getOptionValues("ipcr");
         }
 
         // Define the output writer, either stdout or to file
@@ -139,6 +162,14 @@ public class PeakUtilsParameters {
 
     public String getPattern() {
         return pattern;
+    }
+
+    public boolean isDiscardUnique() {
+        return discardUnique;
+    }
+
+    public String[] getInputIpcr() {
+        return inputIpcr;
     }
 
     public static Options getOPTIONS() {

@@ -9,9 +9,14 @@ import nl.umcg.suresnp.pipeline.io.bedreader.GenericGenomicAnnotationReader;
 import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
 import nl.umcg.suresnp.pipeline.io.bedwriter.GenericGenomicAnnotationWriter;
 import nl.umcg.suresnp.pipeline.io.bedwriter.NarrowPeakWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import nl.umcg.suresnp.pipeline.tools.parameters.PeakUtilsParameters;
 import nl.umcg.suresnp.pipeline.utils.BedUtils;
 import org.apache.commons.collections4.list.TreeList;
@@ -22,6 +27,7 @@ import umcg.genetica.graphics.panels.ScatterplotPanel;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.util.*;
 
 public class PeakUtils {
@@ -33,73 +39,157 @@ public class PeakUtils {
         this.params = params;
     }
 
+    public void getPeakCountMatrix() throws IOException {
+        if (params.getInputFiles().length > 1) {
+            LOGGER.warn("More than one (or no) peakfile specified. Will only use the first one for generating the count matrix");
+        }
+
+        char sep = '\t';
+        NarrowPeakReader reader = new NarrowPeakReader(params.getInputFiles()[0], params.getPattern());
+        BufferedWriter outputWriter = new GenericFile(params.getOutputPrefix() + ".countMatrix").getAsBufferedWriter();
+
+        // Input iPCR readers
+        List<BlockCompressedIpcrFileReader> ipcrReaders = new ArrayList<>();
+        for (String ipcrFile : params.getInputIpcr()) {
+            ipcrReaders.add(new BlockCompressedIpcrFileReader(new GenericFile(ipcrFile)));
+        }
+
+        // Score providers determine which samples and how to output the scores (normalized, or summed)
+        // TODO: currently, so summing is actually supported as it is ez to do in R
+        List<AdaptableScoreProvider> scoreProviders = new ArrayList<>();
+        for (String sample : ipcrReaders.get(0).getCdnaSamples()) {
+            String[] tmp = new String[1];
+            tmp[0] = sample;
+            scoreProviders.add(new SampleSumScoreProvider(tmp));
+        }
+
+        // Set the file header
+        outputWriter.write("GenomicPosition");
+        for (AdaptableScoreProvider curProvider: scoreProviders) {
+            outputWriter.write(sep);
+            outputWriter.write(curProvider.getSamplesAsString());
+        }
+        outputWriter.newLine();
+
+        // Write the content
+        for (NarrowPeakRecord curRecord: reader) {
+            // Determine which iPCR records overlap with the record
+            List<IpcrRecord> overlappingIpcrRecords = new ArrayList<>();
+            for (BlockCompressedIpcrFileReader curIpcrReader: ipcrReaders) {
+                for(IpcrRecord overlap : curIpcrReader.query(curRecord.getContig(), curRecord.getStart(), curRecord.getEnd())) {
+                    overlappingIpcrRecords.add(overlap);
+                }
+            }
+
+            // Write the output
+            outputWriter.write(curRecord.getContig() + ":" + curRecord.getStart() + "-" + curRecord.getEnd());
+
+            // Determine the count for that peak for each sample
+            for (AdaptableScoreProvider curProvider: scoreProviders) {
+                double scoreSum = 0;
+                for (IpcrRecord curIpcrRecord: overlappingIpcrRecords) {
+                    scoreSum += curProvider.getScore(curIpcrRecord);
+                }
+                outputWriter.write(sep);
+                outputWriter.write(Double.toString(scoreSum));
+            }
+            outputWriter.newLine();
+
+        }
+
+        outputWriter.flush();
+        outputWriter.close();
+        LOGGER.info("Done writing.");
+    }
+
     /**
-     * Merges two narrow peak files into consensus peaks by taking the outer perimiter of overlapping peaks.
+     * Merges two or more narrow peak files into consensus peaks by taking the outer perimiter of overlapping peaks.
      * Non overlapping peaks are discarded.
      *
      * @throws IOException
      */
     public void createConsensusPeaks() throws IOException {
         NarrowPeakWriter writer;
-        List<IntervalTreeMap<NarrowPeakRecord>> peaks = new ArrayList<>(params.getInputFiles().length);
 
+        List<IntervalTreeMap<NarrowPeakRecord>> peaks = new ArrayList<>(params.getInputFiles().length);
         for (GenericFile curFile : params.getInputFiles()) {
             NarrowPeakReader reader = new NarrowPeakReader(curFile, params.getPattern());
             peaks.add(reader.getNarrowPeakRecordsAsTreeMap(params.getFilters()));
         }
 
+        LOGGER.info("Merging peaks into consensus peaks, omitting non overlapping peaks");
+        List<NarrowPeakRecord> output;
         if (peaks.size() > 2) {
-            LOGGER.error("Currently merging more than 2 peak files is not supported");
-            System.exit(-1);
-        } else if (peaks.size() == 2) {
-
-            LOGGER.info("Merging peaks into consensus peaks, omitting non overlapping peaks");
-            List<NarrowPeakRecord> output = new ArrayList<>();
-
             IntervalTreeMap<NarrowPeakRecord> indexPeaks = peaks.get(0);
-            IntervalTreeMap<NarrowPeakRecord> otherPeaks = peaks.get(1);
-
-            for (NarrowPeakRecord curRecord : indexPeaks.values()) {
-                Collection<NarrowPeakRecord> overlappingRecords = otherPeaks.getOverlapping(curRecord);
-
-                if (overlappingRecords.size() >= 1) {
-                    NarrowPeakRecord curConsensus = makeConsensusRecord(curRecord, overlappingRecords);
-                    output.add(curConsensus);
-
-                    // Algo is greedy, so only the first overlap is reported
-                    for (NarrowPeakRecord curOverlap : overlappingRecords) {
-                        otherPeaks.remove(curOverlap);
-                    }
-                }
+            for (int i = 1; i < peaks.size(); i++) {
+                indexPeaks = createConsensusPeaksFromPair(indexPeaks, peaks.get(i), params.isDiscardUnique());
             }
-
-            LOGGER.info("Done merging, sorting consensus peaks");
-            output.sort(Comparator.comparing(NarrowPeakRecord::getContig).thenComparing(NarrowPeakRecord::getStart));
-
-            LOGGER.info("Done sorting, writing output");
-            writer = new NarrowPeakWriter(new GenericFile(params.getOutputPrefix() + FileExtensions.NARROW_PEAK));
-            writer.writeRecords(output);
-            writer.flushAndClose();
-
-            LOGGER.info("Done, wrote " + output.size() + " records");
+            output = new ArrayList<>(indexPeaks.values());
+        } else if (peaks.size() == 2) {
+            output = new ArrayList<>(createConsensusPeaksFromPair(peaks.get(0), peaks.get(1), params.isDiscardUnique()).values());
         } else {
-            writer = new NarrowPeakWriter(new GenericFile(params.getOutputPrefix()));
-            writer.writeRecords(peaks.get(0).values());
-            writer.flushAndClose();
-            LOGGER.info("Done, wrote " + peaks.get(0).values().size() + " records");
-
+            output = new ArrayList<>(peaks.get(0).values());
         }
 
+        LOGGER.info("Done merging, sorting consensus peaks");
+        output.sort(Comparator.comparing(NarrowPeakRecord::getContig).thenComparing(NarrowPeakRecord::getStart));
 
+        LOGGER.info("Done sorting, writing output");
+        writer = new NarrowPeakWriter(new GenericFile(params.getOutputPrefix() + FileExtensions.NARROW_PEAK));
+        writer.writeRecords(output);
+        writer.flushAndClose();
+        LOGGER.info("Done, wrote " + output.size() + " records");
     }
 
+    /**
+     * Merges a pair of peaksets into one. Overlapping records are merged on their outer boundries. Unique records are
+     * either retained or discarded depending on the value of retainUniquePeaks.
+     *
+     * @param indexPeaks        index peaks
+     * @param otherPeaks        peaks to overlap with index peaks
+     * @param retainUniquePeaks should non overlapping peaks be retained
+     * @return the merged set of peaks
+     */
+    private static IntervalTreeMap<NarrowPeakRecord> createConsensusPeaksFromPair(IntervalTreeMap<NarrowPeakRecord> indexPeaks, IntervalTreeMap<NarrowPeakRecord> otherPeaks, boolean retainUniquePeaks) {
+        IntervalTreeMap<NarrowPeakRecord> output = new IntervalTreeMap<>();
+
+        // Find overlaps and optionally put unique records in output
+        for (NarrowPeakRecord curRecord : indexPeaks.values()) {
+            Collection<NarrowPeakRecord> overlappingRecords = otherPeaks.getOverlapping(curRecord);
+
+            if (overlappingRecords.size() >= 1) {
+                NarrowPeakRecord curConsensus = makeConsensusRecord(curRecord, overlappingRecords);
+                output.put(curConsensus, curConsensus);
+
+                // Algo is greedy, so only the first overlap is reported
+                for (NarrowPeakRecord curOverlap : overlappingRecords) {
+                    otherPeaks.remove(curOverlap);
+                }
+            } else if (retainUniquePeaks) {
+                // Retain the unique peaks from the index
+                output.put(curRecord, curRecord);
+            }
+        }
+
+        // Add the unique peaks from the other set, while in theory all the remaining records should be unique, make sure
+        if (retainUniquePeaks) {
+            for (NarrowPeakRecord curOtherRecord : otherPeaks.values()) {
+                if (!output.containsOverlapping(curOtherRecord)) {
+                    output.put(curOtherRecord, curOtherRecord);
+                }
+            }
+        }
+
+        return output;
+    }
 
     /**
-     * Creates a consensus record out of a set of records
+     * Creates a consensus record out of a set of overlapping records, merging on the outermost
+     * boundries of the two records.
      *
-     * @param index
-     * @param others
-     * @return
+     * @param index  index region
+     * @param others the overlapping region
+     * @return the NarrowPeakRecord that represents the consensus
      */
     private static NarrowPeakRecord makeConsensusRecord(NarrowPeakRecord index, Collection<NarrowPeakRecord> others) {
 
@@ -129,6 +219,13 @@ public class PeakUtils {
         return new NarrowPeakRecord(index.getContig(), start, end, name.toString(), 0, '.', signalValue, -1, -1, -1);
     }
 
+    /**
+     * Creates a consensus record in a similar vein to makeConsensusRecord, but in encode annotation style.
+     *
+     * @param index  index region
+     * @param others the overlapping region
+     * @returnthe GenericGenomicAnnotationRecord that represents the consensus
+     */
     private static GenericGenomicAnnotationRecord makeEncodeConsensusRecord(GenericGenomicAnnotationRecord index, Collection<GenericGenomicAnnotationRecord> others) {
 
         int start = index.getStart();
@@ -157,7 +254,7 @@ public class PeakUtils {
 
     /**
      * Correlate two score profiles (from .narrowPeak or 4 col bed files)
-     * TODO: Cleanup and better plotting
+     * TODO: Cleanup and better plotting, probably overdue a refactor
      *
      * @throws Exception the exception
      */
@@ -226,7 +323,6 @@ public class PeakUtils {
         grid.addPanel(p);
         grid.draw(params.getOutputPrefix() + ".png");
     }
-
 
     /**
      * Quick util to collapse TFBS from chipseq stemming from different experiments but the same TF.

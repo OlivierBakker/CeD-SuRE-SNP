@@ -94,7 +94,10 @@ public class IpcrTools {
                     CreateExcel createExcel = new CreateExcel(new CreateExcelParameters(args));
                     createExcel.run();
                     break;
-
+                case "GetPeakCounts":
+                    PeakUtils getPeakCounts = new PeakUtils(new PeakUtilsParameters(args));
+                    getPeakCounts.getPeakCountMatrix();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();
