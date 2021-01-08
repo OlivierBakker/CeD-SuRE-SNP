@@ -1,0 +1,48 @@
+```{r}
+setwd("peakcalling")
+source("../sure-snp_functions.r")
+
+library(DESeq2)
+
+count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
+rownames(count.matrix) <- count.matrix[,1]
+count.matrix           <- count.matrix[,-1]
+meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
+row.names(meta.data)   <- meta.data$id
+
+deseq.full             <- DESeqDataSetFromMatrix(countData = count.matrix,
+                                     colData = meta.data[colnames(count.matrix),],
+                                     design =  ~stimulation)
+
+```
+
+# PCA analysis of peaks
+```{r}
+results <- DESeq(deseq.full)
+
+pca.obj <- vst(results)
+x       <- assay(pca.obj)
+pc      <- prcomp(t(x))
+pca.plot(pc,
+         color=meta.data$stimulation,
+         shape=meta.data$celltype, size = 4)
+```
+
+# DE analysis
+```{r}
+jurkat.res   <- results(results, contrast=c("stimulation", "acd3/acd28", "j-baseline"), lfcThreshold = 1)
+jurkat.res   <- as.data.frame(jurkat.res)
+
+caco.res   <- results(results, contrast=c("stimulation", "iFNY", "c-baseline"), lfcThreshold = 1)
+caco.res   <- as.data.frame(caco.res)
+```
+
+# Celltype analysis
+```{r}
+k.c.res   <- results(results, contrast=c("stimulation", "c-baseline", "k-baseline"), lfcThreshold = 1)
+k.c.res   <- as.data.frame(k.c.res)
+
+k.j.res   <- results(results, contrast=c("stimulation", "j-baseline", "k-baseline"), lfcThreshold = 1)
+k.j.res   <- as.data.frame(k.c.res)
+```
+
