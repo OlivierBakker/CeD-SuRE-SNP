@@ -1,0 +1,174 @@
+```{r}
+library(MASS)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(Gviz)
+
+source("../sure-snp_functions.r")
+
+k562         <- read.ase.results("output/summary_statistics/k562_ase_wilcox_overlapped_with_peaks_x3.assoc")
+caco         <- read.ase.results("output/summary_statistics/caco_ase_wilcox_overlapped_with_peaks_x3.assoc")
+caco.stim    <- read.ase.results("output/summary_statistics/cacoStim_ase_wilcox_overlapped_with_peaks_x3.assoc")
+
+raw.ase.data <- fread("zcat output/SuRE_CeD_SNP.minimal.allele.specific.ipcr.gz", header=F, sep="\t") 
+snps         <- as.character(fread("../variant_calling/output/unique_snps.txt", data.table=F, sep="\t", header=F)[,1])
+```
+
+# ASE effect plot
+```{r}
+# Caco snps
+sample <- "Caco2"
+snp    <- "rs140496"
+p1     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
+                              cols=c("mediumblue", "mediumblue"), col="white") +
+  theme(legend.position = "none")
+
+sample <- "CacoStim"
+p2     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
+                              cols=c("skyblue2", "skyblue2"), col="white") +
+  theme(legend.position = "none")
+
+sample <- "k562"
+p3     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
+                              cols=c("red", "red"), col="white") +
+  theme(legend.position = "none")
+
+pdf(width=11, height=3.5, file="output/plots/sure_snp_rs140496_ase.pdf")
+grid.arrange(grobs=list(p3, p1, p2), ncol=3)
+dev.off()
+```
+
+# Prep data
+```{r}
+rm(raw.ase.data)
+cur.snp.data       <- read.full.ase("data/rs140496/")
+
+cur.snp.data       <- read.full.ase("data/rs9259131/")
+cur.ipcr           <- read.full.ipcr("data/rs9259131/")
+
+cur.samples        <- grep("C_",colnames(cur.snp.data), value=T)
+
+cur.snp.data$total <-  apply(cur.snp.data[,cur.samples],1, sum)
+cur.ipcr$total     <-  apply(cur.ipcr[,cur.samples],1, sum)
+
+cur.snp.data[cur.snp.data$total == 0 | cur.snp.data$total > 1000, "total"] <- NA
+
+cur.snp.data                            <- cur.snp.data[!is.na(cur.snp.data$total),]
+cur.snp.data$norm                       <- log2((cur.snp.data$total) / cur.snp.data$ipcrCount)
+cur.snp.data$norm[cur.snp.data$norm == -Inf]   <- NA
+
+
+cur.snp.ranges <- GRanges(seqnames=cur.snp.data$sequence,
+                          strand=cur.snp.data$strand,
+                          ranges=IRanges(start=cur.snp.data$alignmentStart,
+                                         end=cur.snp.data$alignmentEnd),
+                          norm=cur.snp.data$norm,
+                          total=cur.snp.data$total,
+                          allele=cur.snp.data$alleleInRead,
+                          snppos=cur.snp.data$variantStartInRead,
+                          ipcrCount=cur.snp.data$ipcrCount)
+
+cur.ipcr <- GRanges(seqnames=cur.ipcr$chromosome,
+                          ranges=IRanges(start=cur.ipcr$readOneStart,
+                                         end=cur.ipcr$readOneEnd),
+                          total=cur.ipcr$total,
+                          ipcrCount=cur.ipcr$ipcrCount)
+  
+chr  <- cur.snp.data$sequence[1]
+from <- min(cur.snp.data$alignmentStart) - 10000
+to   <- max(cur.snp.data$alignmentEnd) + 10000
+snppos <- cur.snp.data[1,]$variantStart
+
+# Reference tracks, just need to be made once
+seqTrack  <- SequenceTrack(Hsapiens)
+genTrack  <- GenomeAxisTrack()
+ideTrack  <- IdeogramTrack(genome = "hg19", chromosome = chr, from=from, to=to)
+knownGenes <- UcscTrack(genome = "hg19", chromosome = chr, 
+                        track = "knownGene", from = from, to = to, assembly="hg19",
+                        trackType = "GeneRegionTrack", 
+                        rstarts = "exonStarts", rends = "exonEnds", 
+                        gene = "name", symbol = "name", 
+                        transcript = "name", 
+                        fill = "#8282d2", name = "UCSC Genes")
+
+# Only needs to be made once
+cov <- make.coverage.track(cur.snp.ranges, chr=chr)
+cov2 <- make.coverage.track(cur.ipcr, chr=chr)
+
+```
+
+# Prep annotationt tracks
+```{r}
+# BAM based
+folder <- "data/reference_tracks/caco2/"
+files <- list.files(folder, pattern="*.bam$")
+
+bamFiles <- sapply(files, function(file.name){
+  file <- paste0(folder, "/", file.name)
+  
+  if (!file.exists(paste0(file, ".bai"))) {
+    cat("[INFO] No index found for BAM, indexing\n")
+    indexBam(file)
+  }
+  
+  tmp <- AlignmentsTrack(file, type="coverage", name=gsub("\\.bam", "", file.name))
+  return(tmp)
+})
+```
+
+```{r}
+cols <- cur.snp.data$strand
+cols[cols=="+"] <- "blue"
+cols[cols=="-"] <- "red"
+
+tmp <- fread("data/reference_tracks/caco2/SuRE_CeD_Cs_B1_vs_B2_x3.bed", data.table=F)
+
+surePeaks <- AnnotationTrack(start=tmp[,2], end=tmp[,3], chr=tmp[,1], name="CoreMarks")
+
+coreMarks <- AnnotationTrack("data/reference_tracks/caco2/E109_15_coreMarks_mnemonics.bed.gz", name="CoreMarks")
+algTrack  <- AlignmentsTrack(cur.snp.ranges, max.height=1, coverageHeight = 0.08)
+srcTrack  <- DataTrack(start = cur.snp.data$alignmentStart, width=1, chromosome = chr, name = "SuRE-score", type=c("p","smooth"), genome="hg19", data=cur.snp.data$norm, strand="+", col=cols)
+peakTrack <- DataTrack(cov, name = "Count density", type=c("histogram"), genome="hg19", strand="+", data=cov$score)
+peakTrackFull <- DataTrack(cov2, name = "Count density", type=c("histogram"), genome="hg19", strand="+", data=cov2$score)
+
+
+tracks <- c(ideTrack, genTrack, knownGenes, srcTrack, peakTrackFull, peakTrack, surePeaks, coreMarks, bamFiles, seqTrack)
+tracks <- HighlightTrack(trackList=tracks, start=snppos-1, width=1, chromosome=chr)
+
+pdf(width=10, height=15, file="output/plots/testrack.pdf")
+plotTracks(tracks, from=from, to=to, sizes=c(0.2, 0.2, 0.5, 1,1,1,1,1,rep(1, length(bamFiles)),0.1))
+dev.off()
+```
+
+
+# Test chiSqr for zeroes
+```{r}
+x <- raw.ase.data
+snp <- "rs140496"
+# Run in parallel
+out <- mclapply(k562.active$SNP, function(snp) {
+  cur.x                            <- as.data.frame(x[ V2 == snp ])
+  cur.x$total                      <- cur.x$V16 + cur.x$V17 + cur.x$V18 + cur.x$V19
+
+  cur.x <- cur.x[cur.x$total == 0,]
+
+  if (length(table(cur.x$V6)) == 2) {
+    cur.tab <- table(cur.x$V6)
+    
+    a1 <- sum(cur.x[cur.x$V6 == names(cur.tab)[1],"V7"])
+    a2 <- sum(cur.x[cur.x$V6 == names(cur.tab)[2],"V7"])
+
+    mat <- matrix(c(cur.tab[1], a1, cur.tab[2], a2), ncol=2, byrow=T)
+    
+    return(fisher.test(mat)$p.value)
+  } else {
+    return(1)
+  }
+    
+}, mc.cores=4)
+
+pvals <- unlist(out)
+pvals <- pvals[pvals < 0.99999999999 ]
+fancy.qq.plot(pvals)
+hist(pvals, breaks=40)
+```
+

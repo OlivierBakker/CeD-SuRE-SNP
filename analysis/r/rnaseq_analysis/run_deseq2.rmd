@@ -1,0 +1,144 @@
+```{r}
+library(DESeq2)
+library(data.table)
+
+# Load functions
+source("../sure-snp_functions.r")
+
+# Read meta data
+meta.data                 <- read.table("data/SuRE_CeD_RNAseq_metadata.tsv", sep="\t", header=T, stringsAsFactors = F)
+rownames(meta.data)       <- meta.data[,1]
+meta.data$condition       <- as.factor(meta.data$condition)
+
+# Raw count data
+raw.counts                 <- read.table("data/SuRE_CeD_RNAseq.expression.genelevel.v75.htseq.txt.table", header=T, row.names = 1)
+
+# Ensembl data, use to get read names
+ensembl                    <- read.table("data/ensembl_gene_position_b37_biotype.txt", sep="\t", header=T, stringsAsFactors = F)
+ensembl                    <- ensembl[!duplicated(ensembl$Gene.stable.ID),]
+rownames(ensembl)          <- ensembl$Gene.stable.ID
+ensembl$geme.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
+
+# Clean up the biptypes
+# non-coding = includes 3prime_overlapping_ncrna, antisense, lincRNA, miRNA, processed_transcript, sense_overlapping, sense_intronic, misc_RNA
+# coding = includes protein_coding, pseudogene, IG_C_pseudogene, IG_V_gene
+# r/sn/snoRNAs = blank includes snRNA, rRNA, snoRNA (the last three are clearly defined ncRNAs with specific function, thus not of interest to this class)
+ensembl$Gene.type <- gsub("protein_coding", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("pseudogene", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("polymorphic_coding RNA", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("processed_coding RNA", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("Mt_tRNA", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("IG\\_.*", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("TR\\_.*", "coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("3prime_overlapping_ncrna", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("antisense", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("lincRNA", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("miRNA", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("processed_transcript", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("sense_overlapping", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("sense_intronic", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("misc_RNA", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("snoRNA", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("snRNA", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("rRNA", "non-coding RNA", ensembl$Gene.type)
+ensembl$Gene.type <- gsub("Mt_r/sn/snoRNAs", "non-coding RNA", ensembl$Gene.type)
+
+# Color definitions
+tricolors         <- c("coding RNA" = "#EC4F4B", "non-coding RNA" ="#2F9486", "r/sn/snoRNAs" = "#9DD945")
+timepoint_colors  <-  c(t0="#0C885C", t10="#CBC012", t30="#501589", t180="#CB4E12")
+```
+
+# Filter genes on low counts
+```{r}
+par(mfrow=c(1,1))
+# Read depth per sample
+barplot(colSums(raw.counts), main="Read depth per sample", ylab="# Reads")
+
+# Split and filter the samples
+samples.jurkat         <- meta.data[meta.data$celltype == "jurkat",1]
+samples.caco           <- meta.data[meta.data$celltype == "caco-2",1]
+
+filtered.counts.jurkat <- raw.counts[, samples.jurkat]
+filtered.counts.caco   <- raw.counts[, samples.caco]
+
+filtered.counts.jurkat <- filtered.counts.jurkat[rowSums(filtered.counts.jurkat > 10) >=2,]
+filtered.counts.caco   <- filtered.counts.caco[rowSums(filtered.counts.caco > 10) >=2,]
+# Cleanup the env
+#rm(filtered.counts)
+```
+
+# Run DE analysis
+```{r}
+# Leiden samples
+deseq.jurkat   <- DESeqDataSetFromMatrix(countData=filtered.counts.jurkat,
+                                     colData = meta.data[samples.jurkat,],
+                                     design = ~ condition)
+deseq.jurkat   <- DESeq(deseq.jurkat)
+
+jurkat.res   <- results(deseq.jurkat, contrast=c("condition", "aCD3/aCD28", "baseline"), lfcThreshold = 1)
+jurkat.res   <- data.frame(gene=rownames(jurkat.res), jurkat.res)
+
+# Leiden samples
+deseq.caco   <- DESeqDataSetFromMatrix(countData=filtered.counts.caco,
+                                     colData = meta.data[samples.caco,],
+                                     design = ~ condition)
+deseq.caco   <- DESeq(deseq.caco)
+
+caco.res   <- results(deseq.caco, contrast=c("condition", "iFNY", "baseline"), lfcThreshold = 1)
+caco.res   <- data.frame(gene=rownames(caco.res), caco.res)
+
+
+write.csv(as.data.frame(jurkat.res), file="output/SuRE_CeD_jurkat_deseq2_results.csv", quote=F)
+write.csv(as.data.frame(caco.res), file="output/SuRE_CeD_caco2_deseq2_results.csv", quote=F)
+```
+
+#PCA
+```{r}
+
+filtered.counts <- raw.counts[rowSums(raw.counts >10) >= 2,]
+
+# Jointly Normalize
+full   <- DESeqDataSetFromMatrix(countData=filtered.counts,
+                                     colData = meta.data,
+                                     design = ~ celltype + condition)
+combined <- t(assay(vst(full)))
+pca      <- prcomp(combined)
+
+write.table(t(combined), file="output/SuRE_CeD_celline_gene_expression_vst_normalized.tsv", quote=F, sep="\t")
+
+pdf(width=5, height=3, file="output/plots/SuRE-CeD_RNAseq_pca.pdf", family = "ArialMT", paper="a4")
+theme.plain(pca.plot(pca,
+                     color=meta.data[rownames(pca$x), "condition"],
+                     shape=meta.data[rownames(pca$x), "celltype"],
+                     size=4,
+                     alpha=0.75)) + 
+  labs(color="Condition", shape="Celltype")
+
+dev.off()
+
+theme.plain(pca.plot(pca, comp.1=3, comp.2 = 4,
+                     color=meta.data[rownames(pca$x), "condition"],
+                     shape=meta.data[rownames(pca$x), "celltype"],
+                     size=4,
+                     alpha=0.75)) + 
+  labs(color="Condition", shape="Celltype")
+```
+
+
+```{r}
+library(plyr)
+combined <- t(combined)
+ensembl.sure.annot <- read.table("~/Documents/data/reference/ensembl/ensembl_genes_and_transcripts_v102_b37.txt", stringsAsFactors = F, header=T, sep="\t")
+ol <- intersect(rownames(combined), ensembl.sure.annot$Gene.stable.ID)
+
+annot <- matrix(rep(NA,nrow(ensembl.sure.annot) * ncol(combined)),nrow=nrow(ensembl.sure.annot), ncol=ncol(combined))
+
+sapply(ensembl.sure.annot$Gene.stable.ID, function(gene){
+  combined[ensembl.sure.annot$Gene.stable.ID,]
+})
+
+ensembl.sure.annot <- cbind.fill(ensembl.sure.annot, combined[ensembl.sure.annot$Gene.stable.ID,])
+
+
+```
+

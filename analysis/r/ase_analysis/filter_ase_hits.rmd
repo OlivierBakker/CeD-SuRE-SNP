@@ -1,0 +1,113 @@
+```{r}
+library(qqman)
+
+source("../sure-snp_functions.r")
+
+k562.ttest  <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_K562_ttest_covar.assoc", qqman.compatible = F)
+k562.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_K562_wilcox.assoc", qqman.compatible = F)
+k562.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_INDEL_K562_wilcox.assoc", qqman.compatible = F)
+
+Caco.ttest  <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_Caco_ttest_covar.assoc", qqman.compatible = F)
+Caco.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_Caco_wilcox.assoc", qqman.compatible = F)
+Caco.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_INDEL_Caco_wilcox.assoc", qqman.compatible = F)
+
+CacoStim.ttest  <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_CacoStim_ttest_covar.assoc", qqman.compatible = F)
+CacoStim.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_CacoStim_wilcox.assoc", qqman.compatible = F)
+CacoStim.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_INDEL_CacoStim_wilcox.assoc", qqman.compatible = F)
+
+k562.active     <- k562.wilcox
+Caco.active     <- Caco.wilcox
+CacoStim.active <- CacoStim.wilcox
+
+# Read peaks to overlap
+#Shared.peakset   <- read.table("~/Desktop/sure/peakcalls/CeD_C_vs_Cs_intersect_x3.bed")[,1:3]
+Caco.peakset     <- read.bedfile("../peakcalling/output/overlaps/CeD_C_B1_vs_B2_x3.bed")$genomicRanges
+CacoStim.peakset <- read.bedfile("../peakcalling/output/overlaps/CeD_Cs_B1_vs_B2_x3.bed")$genomicRanges
+k562.peakset     <- read.bedfile("../peakcalling/output/overlaps/CeD_Cs_B1_vs_B2_x3.bed")$genomicRanges
+
+
+Caco.snps        <- GRanges(seqnames=paste0("chr", Caco.active[,1]),
+                            ranges=IRanges(start=as.numeric(Caco.active[,2]),
+                                           width=rep(1, nrow(Caco.active))))
+
+CacoStim.snps    <- GRanges(seqnames=paste0("chr", CacoStim.active[,1]),
+                            ranges=IRanges(start=as.numeric(CacoStim.active[,2]),
+                                           width=rep(1, nrow(CacoStim.active))))
+
+
+k562.snps        <- GRanges(seqnames=paste0("chr", k562.active[,1]),
+                            ranges=IRanges(start=as.numeric(k562.active[,2]),
+                                           width=rep(1, nrow(k562.active))))
+
+Caco.active         <- Caco.active[findOverlaps(Caco.snps, Caco.peakset)@from,]
+CacoStim.active     <- CacoStim.active[findOverlaps(CacoStim.snps, CacoStim.peakset)@from,]
+k562.active         <- k562.active[findOverlaps(k562.snps, k562.peakset)@from,]
+
+write.table(Caco.active[, c("SNP", colnames(Caco.active)[-11])], file="output/summary_statistics/caco_ase_wilcox_overlapped_with_peaks_x3.assoc", quote=F, row.names=F, sep="\t")
+write.table(CacoStim.active[,c("SNP", colnames(Caco.active)[-11])], file="output/summary_statistics/cacoStim_ase_wilcox_overlapped_with_peaks_x3.assoc", quote=F, row.names=F, sep="\t")
+write.table(k562.active[,c("SNP", colnames(k562.active)[-11])], file="output/summary_statistics/k562_ase_wilcox_overlapped_with_peaks_x3.assoc", quote=F, row.names=F, sep="\t")
+
+k562.active     <- make.ase.qqman.compatible(k562.active)
+Caco.active     <- make.ase.qqman.compatible(Caco.active)
+CacoStim.active <- make.ase.qqman.compatible(CacoStim.active)
+```
+
+# qqplots
+```{r}
+p1 <- fancy.qq.plot(k562.active$P, main="K562", col="red", highlight.col="darkorange") 
+p2 <- fancy.qq.plot(Caco.active$P, main="Caco2", col="mediumblue", highlight.col="darkorange")
+p3 <- fancy.qq.plot(CacoStim.active$P, main="Caco2 Stim", col="skyblue2", highlight.col="darkorange")
+
+p1 <- theme.plain(p1) + theme(legend.position = "none")
+p2 <- theme.plain(p2) + theme(legend.position = "none")
+p3 <- theme.plain(p3) + theme(legend.position = "none")
+
+pdf(width=7, height=10, file="output/plots/sure_snp_qqplots_ase.pdf")
+grid.arrange(grobs=list(p1, p2, p3), ncol=3)
+dev.off()
+```
+
+# Manhatten plot
+```{r}
+par(mfrow=c(2,1), mar=c(4,5,2,2))
+manhattan(Caco.active, annotateTop=T,annotatePval=1e-4, main="Caco", ylim=c(0,9), suggestiveline =4)
+manhattan(CacoStim.active, annotateTop=T,annotatePval=1e-4, main="CacoStim", ylim=c(0,9), suggestiveline =4)
+```
+
+# Trynka Manhatten plot
+```{r}
+trynka <- fread("~/Documents/data/celiac/summary_statistics/trynka/trynka_summary_stats_b37.mlma", data.table=F)
+ponce <- fread("~/Documents/data/celiac/summary_statistics/ponce/ponce_summary_stats_b37.txt", data.table=F)
+
+trynka <- trynka[,c("chr37","pos37","rsId37","chr36","pos36","rsId36","A1","A2","beta","pvalue")]
+colnames(trynka) <- colnames(ponce)
+
+rownames(ponce)  <- ponce$rsId37
+rownames(trynka) <- trynka$rsId37
+
+ol       <- intersect(rownames(trynka), rownames(ponce))
+df.plot  <- ponce[ol,]
+selector <- df.plot$P > trynka[ol, "P"]
+df.plot[selector, "P"] <- trynka[ol,"P"][selector]
+
+df.plot   <- rbind(df.plot, ponce[!ponce$rsId37 %in% df.plot$rsId37,])
+df.plot   <- rbind(df.plot, trynka[!trynka$rsId37 %in% df.plot$rsId37,])
+
+sure.loci <- read.table("data/SuRESNP_loci_edit.txt", stringsAsFactors = F, header=T)
+sure.loci <- sure.loci[sure.loci$SNP %in% df.plot[df.plot$P < 1e-5, "rsId37"],]
+ol        <- intersect(sure.loci$SNP, df.plot$rsId37)
+
+df.plot[df.plot$P < 1e-60, "P"] <- 1e-60
+
+png(width=1200, height=600, file="output/plots/trynka+ponce_manhattanplot.png")
+par(mar=c(5,6,2,2))
+manhattan(df.plot, chr="chr37", bp="pos37", p="P", snp="rsId37", highlight = ol, cex=2, cex.lab=2, cex.axis=2, col=c("darkgrey", "lightgrey"), col.highlight = "blue", ylim=c(0,62), ylab="-log10(p)")
+dev.off()
+
+```
+
+
+```{r}
+
+```
+

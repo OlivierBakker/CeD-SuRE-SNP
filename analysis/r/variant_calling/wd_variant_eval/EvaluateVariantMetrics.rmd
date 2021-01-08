@@ -1,0 +1,135 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r}
+table.file <- "data/SuRE_CeD_raw.table"
+variant.metrics.unfiltered <- read.table(table.file, stringsAsFactors = F, header=T)
+
+table.file <- "data/SuRE_CeD_snps.table"
+variant.metrics.filtered <- read.table(table.file, stringsAsFactors = F, header=T)
+```
+# Executive summary
+
+The variants where chosen to be hard filtered since the ammount of variants was too limeted to train a proper VQSR model. In the end I did a strict filtering for now, to make sure we do not include to many false positives in our intitial results. The following is based on variants only in CeD regions since these are the most accurate. In total I retained 17807 variants after filtering. Below is a more detailled overview of the metrics used and why parameters were chosen. Note, most of the variants will be filtered based on the maf cutoff of 0.05 since a major proportion (42k) of variants has only one copy of the ALT.
+
+# Variant filtering paramater choiches
+
+For a detailled overview and the recomendations on which these filteres are based see: https://software.broadinstitute.org/gatk/documentation/article?id=11069
+https://software.broadinstitute.org/gatk/documentation/article.php?id=6925
+https://software.broadinstitute.org/gatk/documentation/article.php?id=3225
+https://gatkforums.broadinstitute.org/gatk/discussion/2806/howto-apply-hard-filters-to-a-call-set
+
+
+For SNPs
+
+    "QD < 10.0 || FS > 10.0 || MQ < 50.0 || SQR > 3.0 || MQRankSum < -5.0 || ReadPosRankSum < -4.0 || ReadPosRankSum > 4.0 || AF < 0.05"
+
+For indels
+
+    "QD < 10.0 || FS > 25.0 || SQR > 10 || ReadPosRankSum < -4.0 || ReadPosRankSum > 4.0 || AF < 0.05"
+
+# Alle counts
+The ammount of alternative alles per variant (AC) total is 60 (30 x 2)
+
+```{r}
+hist(as.numeric(variant.metrics.unfiltered$AC), breaks=60, xlab="ALT allele counts", main="ALT allele counts")
+hist(as.numeric(variant.metrics.filtered$AC), breaks=60, xlab="ALT allele counts", main="ALT allele counts")
+
+```
+
+
+# Quality by depth (QD)
+This is the variant confidence (from the QUAL field) divided by the unfiltered depth of non-hom-ref samples. This is the variant confidence (from the QUAL field) divided by the unfiltered depth of non-hom-ref samples. 
+
+```{r}
+plot(density(variant.metrics.unfiltered$QD, na.rm=T), main="Quality by Depth (QD)")
+lines(density(variant.metrics.filtered$QD, na.rm=T), col="blue")
+```
+
+# Strand bias (FS)
+If certain variants are disproportionally present in one orientation and strand as compared to the other, this is an indication of sequencing errors. See below the distribtuion of strand bias trough the 'FS' metric. 
+
+Based on the plots below I chose to retain values < 10 (conservative)
+```{r}
+plot(density(variant.metrics.unfiltered$FS), main="Strand bias (FS)")
+lines(density(variant.metrics.filtered$FS), col="blue")
+plot(density(variant.metrics.unfiltered$FS), main="Strand bias (FS)", xlim=c(0,20))
+lines(density(variant.metrics.filtered$FS), col="blue")
+```
+
+# Mapping quality of reads
+The root mean square mapping qualities over all reads supporting a variant, this is preffered over the mean mapping quality since the standard devation in mapping qualities is accounted for. MQ is expected to be 60 if reads where properly aligned.
+
+```{r}
+plot(density(variant.metrics.unfiltered$MQ, na.rm=T), main="Mapping quality (MQ)")
+lines(density(variant.metrics.filtered$MQ), col="blue")
+
+
+plot(density(variant.metrics.unfiltered$MQRankSum, na.rm=T), main="Mapping quality (MQRanSum)")
+lines(density(variant.metrics.filtered$MQRankSum), col="blue")
+
+```
+
+# Variant position in read
+If variants are called mostly at the end of the reads this is indicative of error, it compares if the ref vs alternate allele if disproportionally present in the end of a read.
+
+Description: A negative value indicates that the alternate allele is found at the ends of reads more often than the reference allele; a positive value indicates that the reference allele is found at the ends of reads more often than the alternate allele. A value close to zero is best because it indicates there is little difference between the positions of the reference and alternate alleles in the reads.
+
+```{r}
+plot(density(variant.metrics.unfiltered$ReadPosRankSum, na.rm=T), main="Read pos rank sum")
+lines(density(variant.metrics.filtered$ReadPosRankSum, na.rm=T), col="blue")
+```
+
+# Variant types
+```{r}
+barplot(table(variant.metrics.unfiltered$TYPE), main="Variant types raw")
+barplot(table(variant.metrics.filtered$TYPE), main="Variant types filtered")
+```
+
+# Genotypes
+```{r}
+par(mfrow=c(2,2))
+hist(variant.metrics.unfiltered$NO.CALL, col="lightgrey", main="NO CALL", breaks=40, ylab="N variants", xlab="N samples")
+hist(variant.metrics.unfiltered$HOM.REF, col="red", main="HOM_REF", breaks=40, ylab="N variants", xlab="N samples")
+hist(variant.metrics.unfiltered$HET, col="blue", main="HET", breaks=40, ylab="N variants", xlab="N samples")
+hist(variant.metrics.unfiltered$HOM.VAR, col="green", main="HOM_VAR", breaks=40, ylab="N variants", xlab="N samples")
+
+
+hist(variant.metrics.filtered$NO.CALL, col="lightgrey", main="NO CALL", breaks=40, ylab="N variants", xlab="N samples")
+hist(variant.metrics.filtered$HOM.REF, col="red", main="HOM_REF", breaks=40, ylab="N variants", xlab="N samples")
+hist(variant.metrics.filtered$HET, col="blue", main="HET", breaks=40, ylab="N variants", xlab="N samples")
+hist(variant.metrics.filtered$HOM.VAR, col="green", main="HOM_VAR", breaks=40, ylab="N variants", xlab="N samples")
+
+par(mfrow=c(1,1))
+
+```
+
+# Hetrozygosity
+Evaluates if there is an unexpected number of hetrozygous individuals, higher Phred scaled pvlaue indicates a deviating sample. Since we enriched for hetrozygous individuals somewhat I am not using this as a filter since we expect there to be some inflation, altough most of the sites are within the threshold anyway. 
+see https://gatkforums.broadinstitute.org/gatk/discussion/8952/interpreting-excesshet-info-field for more info
+
+```{r}
+plot(density(variant.metrics.unfiltered$ExcessHet, na.rm=T), main="Excess Hetrozygosity", xlab="Phred scaled HWE p for excess HET")
+lines(density(variant.metrics.filtered$ExcessHet, na.rm=T), col="blue")
+plot(density(10^(-variant.metrics.unfiltered$ExcessHet/10), na.rm=T), main="Excess Hetrozygosity", xlab="HWE p for excess HET")
+lines(density(10^(-variant.metrics.filtered$ExcessHet/10), na.rm=T), col="blue")
+
+```
+
+# Inbreeding Coeff
+Expected to be arround zero, <0 indicates excess hetrozygosity, > 0 indicates excess homzygosity
+for more info:
+https://gatkforums.broadinstitute.org/gatk/discussion/2450/what-does-inbreedingcoeff-mean
+Again since a higher number of HET individuals is expected I am not filtering on these parameters
+
+```{r}
+plot(density(variant.metrics.unfiltered$InbreedingCoeff, na.rm=T), main="Inbreeding coefficient", xlab="Inbreeding coefficient")
+lines(density(variant.metrics.filtered$InbreedingCoeff, na.rm=T), col="blue")
+```
+
