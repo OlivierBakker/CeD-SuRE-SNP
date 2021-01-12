@@ -1,4 +1,5 @@
 ```{r}
+setwd("rnaseq_analysis/")
 library(DESeq2)
 library(data.table)
 

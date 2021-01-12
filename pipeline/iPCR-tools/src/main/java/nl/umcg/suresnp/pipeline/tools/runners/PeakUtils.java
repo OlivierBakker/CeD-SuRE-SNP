@@ -3,10 +3,7 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.io.bedreader.BedRecordProvider;
-import nl.umcg.suresnp.pipeline.io.bedreader.FourColBedFileReader;
-import nl.umcg.suresnp.pipeline.io.bedreader.GenericGenomicAnnotationReader;
-import nl.umcg.suresnp.pipeline.io.bedreader.NarrowPeakReader;
+import nl.umcg.suresnp.pipeline.io.bedreader.*;
 import nl.umcg.suresnp.pipeline.io.bedwriter.GenericGenomicAnnotationWriter;
 import nl.umcg.suresnp.pipeline.io.bedwriter.NarrowPeakWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
@@ -22,6 +19,7 @@ import nl.umcg.suresnp.pipeline.utils.BedUtils;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.Logger;
+import umcg.genetica.features.Gene;
 import umcg.genetica.graphics.Grid;
 import umcg.genetica.graphics.panels.ScatterplotPanel;
 
@@ -45,7 +43,7 @@ public class PeakUtils {
         }
 
         char sep = '\t';
-        NarrowPeakReader reader = new NarrowPeakReader(params.getInputFiles()[0], params.getPattern());
+        GenomicAnnotationProvider reader = new GenericGenomicAnnotationReader(params.getInputFiles()[0], false);
         BufferedWriter outputWriter = new GenericFile(params.getOutputPrefix() + ".countMatrix").getAsBufferedWriter();
 
         // Input iPCR readers
@@ -72,7 +70,7 @@ public class PeakUtils {
         outputWriter.newLine();
 
         // Write the content
-        for (NarrowPeakRecord curRecord: reader) {
+        for (GenericGenomicAnnotationRecord curRecord: reader) {
             // Determine which iPCR records overlap with the record
             List<IpcrRecord> overlappingIpcrRecords = new ArrayList<>();
             for (BlockCompressedIpcrFileReader curIpcrReader: ipcrReaders) {
