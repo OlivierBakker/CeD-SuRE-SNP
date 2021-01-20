@@ -3,6 +3,8 @@ library(ggplot2)
 library(GenomicRanges)
 library(ggsignif)
 library(gridExtra)
+library(pheatmap)
+library(RColorBrewer)
 
 # Function definitions
 #----------------------------------------------------------------------------------------
@@ -279,6 +281,33 @@ make.coverage.track <- function(inputranges, chr=chr) {
 }
 
 ## ------------------------------------------------------------------------
+# Simple heatmap with auto labels
+simple.hm <- function(data, cellwidth=12, cellheight=12, limit=NULL, range="symmetric", min.value=0, ...) {
+  
+  if (range == "symmetric") {
+    break.list <- seq(-max(abs(data)), max(abs(data)), by=max(abs(data))/100)
+    cols       <- colorRampPalette(rev(brewer.pal(n=7, name ="RdBu")))(length(break.list))
+  } else if (range == "absolute") {
+    break.list <- seq(min.value, max(abs(data)), by=max(abs(data))/100)
+    cols       <- colorRampPalette(brewer.pal(n=7, name ="Reds"))(length(break.list))
+  } else if (range == "auto") {
+    break.list <- seq(-min(data), max(data), by=max(abs(data))/100)
+    cols       <- colorRampPalette(rev(brewer.pal(n=7, name ="RdBu")))(length(break.list))
+  } else  {
+    cat("[ERROR] range must be symmetric, auto, or aboslute\n")
+  }
+  
+  pheatmap(data,
+           breaks=break.list,
+           col=cols,
+           cellwidth=cellwidth,
+           cellheight=cellheight,
+           ...)
+  
+}
+
+
+## ------------------------------------------------------------------------
 manhattan <- function (x, chr = "CHR", bp = "BP", p = "P", snp = "SNP", col = c("gray10", "gray60"),
                        chrlabs = NULL, suggestiveline = -log10(1e-05), col.highlight="blue",
           genomewideline = -log10(5e-08), highlight = NULL, logp = TRUE, 
@@ -414,3 +443,15 @@ manhattan <- function (x, chr = "CHR", bp = "BP", p = "P", snp = "SNP", col = c(
   par(xpd = FALSE)
 }
 
+## ------------------------------------------------------------------------
+sure.palette <- list(celltype_stim=c(`k562`="#FE0000", 
+                                `caco-2`="#0000CE",
+                                `caco-2-stim`="#7EC1EE",
+                                `jurkat`="#007D5A",
+                                `jurkat-stim`="#00D69A"),
+                     celltype=c(`k562`="#FE0000", 
+                                `caco-2`="#0000CE",
+                                `jurkat`="#007D5A"),
+                     stimulation=c(`acd3/acd28`="#00D69A",
+                                   `iFNY`="#7EC1EE",
+                                   `baseline`="#0965B0"))
