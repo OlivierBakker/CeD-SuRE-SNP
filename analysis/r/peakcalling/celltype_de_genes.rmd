@@ -1,0 +1,236 @@
+```{r}
+setwd("peakcalling")
+source("../sure-snp_functions.r")
+
+library(DESeq2)
+library(bumphunter)
+library(GenomicRanges)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+
+count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
+rownames(count.matrix) <- count.matrix[,1]
+count.matrix           <- count.matrix[,-1]
+meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
+row.names(meta.data)   <- meta.data$id
+
+meta.data$ct_caco      <- as.factor(meta.data$ct_caco)
+meta.data$ct_jurkat    <- as.factor(meta.data$ct_jurkat)
+meta.data$ct_k562      <- as.factor(meta.data$ct_k562)
+
+# Normalize count matrix
+deseq.full             <- DESeqDataSetFromMatrix(countData = count.matrix,
+                                     colData = meta.data[colnames(count.matrix),],
+                                     design = ~celltype)
+results                <- DESeq(deseq.full)
+pca.obj                <- varianceStabilizingTransformation(results)
+norm.count.matrix      <- assay(pca.obj)
+
+
+get.range.df         <- function(range.names) {
+  ranges <- as.data.frame(t(as.data.frame(lapply(strsplit(range.names,":"), function(x){
+    tmp <- strsplit(x[2], "-")[[1]]
+    return(c(x[1],tmp[1], tmp[2]))
+  }))), stringsAsFactors=F)
+  ranges[,2] <- as.numeric(ranges[,2])
+  ranges[,3] <- as.numeric(ranges[,3])
+  rownames(ranges) <- range.names
+  return(ranges)
+}
+
+genes.ucsc           <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+
+# Ensembl data, use to get read names
+ensembl                    <- read.table("../data/ensembl_genes_and_transcripts_v102_b37.txt", sep="\t", header=T, stringsAsFactors = F)
+ensembl$gene.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
+```
+
+# Celltype: DE analysis
+```{r}
+# Jurkat
+deseq.ct            <- DESeqDataSetFromMatrix(countData = count.matrix,
+                                     colData = meta.data[colnames(count.matrix),],
+                                     design = ~ ct_jurkat)
+results.ct          <- DESeq(deseq.ct)
+jurkat.res          <- results(results.ct,
+                                  contrast=c("ct_jurkat", "1", "0"), 
+                                  lfcThreshold = 0)
+jurkat.res          <- as.data.frame(jurkat.res, stringsAsFactors=F)
+
+# Caco2
+deseq.ct            <- DESeqDataSetFromMatrix(countData = count.matrix,
+                                     colData = meta.data[colnames(count.matrix),],
+                                     design = ~ ct_caco)
+results.ct          <- DESeq(deseq.ct)
+caco.res            <- results(results.ct,
+                                  contrast=c("ct_caco", "1", "0"), 
+                                  lfcThreshold = 0)
+caco.res            <- as.data.frame(caco.res, stringsAsFactors=F)
+
+# K562
+deseq.ct            <- DESeqDataSetFromMatrix(countData = count.matrix,
+                                     colData = meta.data[colnames(count.matrix),],
+                                     design = ~ ct_k562)
+results.ct          <- DESeq(deseq.ct)
+k562.res            <- results(results.ct,
+                                  contrast=c("ct_k562", "1", "0"), 
+                                  lfcThreshold = 0)
+k562.res            <- as.data.frame(k562.res, stringsAsFactors=F)
+
+# Concat into one table
+results.table          <- rbind(jurkat.res, caco.res, k562.res)
+results.table$celltype <-  c(rep("jurkat", nrow(count.matrix)),
+                             rep("caco-2", nrow(count.matrix)),
+                             rep("k562", nrow(count.matrix)))
+results.table$peak    <- rep(rownames(count.matrix), 3)
+#results.table$peak    <- c(rownames(jurkat.res), rownames(caco.res), rownames(k562.res))
+results.table         <- results.table[results.table$padj < 0.05, c("celltype", "peak", colnames(results.table)[1:6])]
+results.table         <- results.table[results.table$log2FoldChange > 1,]
+
+write.table(results.table, file="output/celltype_specific_sure_peaks_lfc_gt_1.tsv", quote=F, row.names=F, sep="\t")
+```
+
+# Barplot of unique celltype peaks
+```{r}
+df.plot           <- as.data.frame(table(results.table$celltype))
+colnames(df.plot) <- c("celltype", "peaks")
+
+df.plot$celltype  <- factor(df.plot$celltype, levels=c("k562", "jurkat", "caco-2"))
+
+p <- ggplot(df.plot, mapping=aes(x=celltype, y=peaks, fill=celltype)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=sure.palette$celltype) +
+  ylab("DE effect vs other celltypes")
+theme.plain(p)
+```
+
+# Find the closest gene to DE celltype peaks
+```{r}
+celltype.peaks        <- read.table(file="output/celltype_specific_sure_peaks_lfc_gt_1.tsv", sep="\t", header=T, stringsAsFactors =F)
+
+ranges                 <- get.range.df(unique(celltype.peaks$peak))
+de.ranges              <- GRanges(seqnames=paste0("chr", ranges[,1]), ranges=IRanges(start=ranges[,2], end=ranges[,3]))
+
+closest.gene           <- matchGenes(de.ranges, genes.ucsc, type="fiveprime")
+rownames(closest.gene) <- rownames(ranges)
+closest.gene$celltype  <- celltype.peaks$celltype
+closest.gene           <- closest.gene[closest.gene$distance < 5000, c("name", "celltype", "description", "distance", "geneL")]
+closest.gene$peak      <- rownames(closest.gene)
+
+write.table(closest.gene, file="output/celltype_de_peaks_closest_tss_5kb_window.tsv", sep="\t", quote=F)
+```
+
+# Locus plots of DE markers
+```{r}
+library(Gviz)
+library(biomaRt)
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+sure.activity <- list()
+
+#for (file in list.files("../peakcalling/output/ced_regions/", pattern=".*\\+.*treat_pileup.bdg")) {
+#  tmp  <- fread(paste0("../peakcalling/output/ced_regions/", file), data.table = F)
+#  tmp[,1]  <- paste0("chr", tmp[,1])
+#  name <- gsub("CeD_filtered500_(.*)_treat_pileup.bdg","\\1",file)
+#  sure.activity[[name]] <- tmp
+#}
+for (file in list.files("../peakcalling/data/merged_activity_tracks/", pattern=".*_CPM_all_samples.bdg")) {
+  tmp  <- fread(paste0("../peakcalling/data/merged_activity_tracks/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_CPM_all_samples.bdg","\\1",file)
+  sure.activity[[name]] <- tmp
+}
+regions.of.interest <- data.frame(chrs=c("chr6", "chr5", "chr2", "chr1", "chr15"),
+                                  froms=c(390348,131826278,204798614, 8020694, 67429455),
+                                  tos=c(391359,131827320,204799245,8022330,67430473),
+                                  ylims=c(400, 400, 120, 3800, 200),
+                                  stringsAsFactors = F)
+
+regions.of.interest$froms  <- regions.of.interest$froms - 5000
+regions.of.interest$tos <- regions.of.interest$tos + 5000
+
+# Reference tracks, just need to be made once
+genTrack  <- GenomeAxisTrack(littleTicks = F,
+                             add53 = TRUE,
+                             add35 = TRUE,
+                             labelPos="below")
+
+
+bm <- useMart(host = "grch37.ensembl.org", 
+              biomart = "ENSEMBL_MART_ENSEMBL", 
+              dataset = "hsapiens_gene_ensembl")
+
+plots <- apply(regions.of.interest, 1, function(x) {
+  chr        <- x[1]
+  from       <- as.numeric(x[2])
+  to         <- as.numeric(x[3])
+  ymax       <- as.numeric(x[4])
+  ideTrack   <- IdeogramTrack(genome = "hg19", chromosome = chr, from=from, to=to, showId = T)
+  knownGenes <- BiomartGeneRegionTrack(genome = "hg19", 
+                                      chromosome = chr,
+                                      start = from,
+                                      end = to,
+                                      name = "ENSEMBL",
+                                      biomart = bm,
+                                      transcriptAnnotation="symbol",
+                                      stacking="squish")
+  
+  tracks <- c(ideTrack, knownGenes)
+  for (celltype in names(sure.activity)) {
+    tmp      <- sure.activity[[celltype]]
+    tmp      <- tmp[tmp[,1] == chr,]
+    tmpTrack <- DataTrack(start = as.numeric(tmp[,2]),
+                       width = 1,
+                       from=from,
+                       to=to,
+                       chromosome = chr,
+                       name=celltype,
+                       genome = "hg19",
+                       data=as.numeric(tmp[,4]),
+                       strand="+",
+                       type="histogram",
+                       fill.histogram=sure.palette$celltype_stim[celltype],
+                       col.histogram=NA,
+                       ylim=c(0, ymax),
+                       yTicksAt=as.numeric(c(0, ymax/2, ymax)))
+    tracks <- c(tracks, tmpTrack)
+  }
+  
+  tracks <- c(tracks, genTrack)
+  return(tracks)  
+})
+names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of.interest[i,1:3], collapse=":")})
+
+pdf(width=12.5, height=6, file="output/plots/trackplot_test.pdf")
+ncols <- length(plots)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(1, ncols)))
+
+for (i in 1:nrow(regions.of.interest)) {
+  x <- as.character(regions.of.interest[i,1:3])
+  chr        <- x[1]
+  from       <- as.numeric(x[2])
+  to         <- as.numeric(x[3])
+  region <- paste(x, collapse=":")
+  
+  pushViewport(viewport(layout.pos.col = ((i - 1) %% ncols) + 1, 1))
+  
+  cur.tracks <- plots[[region]]
+  plotTracks(cur.tracks,
+             chromosome = chr,
+             from=from,
+             to=to,
+             add = TRUE,
+             scale=0.9,
+             sizes=c(0.1, 0.8, rep(0.6, length(cur.tracks)-3), 0.2),
+             background.title="white",
+             col.axis="#736E70",
+             col.title="#736E70",
+             col.frame="lightgray")
+  popViewport(1)
+}
+dev.off()
+
+
+
+
+```

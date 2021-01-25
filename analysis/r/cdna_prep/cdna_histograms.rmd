@@ -1,0 +1,42 @@
+```{r}
+setwd("cdna_prep")
+source("../sure-snp_functions.r")
+
+cdna.samples <- read.table("../data/cdna_samples_final.txt", stringsAsFactors = F)[,1]
+
+histograms <- list()
+
+for (sample in cdna.samples) {
+  histograms[[sample]] <- read.table(paste0("data/v4/", sample, ".count.histogram.tsv.gz"), stringsAsFactors = F)
+}
+
+```
+
+```{r}
+
+sample <- "C_B1_T1"
+
+plot.histogram <- function(sample, xmax=25) {
+  cur.data          <- histograms[[sample]]
+  cur.data[,1]      <- cur.data[,1] + 1
+  max.count         <- sum(cur.data[cur.data[,1] > xmax, 2])
+  max.label         <- cur.data[nrow(cur.data), 1]
+  cur.data          <- cur.data[cur.data[,1] <= xmax,]
+  cur.data[xmax, 2] <- max.count
+  cur.data$labels   <- as.character(cur.data$V1)
+  cur.data$labels[nrow(cur.data)] <- paste0(cur.data[nrow(cur.data), 1], "-", max.label)
+  
+  barplot(cur.data$V2 ~ cur.data$V1, 
+          names.arg = cur.data$labels,
+          ylab=paste0("Frequency in ", sample),
+          xlab=paste0("Barcode frequency in cDNA library"),
+          las=2,
+          border=NA)
+}
+
+pdf(width=15, height = 7.5, file="output/plots/cdna_count_histograms.pdf", pointsize = 9)
+par(mfrow=c(4,5), mar=c(2,10,2,0))
+sapply(cdna.samples, plot.histogram)
+dev.off()
+```
+

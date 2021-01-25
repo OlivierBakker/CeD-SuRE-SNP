@@ -74,6 +74,6 @@ po/*~
 finemapping_bundle/
 **/bundle/
 
-/analysis/r/sequencing_evaluation/
+/analysis/sequencing_evaluation/
 /analysis/r/intergrated_genome_viewer/
 /.idea/

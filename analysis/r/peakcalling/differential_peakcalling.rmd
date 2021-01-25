@@ -1,5 +1,5 @@
 ```{r}
-setwd("peakcalling")
+setwd("../peakcalling")
 source("../sure-snp_functions.r")
 
 library(DESeq2)
@@ -10,20 +10,52 @@ count.matrix           <- count.matrix[,-1]
 meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
 row.names(meta.data)   <- meta.data$id
 
+meta.data$ct_caco      <- as.factor(meta.data$ct_caco)
+meta.data$ct_jurkat    <- as.factor(meta.data$ct_jurkat)
+meta.data$ct_k562      <- as.factor(meta.data$ct_k562)
+
 deseq.full             <- DESeqDataSetFromMatrix(countData = count.matrix,
                                      colData = meta.data[colnames(count.matrix),],
-                                     design = ~ celltype + replicate + stimulation)
+                                     design = ~stimulation)
+```
 
+# Merging technical replicates
+```{r}
+count.matrix.tmerged       <- data.frame(row.names=rownames(count.matrix))
+for(celltype in unique(meta.data$stimulation)) {
+  for (replicate in unique(meta.data[meta.data$stimulation == celltype,]$replicate)) {
+    samples.to.sum <- rownames(meta.data)[meta.data$stimulation == celltype & meta.data$replicate == replicate] 
+    new.id         <- gsub("_T.", "",samples.to.sum[1])
+    count.matrix.tmerged[,new.id]   <- rowSums(count.matrix[, samples.to.sum])
+  }
+}
 
+# Normalizing using VST
+meta.data.tmerged           <- data.frame(matrix(unlist(strsplit(colnames(count.matrix.tmerged), split="_")),
+                                      ncol=2,
+                                      byrow=T),
+                            row.names=colnames(count.matrix.tmerged))
+colnames(meta.data.tmerged) <- c("celltype", "stimulation")
+deseq.full.tmerged          <- DESeqDataSetFromMatrix(countData = count.matrix.tmerged,
+                                     colData = meta.data.tmerged[colnames(count.matrix.tmerged),],
+                                     design = ~stimulation)
 
+results.tmerged        <- DESeq(deseq.full.tmerged)
+pca.obj.tmerged        <- varianceStabilizingTransformation(results.tmerged)
+x.tmerged              <- assay(pca.obj.tmerged)
+
+write.table(x.tmerged, file="output/SuRE_CeD_consensus_peaks_x3_vst_normalized_count_matrix_technicals_merged.tsv", sep="\t", quote=F)
 ```
 
 # PCA & correlations analysis of peaks: VST
 ```{r}
 results <- DESeq(deseq.full)
+
 # VST
 pca.obj <- varianceStabilizingTransformation(results)
 x       <- assay(pca.obj)
+
+write.table(x, file="output/SuRE_CeD_consensus_peaks_x3_vst_normalized_count_matrix.tsv", sep="\t", quote=F)
 
 # PCA plot
 pdf(file="output/plots/pca_of_vst_normalized_peaks.pdf", width=6, height=5, paper="a4")
@@ -74,15 +106,6 @@ cor.m             <- cor(log2(norm.count.matrix))
 simple.hm(cor.m, range="absolute",
           annotation_row=meta.data[,c("celltype", "simple_stimulation")],
           annotation_colors=palette)
-```
-
-# Celltype: DE analysis
-```{r}
-k.c.res   <- results(results, contrast=c("stimulation", "c-baseline", "k-baseline"), lfcThreshold = 1)
-k.c.res   <- as.data.frame(k.c.res)
-
-k.j.res   <- results(results, contrast=c("stimulation", "j-baseline", "k-baseline"), lfcThreshold = 1)
-k.j.res   <- as.data.frame(k.c.res)
 ```
 
 # Stimulation: DE analysis

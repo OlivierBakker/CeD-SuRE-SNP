@@ -1,7 +1,10 @@
 ```{r}
+setwd("../ase_analysis/")
+
 library(MASS)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(Gviz)
+library(data.table)
 
 source("../sure-snp_functions.r")
 
@@ -15,9 +18,13 @@ snps         <- as.character(fread("../variant_calling/output/unique_snps.txt", 
 
 # ASE effect plot
 ```{r}
+target.snps <- c("rs12785262", "rs569770", "rs10892260", "rs12803363", "rs11216969", "rs6589677", "rs11072502", "rs11072504", "rs11072505", "rs11072506", "rs12903896", "rs11857376", "rs2301249", "rs140496", "rs140490", "rs2298429", "rs2888524", "rs2888523", "rs55763051", "rs116108798", "rs9277334", "rs60461436", "rs59423236", "rs56348503", "rs114620642", "rs73738027", "rs73738026", "rs73738024", "rs80087810", "rs55950816", "rs59342333", "rs11854147", "rs117825643", "rs10892260")
+
+#pdf(width=11, height=3.5, file="output/plots/sure_snp_luciferase_target_region_ase.pdf")
+for (snp in target.snps) {
 # Caco snps
 sample <- "Caco2"
-snp    <- "rs140496"
+#snp    <- "rs140496"
 p1     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
                               cols=c("mediumblue", "mediumblue"), col="white") +
   theme(legend.position = "none")
@@ -32,9 +39,9 @@ p3     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
                               cols=c("red", "red"), col="white") +
   theme(legend.position = "none")
 
-pdf(width=11, height=3.5, file="output/plots/sure_snp_rs140496_ase.pdf")
 grid.arrange(grobs=list(p3, p1, p2), ncol=3)
-dev.off()
+}
+#dev.off()
 ```
 
 # Prep data

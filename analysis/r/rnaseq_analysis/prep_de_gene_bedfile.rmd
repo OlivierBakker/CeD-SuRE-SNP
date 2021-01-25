@@ -1,0 +1,37 @@
+```{r}
+setwd("rnaseq_analysis/")
+library(DESeq2)
+library(data.table)
+
+# Load functions
+source("../sure-snp_functions.r")
+
+# Ensembl data, use to get read names
+ensembl                    <- read.table("data/ensembl_gene_position_b37_v100.txt", sep="\t", header=T, stringsAsFactors = F)
+ensembl                    <- ensembl[!duplicated(ensembl$Gene.stable.ID),]
+rownames(ensembl)          <- ensembl$Gene.stable.ID
+ensembl$geme.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
+
+# DE results
+caco.de                    <- read.csv("output/SuRE_CeD_caco2_deseq2_results.csv", stringsAsFactors = F)
+jurkat.de                  <- read.csv("output/SuRE_CeD_jurkat_deseq2_results.csv", stringsAsFactors = F)
+```
+
+```{r}
+# Caco2
+de.genes <- caco.de[caco.de$padj < 0.05, 1]
+de.genes <- ensembl[de.genes, c("Chromosome.scaffold.name", "Gene.start..bp.", "Gene.end..bp.", "Gene.stable.ID")]
+de.genes$Gene.start..bp. <- de.genes$Gene.start..bp. - 5000
+de.genes$Gene.end..bp.   <- de.genes$Gene.end..bp. + 5000
+
+write.table(de.genes, quote=F, col.names = F, row.names=F, file="output/SuRE_CeD_caco2_iFNY_de_genes_5kb_window.bed", sep="\t")
+
+# Jurkat
+de.genes <- jurkat.de[jurkat.de$padj < 0.05, 1]
+de.genes <- ensembl[de.genes, c("Chromosome.scaffold.name", "Gene.start..bp.", "Gene.end..bp.", "Gene.stable.ID")]
+de.genes$Gene.start..bp. <- de.genes$Gene.start..bp. - 5000
+de.genes$Gene.end..bp.   <- de.genes$Gene.end..bp. + 5000
+
+write.table(de.genes, quote=F, col.names = F, row.names=F, file="output/SuRE_CeD_jurkat_acd3acd28_de_genes_5kb_window.bed", sep="\t")
+```
+

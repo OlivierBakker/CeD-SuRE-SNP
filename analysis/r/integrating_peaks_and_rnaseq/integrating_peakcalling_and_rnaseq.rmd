@@ -1,0 +1,49 @@
+```{r}
+setwd("integrating_peaks_and_rnaseq")
+source("../sure-snp_functions.r")
+
+
+rnaseq <- read.table("../rnaseq_analysis/output/SuRE_CeD_celline_gene_expression_vst_normalized.tsv", stringsAsFactors = F)
+peaks  <- read.table("../peakcalling/output/SuRE_CeD_consensus_peaks_x3_vst_normalized_count_matrix_technicals_merged.tsv", stringsAsFactors = F, header=T, row.names = 1)
+
+colnames(rnaseq) <- gsub("RNA_", "", colnames(rnaseq))
+
+
+meta.data.tmerged           <- data.frame(matrix(unlist(strsplit(colnames(peaks), split="_")),
+                                      ncol=2,
+                                      byrow=T),
+                            row.names=colnames(peaks))
+colnames(meta.data.tmerged)   <- c("short_celltype", "replicate")
+meta.data.tmerged$stimulation <- c("baseline", "baseline", "acd3/acd28", "acd3/acd28", "baseline", "baseline", "iFNY", "iFNY", "baseline", "baseline")
+meta.data.tmerged$celltype <- c(rep("jurkat", 4), rep("caco-2", 4), "k562", "k562")
+```
+
+# Correlation heatmap of RNAseq and peaks
+```{r}
+cor.rnaseq <- cor(rnaseq[,rownames(meta.data.tmerged)])
+cor.peaks  <- cor(peaks[,rownames(meta.data.tmerged)])
+
+cor.merged <- cor.rnaseq
+cor.merged[lower.tri(cor.merged)] <- cor.peaks[lower.tri(cor.peaks)]
+diag(cor.merged) <- 0
+
+simple.hm(cor.merged,
+          range="absolute",
+          min.value = 0.6,
+          cluster_rows=F,
+          cluster_cols=F,
+          border_col=NA)
+
+          #annotation_row=meta.data.tmerged[,c("celltype", "stimulation")],
+          #annotation_colors=sure.palette)
+```
+
+
+```{r}
+
+
+
+
+```
+
+

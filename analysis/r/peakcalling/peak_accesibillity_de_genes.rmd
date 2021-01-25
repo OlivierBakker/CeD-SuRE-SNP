@@ -1,0 +1,103 @@
+```{r}
+setwd("../peakcalling")
+source("../sure-snp_functions.r")
+
+# Caco2 
+count.matrix                <- fread("data/SuRE_CeD_caco2_iFNY_de_genes_5kb_window.countMatrix", data.table = F)
+rownames(count.matrix)      <- count.matrix[,1]
+count.matrix                <- count.matrix[,-1]
+name.link                   <- read.table("../rnaseq_analysis/output/SuRE_CeD_caco2_iFNY_de_genes_5kb_window.bed")
+rownames(name.link)         <- paste0(name.link[,1], ":", name.link[,2], "-", name.link[,3])
+rownames(count.matrix)      <- name.link[rownames(count.matrix),4]
+
+count.matrix.caco2          <- count.matrix
+
+# Jurkat 
+count.matrix                <- fread("data/SuRE_CeD_jurkat_acd3acd28_de_genes_5kb_window.countMatrix", data.table = F)
+rownames(count.matrix)      <- count.matrix[,1]
+count.matrix                <- count.matrix[,-1]
+name.link                   <- read.table("../rnaseq_analysis/output/SuRE_CeD_jurkat_acd3acd28_de_genes_5kb_window.bed")
+rownames(name.link)         <- paste0(name.link[,1], ":", name.link[,2], "-", name.link[,3])
+rownames(count.matrix)      <- name.link[rownames(count.matrix),4]
+
+count.matrix.jurkat         <- count.matrix
+
+# Meta data
+meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
+row.names(meta.data)   <- meta.data$id
+
+# Deseq objects
+deseq.caco2                  <- DESeqDataSetFromMatrix(countData = count.matrix.caco2,
+                                     colData = meta.data[colnames(count.matrix.caco2),],
+                                     design =  ~stimulation)
+
+deseq.jurkat                 <- DESeqDataSetFromMatrix(countData = count.matrix.jurkat,
+                                     colData = meta.data[colnames(count.matrix.jurkat),],
+                                     design =  ~stimulation)
+
+# Ensembl data
+ensembl                    <- read.table("../rnaseq_analysis/data/ensembl_gene_position_b37_v100.txt", sep="\t", header=T, stringsAsFactors = F)
+ensembl                    <- ensembl[!duplicated(ensembl$Gene.stable.ID),]
+rownames(ensembl)          <- ensembl$Gene.stable.ID
+ensembl$geme.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
+
+```
+
+# DE analysis
+```{r}
+results      <- DESeq(deseq.caco2)
+caco.res     <- results(results, contrast=c("stimulation", "iFNY", "c-baseline"), lfcThreshold = 1)
+caco.res     <- as.data.frame(caco.res)
+
+results      <- DESeq(deseq.jurkat)
+jurkat.res   <- results(results, contrast=c("stimulation", "acd3/acd28", "j-baseline"), lfcThreshold = 1)
+jurkat.res   <- as.data.frame(jurkat.res)
+
+```
+
+# PCA
+```{r}
+norm.obj <- varianceStabilizingTransformation(DESeq(deseq.caco2))
+norm.obj <- varianceStabilizingTransformation(DESeq(deseq.jurkat))
+
+x        <- assay(norm.obj)
+pc       <- prcomp(t(x))
+pca.plot(pc,
+         color=meta.data$stimulation,
+         shape=meta.data$celltype, size = 4)
+
+```
+
+
+
+```{r}
+norm.obj <- varianceStabilizingTransformation(DESeq(deseq.caco2))
+norm.mat <- assay(norm.obj)
+
+pdf(width=25, height=25, file="output/plots/caco2_de_genes_chromatin_acitivity.pdf")
+par(mfrow=c(10,10))
+lapply(rownames(norm.mat), function(x) {
+  cols <- c("C_B1_T1", "C_B1_T2","C_B2_T1","C_B2_T2", "Cs_B1_T1", "Cs_B1_T2","Cs_B2_T1","Cs_B2_T2")
+  state <- c("Baseline", "Baseline","Baseline","Baseline", "Stim", "Stim","Stim","Stim")
+  data <- norm.mat[x, cols]
+  boxplot(data ~ state, ylab=ensembl[x, ]$Gene.name)
+})
+dev.off()
+
+
+
+norm.obj <- varianceStabilizingTransformation(DESeq(deseq.jurkat))
+norm.mat <- assay(norm.obj)
+
+pdf(width=25, height=25, file="output/plots/jurkat_de_genes_chromatin_acitivity.pdf")
+par(mfrow=c(10,10))
+lapply(rownames(norm.mat), function(x) {
+  cols <- c("J_B1_T1", "J_B1_T2","J_B2_T1","J_B2_T2", "Js_B1_T1", "Js_B1_T2","Js_B2_T1","Js_B2_T2")
+  state <- c("Baseline", "Baseline","Baseline","Baseline", "Stim", "Stim","Stim","Stim")
+  data <- norm.mat[x, cols]
+  boxplot(data ~ state, ylab=ensembl[x, ]$Gene.name)
+})
+dev.off()
+
+```
+
