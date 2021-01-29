@@ -452,6 +452,6 @@ sure.palette <- list(celltype_stim=c(`k562`="#FE0000",
                      celltype=c(`k562`="#FE0000", 
                                 `caco-2`="#0000CE",
                                 `jurkat`="#007D5A"),
-                     stimulation=c(`acd3/acd28`="#00D69A",
-                                   `iFNY`="#7EC1EE",
+                     stimulation=c(`aCD3/aCD28`="#00D69A",
+                                   `IFNy`="#7EC1EE",
                                    `baseline`="#0965B0"))

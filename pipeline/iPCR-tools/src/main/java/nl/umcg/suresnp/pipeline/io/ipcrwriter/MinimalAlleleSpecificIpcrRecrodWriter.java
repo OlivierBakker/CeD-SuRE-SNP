@@ -32,6 +32,8 @@ public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRec
         write(sep);
         write("alleleInRead");
         write(sep);
+        write("strand");
+        write(sep);
         write("ipcrCount");
         if (getBarcodeCountFilesSampleNames() != null) {
             for (String key : getBarcodeCountFilesSampleNames()) {

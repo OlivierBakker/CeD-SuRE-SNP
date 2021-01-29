@@ -6,6 +6,9 @@ library(DESeq2)
 library(bumphunter)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(Gviz)
+library(biomaRt)
+library(BSgenome.Hsapiens.UCSC.hg19)
 
 count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
 rownames(count.matrix) <- count.matrix[,1]
@@ -121,32 +124,40 @@ write.table(closest.gene, file="output/celltype_de_peaks_closest_tss_5kb_window.
 
 # Locus plots of DE markers
 ```{r}
-library(Gviz)
-library(biomaRt)
-library(BSgenome.Hsapiens.UCSC.hg19)
-
+# Read the bedgraph files showing the sure activity
 sure.activity <- list()
-
-#for (file in list.files("../peakcalling/output/ced_regions/", pattern=".*\\+.*treat_pileup.bdg")) {
-#  tmp  <- fread(paste0("../peakcalling/output/ced_regions/", file), data.table = F)
-#  tmp[,1]  <- paste0("chr", tmp[,1])
-#  name <- gsub("CeD_filtered500_(.*)_treat_pileup.bdg","\\1",file)
-#  sure.activity[[name]] <- tmp
-#}
-for (file in list.files("../peakcalling/data/merged_activity_tracks/", pattern=".*_CPM_all_samples.bdg")) {
-  tmp  <- fread(paste0("../peakcalling/data/merged_activity_tracks/", file), data.table = F)
+for (file in list.files("data/merged_peaks/genome_wide/", pattern=".*_CPM_all_samples.bdg.gz")) {
+  tmp  <- fread(paste0("zcat data/merged_peaks/genome_wide/", file), data.table = F)
   tmp[,1]  <- paste0("chr", tmp[,1])
-  name <- gsub("(.*)_CPM_all_samples.bdg","\\1",file)
+  name <- gsub("(.*)_CPM_all_samples.bdg.gz","\\1",file)
   sure.activity[[name]] <- tmp
 }
-regions.of.interest <- data.frame(chrs=c("chr6", "chr5", "chr2", "chr1", "chr15"),
-                                  froms=c(390348,131826278,204798614, 8020694, 67429455),
-                                  tos=c(391359,131827320,204799245,8022330,67430473),
-                                  ylims=c(400, 400, 120, 3800, 200),
-                                  stringsAsFactors = F)
 
+# Used to convert names of the files to the celltype names used in the plots
+celltype.link              <- data.frame(old.names=paste0(c("K", "C", "Cs", "J", "Js"), "_genome_wide"),
+                                         new.names=names(sure.palette$celltype_stim), stringsAsFactors = F)
+rownames(celltype.link)    <- celltype.link[,1]
+
+# Marker genes
+# Cannonical markers defined here: https://panglaodb.se/markers.html?cell_type=%27all_cells%27
+# Just picked some that had high specificity and a low marker count, tough its a bit random
+
+# K562 (erythroblasts) KMT5A, LMO2, USE1, GRSF1, IGBP1
+# Caco-2 (epithelial cells) EPCAM, KRT3, KRT13, MUC1
+# Jurkat (T cells) CD3D, ITK, CD247, ICOS, IFNG, CD4, CD8, CD69
+
+#regions.of.interest <- data.frame(chrs=c("chr6", "chr5", "chr2", "chr1", "chr15"),
+#                                  froms=c(390348,131826278,204798614, 8020694, 67429455),
+#                                  tos=c(391359,131827320,204799245,8022330,67430473),
+#                                  ylims=c(400, 400, 120, 3800, 200),
+#                                  stringsAsFactors = F)
+
+regions.of.interest        <- read.table("data/celltype_marker_genes.tsv", stringsAsFactors = F, header=T)
+regions.of.interest        <- regions.of.interest[regions.of.interest$include,]
 regions.of.interest$froms  <- regions.of.interest$froms - 5000
-regions.of.interest$tos <- regions.of.interest$tos + 5000
+regions.of.interest$tos    <- regions.of.interest$tos + 5000
+
+
 
 # Reference tracks, just need to be made once
 genTrack  <- GenomeAxisTrack(littleTicks = F,
@@ -178,7 +189,11 @@ plots <- apply(regions.of.interest, 1, function(x) {
   for (celltype in names(sure.activity)) {
     tmp      <- sure.activity[[celltype]]
     tmp      <- tmp[tmp[,1] == chr,]
-    tmpTrack <- DataTrack(start = as.numeric(tmp[,2]),
+    celltype <- celltype.link[celltype, 2]
+    if (nrow(tmp) < 1) {
+      cat("[WARN] Missing data from ", chr, " in ", celltype, "\n")
+    } else {
+          tmpTrack <- DataTrack(start = as.numeric(tmp[,2]),
                        width = 1,
                        from=from,
                        to=to,
@@ -190,17 +205,22 @@ plots <- apply(regions.of.interest, 1, function(x) {
                        type="histogram",
                        fill.histogram=sure.palette$celltype_stim[celltype],
                        col.histogram=NA,
-                       ylim=c(0, ymax),
                        yTicksAt=as.numeric(c(0, ymax/2, ymax)))
-    tracks <- c(tracks, tmpTrack)
+          #                       ylim=c(0, ymax),
+
+              tracks <- c(tracks, tmpTrack)
+
+    }
+
   }
   
   tracks <- c(tracks, genTrack)
+  cat(x, "\n")
   return(tracks)  
 })
 names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of.interest[i,1:3], collapse=":")})
 
-pdf(width=12.5, height=6, file="output/plots/trackplot_test.pdf")
+pdf(width=60, height=6, file="output/plots/trackplot_test.pdf")
 ncols <- length(plots)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(1, ncols)))

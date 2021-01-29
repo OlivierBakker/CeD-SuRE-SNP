@@ -272,6 +272,18 @@ public class RecodeParameters {
                     outputWriter = new MacsIpcrRecordWriter(new File(outputPrefix), zipped, provider, writeIpcr);
                 }
                 break;
+            case "MACS_STRAND_SPECIFIC":
+                if (samplesToWrite == null) {
+                    LOGGER.info("No sample provided but output type is MACS_STRAND_SPECIFIC. Writing one bedfile for each cDNA sample");
+                } else {
+                    provider = new SampleSumScoreProvider(samplesToWrite);
+                }
+                if (inputCdna != null) {
+                    outputWriter = new StrandSpecificMacsIpcrRecordWriter(new File(outputPrefix), zipped, inputCdna, provider, writeIpcr);
+                } else {
+                    outputWriter = new StrandSpecificMacsIpcrRecordWriter(new File(outputPrefix), zipped, provider, writeIpcr);
+                }
+                break;
             default:
                 LOGGER.error("Invalid output type -t");
                 printHelp();

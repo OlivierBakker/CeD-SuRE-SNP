@@ -1,5 +1,5 @@
 ```{r}
-setwd("../peakcalling")
+setwd("peakcalling")
 source("../sure-snp_functions.r")
 
 # Caco2 
