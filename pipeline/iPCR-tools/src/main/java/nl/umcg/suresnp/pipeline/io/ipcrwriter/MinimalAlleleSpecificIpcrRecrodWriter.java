@@ -71,6 +71,8 @@ public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRec
             write(record.getReadAllele());
         }
         write(sep);
+        write(Character.toString(record.getPrimaryStrand()));
+        write(sep);
         write(Integer.toString(record.getIpcrDuplicateCount()));
         if (getBarcodeCountFilesSampleNames() != null) {
             for (String key : getBarcodeCountFilesSampleNames()) {
