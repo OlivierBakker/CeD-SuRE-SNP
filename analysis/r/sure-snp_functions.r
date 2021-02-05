@@ -100,15 +100,21 @@ fancy.qq.plot <- function (y, main="", col="black", highlight.col="blue") {
 
 #----------------------------------------------------------------------------------------
 read.ase.results <- function(path, qqman.compatible=F) {
-  data <- read.table(path, stringsAsFactors = F, sep="\t", header=T, row.names = 1)
+  data <- read.table(path, stringsAsFactors = F, sep="\t", header=T)
+  
+  if (length(unique(data$STRAND)) > 1) {
+    rownames(data) <- paste(data$SNP, data$STRAND, sep="_")
+  } else {
+    rownames(data) <- data$SNP
+  }
   
   if (qqman.compatible) {
     data[data$CHR=="X", "CHR"] <- 23
     data[data$CHR=="Y", "CHR"] <- 24
     data$CHR <- as.numeric(data$CHR)
   }
-  data$SNP <- rownames(data)
-  data     <- data[data$P != 1,]
+  #data$SNP <- rownames(data)
+  #data     <- data[data$P != 1,]
   
   return(data)
 }

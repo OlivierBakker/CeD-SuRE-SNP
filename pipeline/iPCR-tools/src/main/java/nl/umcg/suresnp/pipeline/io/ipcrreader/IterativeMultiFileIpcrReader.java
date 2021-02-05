@@ -20,6 +20,12 @@ public class IterativeMultiFileIpcrReader implements IpcrRecordProvider, Iterabl
     private int currentFileIndex;
     private IpcrRecordProvider currentProvider;
 
+    public IterativeMultiFileIpcrReader(String[] files, int currentFileIndex) {
+        this.files = files;
+        this.currentFileIndex = currentFileIndex;
+        this.currentProvider = null;
+    }
+
     public IterativeMultiFileIpcrReader(String[] files) throws IOException {
         this.files = files;
         this.currentFileIndex = 0;
@@ -57,7 +63,7 @@ public class IterativeMultiFileIpcrReader implements IpcrRecordProvider, Iterabl
     @Override
     public List<IpcrRecord> getRecordsAsList(List<IpcrRecordFilter> filters) throws IOException {
 
-        long start = System.currentTimeMillis();
+/*        long start = System.currentTimeMillis();
         List<IpcrRecord> inputIpcr = new ArrayList<>();
 
         for (String file : files) {
@@ -75,7 +81,24 @@ public class IterativeMultiFileIpcrReader implements IpcrRecordProvider, Iterabl
         }
 
         long stop = System.currentTimeMillis();
-        LOGGER.info("Done reading. Took: " + ((stop - start) / 1000) + " seconds");
+        LOGGER.info("Done reading. Took: " + ((stop - start) / 1000) + " seconds");*/
+        List<IpcrRecord> inputIpcr = new ArrayList<>();
+        IpcrRecord curRec = getNextRecord();
+        while (curRec != null) {
+
+            boolean passesFilter = true;
+            for (IpcrRecordFilter filter : filters) {
+                if (!filter.passesFilter(curRec)) {
+                    passesFilter = false;
+                    break;
+                }
+            }
+
+            if (passesFilter) {
+                inputIpcr.add(curRec);
+            }
+            curRec = getNextRecord();
+        }
 
         return inputIpcr;
     }
@@ -95,12 +118,36 @@ public class IterativeMultiFileIpcrReader implements IpcrRecordProvider, Iterabl
         currentProvider.close();
     }
 
-    private boolean readAllFiles() {
+    protected boolean readAllFiles() {
         return currentFileIndex >= files.length - 1;
     }
 
     @Override
     public Iterator<IpcrRecord> iterator() {
         return new IpcrRecordIterator(this);
+    }
+
+    public String[] getFiles() {
+        return files;
+    }
+
+    public void setFiles(String[] files) {
+        this.files = files;
+    }
+
+    public int getCurrentFileIndex() {
+        return currentFileIndex;
+    }
+
+    public void setCurrentFileIndex(int currentFileIndex) {
+        this.currentFileIndex = currentFileIndex;
+    }
+
+    public IpcrRecordProvider getCurrentProvider() {
+        return currentProvider;
+    }
+
+    public void setCurrentProvider(IpcrRecordProvider currentProvider) {
+        this.currentProvider = currentProvider;
     }
 }

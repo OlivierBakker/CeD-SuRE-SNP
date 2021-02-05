@@ -2,15 +2,17 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.FileExtensions;
+import nl.umcg.suresnp.pipeline.IpcrTools;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.bedreader.*;
 import nl.umcg.suresnp.pipeline.io.bedwriter.GenericGenomicAnnotationWriter;
 import nl.umcg.suresnp.pipeline.io.bedwriter.NarrowPeakWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.MultiFileBlockCompressedIpcrFileReader;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.NarrowPeakRecord;
+import nl.umcg.suresnp.pipeline.records.bedrecord.filters.NarrowPeakFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
@@ -19,14 +21,14 @@ import nl.umcg.suresnp.pipeline.utils.BedUtils;
 import org.apache.commons.collections4.list.TreeList;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.log4j.Logger;
-import umcg.genetica.features.Gene;
 import umcg.genetica.graphics.Grid;
 import umcg.genetica.graphics.panels.ScatterplotPanel;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.Buffer;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 
 public class PeakUtils {
 
@@ -63,18 +65,18 @@ public class PeakUtils {
 
         // Set the file header
         outputWriter.write("GenomicPosition");
-        for (AdaptableScoreProvider curProvider: scoreProviders) {
+        for (AdaptableScoreProvider curProvider : scoreProviders) {
             outputWriter.write(sep);
             outputWriter.write(curProvider.getSamplesAsString());
         }
         outputWriter.newLine();
 
         // Write the content
-        for (GenericGenomicAnnotationRecord curRecord: reader) {
+        for (GenericGenomicAnnotationRecord curRecord : reader) {
             // Determine which iPCR records overlap with the record
             List<IpcrRecord> overlappingIpcrRecords = new ArrayList<>();
-            for (BlockCompressedIpcrFileReader curIpcrReader: ipcrReaders) {
-                for(IpcrRecord overlap : curIpcrReader.query(curRecord.getContig(), curRecord.getStart(), curRecord.getEnd())) {
+            for (BlockCompressedIpcrFileReader curIpcrReader : ipcrReaders) {
+                for (IpcrRecord overlap : curIpcrReader.query(curRecord.getContig(), curRecord.getStart(), curRecord.getEnd())) {
                     overlappingIpcrRecords.add(overlap);
                 }
             }
@@ -83,9 +85,9 @@ public class PeakUtils {
             outputWriter.write(curRecord.getContig() + ":" + curRecord.getStart() + "-" + curRecord.getEnd());
 
             // Determine the count for that peak for each sample
-            for (AdaptableScoreProvider curProvider: scoreProviders) {
+            for (AdaptableScoreProvider curProvider : scoreProviders) {
                 double scoreSum = 0;
-                for (IpcrRecord curIpcrRecord: overlappingIpcrRecords) {
+                for (IpcrRecord curIpcrRecord : overlappingIpcrRecords) {
                     scoreSum += curProvider.getScore(curIpcrRecord);
                 }
                 outputWriter.write(sep);
@@ -102,18 +104,14 @@ public class PeakUtils {
 
     /**
      * Merges two or more narrow peak files into consensus peaks by taking the outer perimiter of overlapping peaks.
-     * Non overlapping peaks are discarded.
+     * Non overlapping peaks are discarded if --discard-unique is provided.
      *
      * @throws IOException
      */
-    public void createConsensusPeaks() throws IOException {
+    public void createConsensusPeaks() throws IOException, ExecutionException, InterruptedException {
         NarrowPeakWriter writer;
 
-        List<IntervalTreeMap<NarrowPeakRecord>> peaks = new ArrayList<>(params.getInputFiles().length);
-        for (GenericFile curFile : params.getInputFiles()) {
-            NarrowPeakReader reader = new NarrowPeakReader(curFile, params.getPattern());
-            peaks.add(reader.getNarrowPeakRecordsAsTreeMap(params.getFilters()));
-        }
+        List<IntervalTreeMap<NarrowPeakRecord>> peaks = readPeaksFiltered();
 
         LOGGER.info("Merging peaks into consensus peaks, omitting non overlapping peaks");
         List<NarrowPeakRecord> output;
@@ -122,11 +120,16 @@ public class PeakUtils {
             for (int i = 1; i < peaks.size(); i++) {
                 indexPeaks = createConsensusPeaksFromPair(indexPeaks, peaks.get(i), params.isDiscardUnique());
             }
-            output = new ArrayList<>(indexPeaks.values());
+            output = new TreeList<>(indexPeaks.values());
         } else if (peaks.size() == 2) {
-            output = new ArrayList<>(createConsensusPeaksFromPair(peaks.get(0), peaks.get(1), params.isDiscardUnique()).values());
+            output = new TreeList<>(createConsensusPeaksFromPair(peaks.get(0), peaks.get(1), params.isDiscardUnique()).values());
         } else {
-            output = new ArrayList<>(peaks.get(0).values());
+            output = new TreeList<>(peaks.get(0).values());
+        }
+
+        if (params.hasIpcrCountFilter()) {
+            LOGGER.info("Filtering consensus peaks based on fragments covering them.");
+            output = filterNarrowPeakRecordsOnIpcr(output);
         }
 
         LOGGER.info("Done merging, sorting consensus peaks");
@@ -384,5 +387,80 @@ public class PeakUtils {
         writer.flushAndClose();
 
         LOGGER.info("Done");
+    }
+
+    /**
+     * Read the peakfiles as a list of interval treemaps and filter them if filteres are provided.
+     *
+     * @return
+     * @throws IOException
+     */
+    private List<IntervalTreeMap<NarrowPeakRecord>> readPeaksFiltered() throws IOException {
+
+        // Read and filter the peaks
+        List<IntervalTreeMap<NarrowPeakRecord>> peaks = new ArrayList<>(params.getInputFiles().length);
+        for (GenericFile curFile : params.getInputFiles()) {
+            peaks.add(new NarrowPeakReader(curFile, params.getPattern()).getNarrowPeakRecordsAsTreeMap(params.getFilters()));
+
+          /*  int totalRecords=0;
+            for (NarrowPeakRecord curRecord : new NarrowPeakReader(curFile, params.getPattern())) {
+                IpcrTools.logProgress(totalRecords, 1000, "PeakUtils", "thousand");
+                boolean passesFilter = true;
+                totalRecords ++;
+
+                // Apply primary filters
+                for (NarrowPeakFilter curFilter: params.getFilters()) {
+                    if (!curFilter.passesFilter(curRecord)) {
+                        passesFilter = false;
+                        break;
+                    }
+                }
+
+                // If passed filter add to interval map
+                if (passesFilter) {
+                    curPeaks.put(curRecord, curRecord);
+                }
+            }
+            peaks.add(curPeaks);
+
+            LOGGER.info("Read " + totalRecords + " peaks, retained " + curPeaks.size() + " after filters from file: ");
+            LOGGER.info(curFile.getFileName());*/
+        }
+
+        return (peaks);
+    }
+
+    private List<NarrowPeakRecord> filterNarrowPeakRecordsOnIpcr(Collection<NarrowPeakRecord> consensusPeaks) throws IOException, ExecutionException, InterruptedException {
+
+        if (params.hasIpcrCountFilter() && !params.hasInputIpcr()) {
+            LOGGER.error("iPCR fragment filter provided. but no iPCR files provided.");
+            throw new IllegalArgumentException("Please provide iPCR files when running with --fragment-filter");
+        }
+
+        // Optional reader for iPCR files to extact the number of plasmids covering a peak.
+        final MultiFileBlockCompressedIpcrFileReader ipcrReader = new MultiFileBlockCompressedIpcrFileReader(params.getInputIpcr());
+
+        AdaptableScoreProvider scoreProvider;
+        if (params.hasSamplesToWrite()) {
+            scoreProvider = new SampleSumScoreProvider(params.getSamplesToWrite());
+        } else {
+            scoreProvider = new SampleSumScoreProvider(new String[]{"IPCR"});
+        }
+
+        List<NarrowPeakRecord> output = new ArrayList<>();
+        int totalRecords = 0;
+        for (NarrowPeakRecord curRecord : consensusPeaks) {
+            IpcrTools.logProgress(totalRecords++, 1000, "PeakUtils", "thousand");
+
+            // If provided apply iPCR count filter
+            if (params.hasIpcrCountFilter()) {
+                int curIpcrCount = ipcrReader.queryOverlapSizeNonZeroCdna(curRecord.getContig(), curRecord.getStart(), curRecord.getEnd(), scoreProvider);
+                if (curIpcrCount > params.getIpcrCountFilter()) {
+                    output.add(curRecord);
+                }
+            }
+        }
+
+        return output;
     }
 }

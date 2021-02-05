@@ -3,11 +3,16 @@ package nl.umcg.suresnp.pipeline.records.bedrecord;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.Feature;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.utils.B37GenomeInfo;
 
 public class BedRecord extends Interval implements Feature, Locatable {
 
     private double score;
+
+    public BedRecord(Feature record) {
+        super(record.getContig(), record.getStart(), record.getEnd());
+    }
 
     public BedRecord(NarrowPeakRecord record) {
         super(record.getContig(), record.getStart(), record.getEnd());

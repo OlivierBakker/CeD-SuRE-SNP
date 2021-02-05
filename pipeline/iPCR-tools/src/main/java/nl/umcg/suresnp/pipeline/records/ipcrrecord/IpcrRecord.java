@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.records.ipcrrecord;
 
+import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.Feature;
 import nl.umcg.suresnp.pipeline.records.samrecord.PairedSamRecord;

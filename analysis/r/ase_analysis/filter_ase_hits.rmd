@@ -1,19 +1,11 @@
 ```{r}
 library(qqman)
-
+setwd("ase_analysis")
 source("../sure-snp_functions.r")
 
-k562.ttest  <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_K562_ttest_covar.assoc", qqman.compatible = F)
-k562.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_K562_wilcox.assoc", qqman.compatible = F)
-k562.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_INDEL_K562_wilcox.assoc", qqman.compatible = F)
-
-Caco.ttest  <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_Caco_ttest_covar.assoc", qqman.compatible = F)
-Caco.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_Caco_wilcox.assoc", qqman.compatible = F)
-Caco.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_INDEL_Caco_wilcox.assoc", qqman.compatible = F)
-
-CacoStim.ttest  <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_CacoStim_ttest_covar.assoc", qqman.compatible = F)
-CacoStim.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_SNP_CacoStim_wilcox.assoc", qqman.compatible = F)
-CacoStim.wilcox <- read.ase.results("output/summary_statistics/SuRE_CeD_INDEL_CacoStim_wilcox.assoc", qqman.compatible = F)
+k562.wilcox     <- read.ase.results("data/summary_statistics/SuRE_CeD_snps_indels_wilcox_per_strand_K562.assoc", qqman.compatible = F)
+Caco.wilcox     <- read.ase.results("data/summary_statistics/SuRE_CeD_snps_indels_wilcox_per_strand_Caco2.assoc", qqman.compatible = F)
+CacoStim.wilcox <- read.ase.results("data/summary_statistics/SuRE_CeD_snps_indels_wilcox_per_strand_Caco2Stim.assoc", qqman.compatible = F)
 
 k562.active     <- k562.wilcox
 Caco.active     <- Caco.wilcox
@@ -21,22 +13,22 @@ CacoStim.active <- CacoStim.wilcox
 
 # Read peaks to overlap
 #Shared.peakset   <- read.table("~/Desktop/sure/peakcalls/CeD_C_vs_Cs_intersect_x3.bed")[,1:3]
-Caco.peakset     <- read.bedfile("../peakcalling/output/overlaps/CeD_C_B1_vs_B2_x3.bed")$genomicRanges
-CacoStim.peakset <- read.bedfile("../peakcalling/output/overlaps/CeD_Cs_B1_vs_B2_x3.bed")$genomicRanges
-k562.peakset     <- read.bedfile("../peakcalling/output/overlaps/CeD_Cs_B1_vs_B2_x3.bed")$genomicRanges
+Caco.peakset     <- read.bedfile("../peakcalling/data/merged_peaks/ced_regions/C_x3_ced_regions_bmerged.narrowPeak")$genomicRanges
+CacoStim.peakset <- read.bedfile("../peakcalling/data/merged_peaks/ced_regions/Cs_x3_ced_regions_bmerged.narrowPeak")$genomicRanges
+k562.peakset     <- read.bedfile("../peakcalling/data/merged_peaks/ced_regions/K_x3_ced_regions_bmerged.narrowPeak")$genomicRanges
 
 
-Caco.snps        <- GRanges(seqnames=paste0("chr", Caco.active[,1]),
-                            ranges=IRanges(start=as.numeric(Caco.active[,2]),
+Caco.snps        <- GRanges(seqnames=paste0("", Caco.active[,2]),
+                            ranges=IRanges(start=as.numeric(Caco.active[,3]),
                                            width=rep(1, nrow(Caco.active))))
 
-CacoStim.snps    <- GRanges(seqnames=paste0("chr", CacoStim.active[,1]),
-                            ranges=IRanges(start=as.numeric(CacoStim.active[,2]),
+CacoStim.snps    <- GRanges(seqnames=paste0("", CacoStim.active[,2]),
+                            ranges=IRanges(start=as.numeric(CacoStim.active[,3]),
                                            width=rep(1, nrow(CacoStim.active))))
 
 
-k562.snps        <- GRanges(seqnames=paste0("chr", k562.active[,1]),
-                            ranges=IRanges(start=as.numeric(k562.active[,2]),
+k562.snps        <- GRanges(seqnames=paste0("", k562.active[,2]),
+                            ranges=IRanges(start=as.numeric(k562.active[,3]),
                                            width=rep(1, nrow(k562.active))))
 
 Caco.active         <- Caco.active[findOverlaps(Caco.snps, Caco.peakset)@from,]

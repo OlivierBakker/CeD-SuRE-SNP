@@ -91,21 +91,20 @@ public class IpcrFileReader implements IpcrRecordProvider, Iterable<IpcrRecord> 
 
         if (header.length > 16) {
 
-            StringBuilder sampleLog = new StringBuilder();
-            LOGGER.info("Detected barcode counts for samples:");
+            //StringBuilder sampleLog = new StringBuilder();
+            //LOGGER.info("Detected barcode counts for samples:");
             cdnaSamples = new String[header.length - 16];
 
             int i = 16;
             int j = 0;
             while (i < header.length) {
-                sampleLog.append(header[i]);
-                sampleLog.append(", ");
+                //sampleLog.append(header[i]);
+                //sampleLog.append(", ");
                 cdnaSamples[j] = header[i];
                 i++;
                 j++;
             }
-            LOGGER.info(sampleLog.toString());
-
+            //LOGGER.info(sampleLog.toString());
         }
     }
 

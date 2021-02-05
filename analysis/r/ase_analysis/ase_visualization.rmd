@@ -1,5 +1,5 @@
 ```{r}
-setwd("../ase_analysis/")
+setwd("ase_analysis/")
 
 library(MASS)
 library(BSgenome.Hsapiens.UCSC.hg19)
@@ -12,7 +12,7 @@ k562         <- read.ase.results("output/summary_statistics/k562_ase_wilcox_over
 caco         <- read.ase.results("output/summary_statistics/caco_ase_wilcox_overlapped_with_peaks_x3.assoc")
 caco.stim    <- read.ase.results("output/summary_statistics/cacoStim_ase_wilcox_overlapped_with_peaks_x3.assoc")
 
-raw.ase.data <- fread("zcat output/SuRE_CeD_SNP.minimal.allele.specific.ipcr.gz", header=F, sep="\t") 
+raw.ase.data <- fread("zcat data/SuRE_CeD_SNP.minimal.allele.specific.ipcr.gz", header=F, sep="\t") 
 snps         <- as.character(fread("../../variant_calling/output/unique_snps.txt", data.table=F, sep="\t", header=F)[,1])
 ```
 
@@ -21,6 +21,7 @@ snps         <- as.character(fread("../../variant_calling/output/unique_snps.txt
 target.snps <- c("rs12785262", "rs569770", "rs10892260", "rs12803363", "rs11216969", "rs6589677", "rs11072502", "rs11072504", "rs11072505", "rs11072506", "rs12903896", "rs11857376", "rs2301249", "rs140496", "rs140490", "rs2298429", "rs2888524", "rs2888523", "rs55763051", "rs116108798", "rs9277334", "rs60461436", "rs59423236", "rs56348503", "rs114620642", "rs73738027", "rs73738026", "rs73738024", "rs80087810", "rs55950816", "rs59342333", "rs11854147", "rs117825643", "rs10892260")
 
 target.snps <- c("rs9295089", "rs2451279", "rs785847","rs3120630")
+target.snps <- c("rs71327063")
 
 #pdf(width=11, height=3.5, file="output/plots/sure_snp_luciferase_target_region_ase.pdf")
 for (snp in target.snps) {

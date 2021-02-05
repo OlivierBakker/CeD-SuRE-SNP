@@ -10,7 +10,7 @@ library(Gviz)
 library(biomaRt)
 library(BSgenome.Hsapiens.UCSC.hg19)
 
-count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
+count.matrix           <- fread("data/SuRE-SNP_GW_x3_filtered.countMatrix", data.table = F)
 rownames(count.matrix) <- count.matrix[,1]
 count.matrix           <- count.matrix[,-1]
 meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
@@ -28,8 +28,7 @@ results                <- DESeq(deseq.full)
 pca.obj                <- varianceStabilizingTransformation(results)
 norm.count.matrix      <- assay(pca.obj)
 
-
-get.range.df         <- function(range.names) {
+get.range.df           <- function(range.names) {
   ranges <- as.data.frame(t(as.data.frame(lapply(strsplit(range.names,":"), function(x){
     tmp <- strsplit(x[2], "-")[[1]]
     return(c(x[1],tmp[1], tmp[2]))
@@ -40,7 +39,7 @@ get.range.df         <- function(range.names) {
   return(ranges)
 }
 
-genes.ucsc           <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+genes.ucsc             <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 # Ensembl data, use to get read names
 ensembl                    <- read.table("../data/ensembl_genes_and_transcripts_v102_b37.txt", sep="\t", header=T, stringsAsFactors = F)
@@ -88,8 +87,8 @@ results.table$peak    <- rep(rownames(count.matrix), 3)
 #results.table$peak    <- c(rownames(jurkat.res), rownames(caco.res), rownames(k562.res))
 results.table         <- results.table[results.table$padj < 0.05, c("celltype", "peak", colnames(results.table)[1:6])]
 results.table         <- results.table[results.table$log2FoldChange > 1,]
-
-write.table(results.table, file="output/celltype_specific_sure_peaks_lfc_gt_1.tsv", quote=F, row.names=F, sep="\t")
+results.table         <- na.omit(results.table)
+write.table(results.table, file="output/celltype_specific_sure_peaks_genome_wide_lfc_gt_1.tsv", quote=F, row.names=F, sep="\t")
 ```
 
 # Barplot of unique celltype peaks
@@ -108,8 +107,8 @@ theme.plain(p)
 
 # Find the closest gene to DE celltype peaks
 ```{r}
-celltype.peaks        <- read.table(file="output/celltype_specific_sure_peaks_lfc_gt_1.tsv", sep="\t", header=T, stringsAsFactors =F)
-
+celltype.peaks        <- read.table(file="output/celltype_specific_sure_peaks_genome_wide_lfc_gt_1.tsv", sep="\t", header=T, stringsAsFactors =F)
+celltype.peaks         <- celltype.peaks[celltype.peaks$baseMean > 500,]
 ranges                 <- get.range.df(unique(celltype.peaks$peak))
 de.ranges              <- GRanges(seqnames=paste0("chr", ranges[,1]), ranges=IRanges(start=ranges[,2], end=ranges[,3]))
 
@@ -119,7 +118,7 @@ closest.gene$celltype  <- celltype.peaks$celltype
 closest.gene           <- closest.gene[closest.gene$distance < 5000, c("name", "celltype", "description", "distance", "geneL")]
 closest.gene$peak      <- rownames(closest.gene)
 
-write.table(closest.gene, file="output/celltype_de_peaks_closest_tss_5kb_window.tsv", sep="\t", quote=F)
+write.table(closest.gene, file="output/celltype_de_peaks_genome_wide_closest_tss_5kb_window.tsv", sep="\t", quote=F)
 ```
 
 # Locus plots of DE markers
