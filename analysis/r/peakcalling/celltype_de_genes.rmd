@@ -10,7 +10,7 @@ library(Gviz)
 library(biomaRt)
 library(BSgenome.Hsapiens.UCSC.hg19)
 
-count.matrix           <- fread("data/SuRE-SNP_GW_x3_filtered.countMatrix", data.table = F)
+count.matrix           <- fread("data/SuRE-SNP_GW_x4_ipcr25_filtered.countMatrix", data.table = F)
 rownames(count.matrix) <- count.matrix[,1]
 count.matrix           <- count.matrix[,-1]
 meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
@@ -105,21 +105,48 @@ p <- ggplot(df.plot, mapping=aes(x=celltype, y=peaks, fill=celltype)) +
 theme.plain(p)
 ```
 
+# Determine marker genes
+```{r}
+library(MGFR)
+markers                 <- getMarkerGenes.rnaseq(norm.count.matrix, class.vec=meta.data$celltype)
+
+results.table           <- data.frame(t(sapply(unlist(markers), function(x){strsplit(x, split=" : ")[[1]]})), stringsAsFactors = F)
+results.table$celltype  <- gsub("\\_markers.*", "", rownames(results.table))
+colnames(results.table) <- c("peak", "specificity", "celltype")
+celltype.peaks          <- results.table[results.table$specificity < 0.8,]
+rownames(celltype.peaks) <- celltype.peaks$peak
+```
+
 # Find the closest gene to DE celltype peaks
 ```{r}
-celltype.peaks        <- read.table(file="output/celltype_specific_sure_peaks_genome_wide_lfc_gt_1.tsv", sep="\t", header=T, stringsAsFactors =F)
-celltype.peaks         <- celltype.peaks[celltype.peaks$baseMean > 500,]
 ranges                 <- get.range.df(unique(celltype.peaks$peak))
 de.ranges              <- GRanges(seqnames=paste0("chr", ranges[,1]), ranges=IRanges(start=ranges[,2], end=ranges[,3]))
 
 closest.gene           <- matchGenes(de.ranges, genes.ucsc, type="fiveprime")
 rownames(closest.gene) <- rownames(ranges)
 closest.gene$celltype  <- celltype.peaks$celltype
-closest.gene           <- closest.gene[closest.gene$distance < 5000, c("name", "celltype", "description", "distance", "geneL")]
+closest.gene           <- closest.gene[closest.gene$distance < 10000, c("name", "celltype", "description", "distance", "geneL")]
 closest.gene$peak      <- rownames(closest.gene)
 
-write.table(closest.gene, file="output/celltype_de_peaks_genome_wide_closest_tss_5kb_window.tsv", sep="\t", quote=F)
+write.table(closest.gene, file="output/celltype_de_peaks_genome_wide_closest_tss_10kb_window.tsv", sep="\t", quote=F)
 ```
+
+# Overlap with known markers
+```{r}
+marker.genes          <- read.table("data/pando_db_celltype_markers.tsv", stringsAsFactors = F, sep="\t", header = T)
+celltypes.of.interest <- c(grep("epi", unique(marker.genes$cell.type), value=T), grep("T ", unique(marker.genes$cell.type), value=T), "Erythroid-like and erythroid precursor cells")
+marker.genes          <- na.omit(marker.genes[marker.genes$cell.type %in% celltypes.of.interest,])
+
+set.a <- tolower(closest.gene$name)
+set.b <- tolower(marker.genes$official.gene.symbol)
+
+ol    <- intersect(set.a, set.b)
+
+marker.sites <- closest.gene[tolower(closest.gene$name) %in% ol,]
+marker.sites$specificity <- celltype.peaks[marker.sites$peak, "specificity"]
+```
+
+
 
 # Locus plots of DE markers
 ```{r}

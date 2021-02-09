@@ -47,8 +47,8 @@ public class PeakUtilsParameters {
         option = Option.builder("i")
                 .longOpt("input")
                 .hasArg(true)
-                .desc("The input file(s)")
-                .argName("path/to/file")
+                .desc("The input file(s). If only 1 file is provided, the specified filters are applied and output written.")
+                .argName("<path/to/file>")
                 .build();
         OPTIONS.addOption(option);
 

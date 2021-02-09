@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.bedreader;
 
+import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
@@ -61,6 +62,37 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
         LOGGER.info("Read " + i + " records");
         return output;
     }
+
+
+    public IntervalTreeMap<GenericGenomicAnnotationRecord> getGenericGenomicAnnotationsAsTreeMap() throws IOException {
+        IntervalTreeMap<GenericGenomicAnnotationRecord> output = new IntervalTreeMap<>();
+        int i = 0;
+
+        while (hasNext()) {
+            //logProgress(i, 10000, "GenericGenomicAnnotationReader", "ten thousand");
+            i++;
+            GenericGenomicAnnotationRecord curRecord = getNextGenomicAnnotation();
+            output.put(curRecord, curRecord);
+        }
+        LOGGER.info("Read " + i + " records");
+        return output;
+    }
+
+
+    public IntervalTreeMap<BedRecord> getBedRecordsAsTreeMap() throws IOException {
+        IntervalTreeMap<BedRecord> output = new IntervalTreeMap<>();
+        int i = 0;
+
+        while (hasNext()) {
+            //logProgress(i, 10000, "GenericGenomicAnnotationReader");
+            i++;
+            GenericGenomicAnnotationRecord curRecord = getNextGenomicAnnotation();
+            output.put(curRecord, curRecord);
+        }
+        LOGGER.info("Read " + i + " records");
+        return output;
+    }
+
 
     @Override
     public String[] getHeader() {

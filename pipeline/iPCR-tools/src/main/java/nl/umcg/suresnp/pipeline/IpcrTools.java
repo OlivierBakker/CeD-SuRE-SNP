@@ -98,6 +98,10 @@ public class IpcrTools {
                     PeakUtils getPeakCounts = new PeakUtils(new PeakUtilsParameters(args));
                     getPeakCounts.getPeakCountMatrix();
                     break;
+                case "GenomicRegionEnrichment":
+                    GenomicRegionEnrichment genomicRegionEnrichment = new GenomicRegionEnrichment(new GenomicRegionEnrichmentParameters(args));
+                    genomicRegionEnrichment.run();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();
