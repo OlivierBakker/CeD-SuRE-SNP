@@ -180,40 +180,6 @@ public class GenomicRegionEnrichment {
 
     }
 
-    private void writeNullDistributionsAsMatrix(Map<String, IntervalTreeMap<BedRecord>> referenceSet, Map<String, int[][]> permutedOverlaps) throws IOException {
-        // Write the null dist as matrix format. This is done seperately so each collumn can be a database
-        LOGGER.info("Writing null dist matrix");
-
-        List<String> databaseOrder = new ArrayList<>(referenceSet.keySet());
-        BufferedWriter nullDistOutputWriter = new GenericFile(params.getOutputPrefix() + ".enrichment.nulldist").getAsBufferedWriter();
-
-        // Write header
-        nullDistOutputWriter.write("permutation");
-
-        for (String database : databaseOrder) {
-            nullDistOutputWriter.write("\t");
-            nullDistOutputWriter.write(database);
-        }
-        nullDistOutputWriter.newLine();
-
-        // Write rows
-        for (int i = 0; i < nPerm; i++) {
-            nullDistOutputWriter.write(Integer.toString(i));
-            for (String database : databaseOrder) {
-                int[][] curPermutedOverlaps = permutedOverlaps.get(database);
-                double curCol = (double) curPermutedOverlaps[i][0] / (curPermutedOverlaps[i][0] + curPermutedOverlaps[i][1]);
-                nullDistOutputWriter.write("\t");
-                nullDistOutputWriter.write(Double.toString(curCol));
-            }
-
-            nullDistOutputWriter.newLine();
-        }
-
-        nullDistOutputWriter.flush();
-        nullDistOutputWriter.close();
-    }
-
-
     /**
      * Simulated a set of random genomic regions matching the query in number, size and chromosomal distribution
      *
@@ -270,4 +236,38 @@ public class GenomicRegionEnrichment {
         LOGGER.info("Filtered " + removed + " records");
         return output;
     }
+
+    private void writeNullDistributionsAsMatrix(Map<String, IntervalTreeMap<BedRecord>> referenceSet, Map<String, int[][]> permutedOverlaps) throws IOException {
+        // Write the null dist as matrix format. This is done seperately so each collumn can be a database
+        LOGGER.info("Writing null dist matrix");
+
+        List<String> databaseOrder = new ArrayList<>(referenceSet.keySet());
+        BufferedWriter nullDistOutputWriter = new GenericFile(params.getOutputPrefix() + ".enrichment.nulldist").getAsBufferedWriter();
+
+        // Write header
+        nullDistOutputWriter.write("permutation");
+
+        for (String database : databaseOrder) {
+            nullDistOutputWriter.write("\t");
+            nullDistOutputWriter.write(database);
+        }
+        nullDistOutputWriter.newLine();
+
+        // Write rows
+        for (int i = 0; i < nPerm; i++) {
+            nullDistOutputWriter.write(Integer.toString(i));
+            for (String database : databaseOrder) {
+                int[][] curPermutedOverlaps = permutedOverlaps.get(database);
+                double curCol = (double) curPermutedOverlaps[i][0] / (curPermutedOverlaps[i][0] + curPermutedOverlaps[i][1]);
+                nullDistOutputWriter.write("\t");
+                nullDistOutputWriter.write(Double.toString(curCol));
+            }
+
+            nullDistOutputWriter.newLine();
+        }
+
+        nullDistOutputWriter.flush();
+        nullDistOutputWriter.close();
+    }
+
 }

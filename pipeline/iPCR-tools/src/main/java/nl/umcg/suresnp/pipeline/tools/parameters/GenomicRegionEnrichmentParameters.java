@@ -65,6 +65,14 @@ public class GenomicRegionEnrichmentParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("p")
+                .longOpt("nperm")
+                .hasArg(true)
+                .desc("The number of permutations. 10.000 by default")
+                .argName("###")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("o")
                 .longOpt("output")
                 .hasArg(true)
@@ -122,7 +130,11 @@ public class GenomicRegionEnrichmentParameters {
             outputPrefix = "ipcrtools_genomic_region_enrichment";
         }
 
-        numberOfPermutations = 10000;
+        if (cmd.hasOption("p")) {
+            numberOfPermutations = Integer.parseInt(cmd.getOptionValue("p"));
+        } else {
+            numberOfPermutations = 10000;
+        }
     }
 
 
