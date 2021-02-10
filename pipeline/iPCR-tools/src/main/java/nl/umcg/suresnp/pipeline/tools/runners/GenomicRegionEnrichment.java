@@ -24,30 +24,32 @@ public class GenomicRegionEnrichment {
 
     private static final Logger LOGGER = Logger.getLogger(GenomicRegionEnrichment.class);
     private GenomicRegionEnrichmentParameters params;
+    private int nPerm;
 
     public GenomicRegionEnrichment(GenomicRegionEnrichmentParameters params) {
         this.params = params;
-
+        this.nPerm = params.getNumberOfPermutations();
     }
 
     public void run() throws IOException {
-        int nPerm = params.getNumberOfPermutations();
-
+        // Set of regions used to determine true overlap
         IntervalTreeMap<BedRecord> querySet = new GenericGenomicAnnotationReader(params.getQuery(), false).getBedRecordsAsTreeMap();
 
+        // Set of regions used to overlap the query set with
         Map<String, IntervalTreeMap<BedRecord>> referenceSet = new HashMap<>();
         for (String database : params.getReferenceFiles().keySet()) {
             GenericGenomicAnnotationReader reader = new GenericGenomicAnnotationReader(params.getReferenceFiles().get(database), false);
             referenceSet.put(database, reader.getBedRecordsAsTreeMap());
         }
 
-        final IntervalTreeMap<BedRecord> targetSet = new GenericGenomicAnnotationReader(params.getTargetRegions(), false).getBedRecordsAsTreeMap();
+        // Set of regions to restrict the analysis to. Can be genome wide.
+        IntervalTreeMap<BedRecord> targetRegions = new GenericGenomicAnnotationReader(params.getTargetRegions(), false).getBedRecordsAsTreeMap();
 
         // Filter sets on target regions
-        querySet = intersectTreeMaps(querySet.values(), targetSet);
+        querySet = intersectTreeMaps(querySet.values(), targetRegions);
 
         for (String database : referenceSet.keySet()) {
-            IntervalTreeMap<BedRecord> filteredSet = intersectTreeMaps(referenceSet.get(database).values(), targetSet);
+            IntervalTreeMap<BedRecord> filteredSet = intersectTreeMaps(referenceSet.get(database).values(), targetRegions);
             referenceSet.replace(database, filteredSet);
         }
 
@@ -58,14 +60,13 @@ public class GenomicRegionEnrichment {
             trueOverlaps.put(database, determineOverlap(querySet.values(), referenceSet.get(database)));
         }
 
-
         // Determine permuted overlaps
         Map<String, int[][]> permutedOverlaps = new HashMap<>();
 
         // Cat to chr map
         final Map<String, ArrayList<BedRecord>> regionsToSampleFromPerChr = new HashMap<>();
         for (String contig : B37GenomeInfo.getChromosomes()) {
-            Collection<BedRecord> curSet = targetSet.getOverlapping(new Interval(contig, 0, Integer.MAX_VALUE - 10));
+            Collection<BedRecord> curSet = targetRegions.getOverlapping(new Interval(contig, 0, Integer.MAX_VALUE - 10));
             regionsToSampleFromPerChr.put(contig, new ArrayList<>(curSet));
         }
 
@@ -83,26 +84,28 @@ public class GenomicRegionEnrichment {
                     permutedOverlaps.get(database)[i] = determineOverlap(currentRandom, referenceSet.get(database));
                 }
             }
-
         }
 
+        // Initialize the output writer
         BufferedWriter mainOutputWriter = new GenericFile(params.getOutputPrefix() + ".enrichment.results").getAsBufferedWriter();
-        mainOutputWriter.write("database\temperical_pvalue\tpseudo_emperical_pvalue\tpercentage_overlap\trelative_enrichment\toverlapping\tnon_overlapping\tpermuted_mean\tpermuted_sd");
+        mainOutputWriter.write("database\temperical_pvalue\tpercentage_overlap\trelative_enrichment\toverlapping\tnon_overlapping\tpermuted_mean\tpermuted_sd");
         mainOutputWriter.newLine();
 
-        // Determine emperical pvalues for the enrichment
+        // Determine emperical pvalues for the enrichment in each reference set
         for (String database : referenceSet.keySet()) {
 
+            // Determine the true ratio of overlaps
             int[] curTrueOverlaps = trueOverlaps.get(database);
             double trueRatio = (double) curTrueOverlaps[0] / (curTrueOverlaps[0] + curTrueOverlaps[1]);
 
+            // Determine the ratio of overlaps in the permuted sets
             int[][] curPermutedOverlaps = permutedOverlaps.get(database);
             double[] permutedRatios = new double[curPermutedOverlaps.length];
             for (int i = 0; i < curPermutedOverlaps.length; i++) {
                 permutedRatios[i] = (double) curPermutedOverlaps[i][0] / (curPermutedOverlaps[i][0] + curPermutedOverlaps[i][1]);
             }
 
-            // Determine rank of true value (one-sided)
+            // Determine rank of true value in the permuted distribution
             Arrays.sort(permutedRatios);
             int finalRank = 0;
             for (int i = 0; i < permutedRatios.length; i++) {
@@ -111,18 +114,23 @@ public class GenomicRegionEnrichment {
                 }
             }
 
+            // Determine mean and SD of random dist
             DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics(permutedRatios);
+
+            // Determine the relative enrichment over the mean in the null
             double relativeEnrichment = trueRatio / descriptiveStatistics.getMean();
+
+            // If there is depletion, adjust the rank so the pvalue calculation is valid
             if (relativeEnrichment < 1) {
                 finalRank = permutedRatios.length - finalRank;
             }
 
-            // Determine the emperical pvalue
-            double empericalPvalue = 1 - ((finalRank + 0.5) / (permutedRatios.length + 1));
+            // Determine the two-sided emperical pvalue
+            double empericalPvalue = (1 - ((finalRank + 0.5) / (permutedRatios.length + 1))) *2;
 
-            // Determine the pseudo emperical pvalue
-
-            double pseudoEmpericalPvalue = 1;
+            // Determine the pseudo emperical pvalue based on a normal dist
+            // TODO: maybe do this on a poisson of the overlapped counts instead
+            /*double pseudoEmpericalPvalue = 1;
             if (descriptiveStatistics.getStandardDeviation() > 0) {
                 NormalDistribution empericalNormalDist = new NormalDistribution(descriptiveStatistics.getMean(), descriptiveStatistics.getStandardDeviation());
 
@@ -131,9 +139,9 @@ public class GenomicRegionEnrichment {
                 } else {
                     pseudoEmpericalPvalue = empericalNormalDist.cumulativeProbability(trueRatio);
                 }
-            }
+            }*/
 
-            // If overlap is zero report pval of 1 to avoid confusion
+            // If overlap is zero report pval of 1 to avoid confusion in the results
             if (trueRatio == 0) {
                 empericalPvalue = 1;
             }
@@ -142,8 +150,8 @@ public class GenomicRegionEnrichment {
             mainOutputWriter.write(database);
             mainOutputWriter.write("\t");
             mainOutputWriter.write(Double.toString(empericalPvalue));
-            mainOutputWriter.write("\t");
-            mainOutputWriter.write(Double.toString(pseudoEmpericalPvalue));
+            //mainOutputWriter.write("\t");
+            //mainOutputWriter.write(Double.toString(pseudoEmpericalPvalue));
             mainOutputWriter.write("\t");
             mainOutputWriter.write(Double.toString(trueRatio));
             mainOutputWriter.write("\t");
@@ -161,9 +169,18 @@ public class GenomicRegionEnrichment {
 
         }
 
+        // Flush and close the output writer
         mainOutputWriter.flush();
         mainOutputWriter.close();
 
+        // Save the null distributions
+        writeNullDistributionsAsMatrix(referenceSet, permutedOverlaps);
+
+        LOGGER.info("done");
+
+    }
+
+    private void writeNullDistributionsAsMatrix(Map<String, IntervalTreeMap<BedRecord>> referenceSet, Map<String, int[][]> permutedOverlaps) throws IOException {
         // Write the null dist as matrix format. This is done seperately so each collumn can be a database
         LOGGER.info("Writing null dist matrix");
 
@@ -194,8 +211,6 @@ public class GenomicRegionEnrichment {
 
         nullDistOutputWriter.flush();
         nullDistOutputWriter.close();
-        LOGGER.info("done");
-
     }
 
 
