@@ -20,16 +20,26 @@ public class NarrowPeakReader implements BedRecordProvider, Iterable<NarrowPeakR
     private BufferedReader reader;
     private static String sep = "\t";
     private String pattern;
+    private boolean trimChrFromContig;
 
     public NarrowPeakReader(GenericFile inputFile) throws IOException {
-        this.reader = inputFile.getAsBufferedReader();
-        this.pattern = null;
+        this(inputFile, null, false);
     }
 
     public NarrowPeakReader(GenericFile inputFile, String pattern) throws IOException {
+        this(inputFile, pattern, false);
+    }
+
+    public NarrowPeakReader(GenericFile inputFile, String pattern, boolean trimChrFromContig) throws IOException {
         this.reader = inputFile.getAsBufferedReader();
         this.pattern = pattern;
+        this.trimChrFromContig = trimChrFromContig;
     }
+
+    public NarrowPeakReader(GenericFile inputFile, boolean trimChrFromContig) throws IOException {
+        this(inputFile, null, false);
+    }
+
 
     @Override
     public List<BedRecord> getBedRecordAsList() throws IOException {
@@ -125,8 +135,17 @@ public class NarrowPeakReader implements BedRecordProvider, Iterable<NarrowPeakR
     }
 
     protected static NarrowPeakRecord parseNarrowPeakRecord(String line) {
+        return parseNarrowPeakRecord(line, false);
+    }
+
+    protected static NarrowPeakRecord parseNarrowPeakRecord(String line, boolean trimChrFromContig) {
         String[] content = line.split(sep);
-        return new NarrowPeakRecord(content[0],
+        String contig = content[0];
+        if (trimChrFromContig) {
+            contig = contig.replaceFirst("chr", "");
+        }
+
+        return new NarrowPeakRecord(contig,
                 Integer.parseInt(content[1]),
                 Integer.parseInt(content[2]),
                 content[3],
@@ -142,7 +161,7 @@ public class NarrowPeakReader implements BedRecordProvider, Iterable<NarrowPeakR
 
         String line = reader.readLine();
         if (line != null) {
-            NarrowPeakRecord record = parseNarrowPeakRecord(line);
+            NarrowPeakRecord record = parseNarrowPeakRecord(line, trimChrFromContig);
             if (pattern != null) {
                 record.setName(record.getName().replace(pattern, ""));
             }

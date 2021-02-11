@@ -4,7 +4,9 @@ import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalTreeMap;
 import nl.umcg.suresnp.pipeline.IpcrTools;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.io.ReferenceBedFileType;
 import nl.umcg.suresnp.pipeline.io.bedreader.GenericGenomicAnnotationReader;
+import nl.umcg.suresnp.pipeline.io.bedwriter.FourColBedWriter;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.GenomicRegionEnrichmentParameters;
@@ -15,6 +17,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.util.*;
@@ -25,25 +28,23 @@ public class GenomicRegionEnrichment {
     private static final Logger LOGGER = Logger.getLogger(GenomicRegionEnrichment.class);
     private GenomicRegionEnrichmentParameters params;
     private int nPerm;
+    private FourColBedWriter debugRandomRecordWriter;
 
-    public GenomicRegionEnrichment(GenomicRegionEnrichmentParameters params) {
+    public GenomicRegionEnrichment(GenomicRegionEnrichmentParameters params) throws IOException {
         this.params = params;
         this.nPerm = params.getNumberOfPermutations();
+        this.debugRandomRecordWriter = new FourColBedWriter(new File(params.getOutputPrefix() + "_debug_null_records.bed"), true);
     }
 
     public void run() throws IOException {
         // Set of regions used to determine true overlap
-        IntervalTreeMap<BedRecord> querySet = new GenericGenomicAnnotationReader(params.getQuery(), false).getBedRecordsAsTreeMap();
+        IntervalTreeMap<BedRecord> querySet = new GenericGenomicAnnotationReader(params.getQuery(), false, params.isTrimChrFromContig()).getBedRecordsAsTreeMap();
 
         // Set of regions used to overlap the query set with
-        Map<String, IntervalTreeMap<BedRecord>> referenceSet = new HashMap<>();
-        for (String database : params.getReferenceFiles().keySet()) {
-            GenericGenomicAnnotationReader reader = new GenericGenomicAnnotationReader(params.getReferenceFiles().get(database), false);
-            referenceSet.put(database, reader.getBedRecordsAsTreeMap());
-        }
+        Map<String, IntervalTreeMap<BedRecord>> referenceSet = readReferenceData();
 
         // Set of regions to restrict the analysis to. Can be genome wide.
-        IntervalTreeMap<BedRecord> targetRegions = new GenericGenomicAnnotationReader(params.getTargetRegions(), false).getBedRecordsAsTreeMap();
+        IntervalTreeMap<BedRecord> targetRegions = new GenericGenomicAnnotationReader(params.getTargetRegions(), false, params.isTrimChrFromContig()).getBedRecordsAsTreeMap();
 
         // Filter sets on target regions
         querySet = intersectTreeMaps(querySet.values(), targetRegions);
@@ -75,8 +76,8 @@ public class GenomicRegionEnrichment {
             IpcrTools.logProgress(i, 1000, "GenomicRegionEnrichment", "thousand");
 
             for (String database : referenceSet.keySet()) {
-                int[][] currentPermutedOverlaps = permutedOverlaps.get(database);
-                if (currentPermutedOverlaps == null) {
+                int[][] currentPermutedOverlaps;
+                if (!permutedOverlaps.containsKey(database)) {
                     currentPermutedOverlaps = new int[nPerm][];
                     currentPermutedOverlaps[i] = determineOverlap(currentRandom, referenceSet.get(database));
                     permutedOverlaps.put(database, currentPermutedOverlaps);
@@ -165,7 +166,7 @@ public class GenomicRegionEnrichment {
             mainOutputWriter.write("\t");
             mainOutputWriter.write(Double.toString(descriptiveStatistics.getStandardDeviation()));
             mainOutputWriter.newLine();
-            LOGGER.info("Pvalue for " + database + ": " + empericalPvalue);
+            //LOGGER.info("Pvalue for " + database + ": " + empericalPvalue);
 
         }
 
@@ -176,6 +177,7 @@ public class GenomicRegionEnrichment {
         // Save the null distributions
         writeNullDistributionsAsMatrix(referenceSet, permutedOverlaps);
 
+        debugRandomRecordWriter.flushAndClose();
         LOGGER.info("done");
 
     }
@@ -187,7 +189,7 @@ public class GenomicRegionEnrichment {
      * @param regionsToSampleFrom
      * @return
      */
-    private List<BedRecord> generatePermutedGenomicRegionsMatchingQuery(Collection<BedRecord> query, Map<String, ArrayList<BedRecord>> regionsToSampleFrom) {
+    private List<BedRecord> generatePermutedGenomicRegionsMatchingQuery(Collection<BedRecord> query, Map<String, ArrayList<BedRecord>> regionsToSampleFrom) throws IOException {
         List<BedRecord> output = new ArrayList<>(query.size());
 
         for (BedRecord currentQuery : query) {
@@ -199,7 +201,9 @@ public class GenomicRegionEnrichment {
             BedRecord regionToSampleIn = possibleRegions.get(indexToSample);
 
             int newRegionMidPoint = ThreadLocalRandom.current().nextInt(regionToSampleIn.getStart(), regionToSampleIn.getEnd());
-            output.add(new BedRecord(currentQuery.getContig(), newRegionMidPoint - size / 2, newRegionMidPoint + size / 2));
+            BedRecord tmp = new BedRecord(currentQuery.getContig(), newRegionMidPoint - (size / 2), newRegionMidPoint + (size / 2));
+            output.add(tmp);
+            debugRandomRecordWriter.writeRecord(tmp);
         }
 
         return output;
@@ -233,7 +237,7 @@ public class GenomicRegionEnrichment {
 
         }
 
-        LOGGER.info("Filtered " + removed + " records");
+        //LOGGER.info("Filtered " + removed + " records");
         return output;
     }
 
@@ -270,4 +274,41 @@ public class GenomicRegionEnrichment {
         nullDistOutputWriter.close();
     }
 
+    private Map<String, IntervalTreeMap<BedRecord>> readReferenceData() throws IOException {
+        Map<String, IntervalTreeMap<BedRecord>> referenceSet = new HashMap<>();
+
+        if (params.getReferenceBedFileType().getBedFileType() == ReferenceBedFileType.BedFileType.THREE_COL) {
+            for (String database : params.getReferenceFiles().keySet()) {
+                GenericGenomicAnnotationReader reader = new GenericGenomicAnnotationReader(params.getReferenceFiles().get(database), false, params.isTrimChrFromContig());
+                referenceSet.put(database, reader.getBedRecordsAsTreeMap());
+            }
+        } else if (params.getReferenceBedFileType().getBedFileType() == ReferenceBedFileType.BedFileType.FOUR_COL) {
+            for (String database : params.getReferenceFiles().keySet()) {
+                GenericGenomicAnnotationReader reader = new GenericGenomicAnnotationReader(params.getReferenceFiles().get(database), false, params.isTrimChrFromContig());
+
+                int i=0;
+                for (GenericGenomicAnnotationRecord curRec: reader) {
+                    // Adjust the column number by 4, the first three are for the standard BED columns, the
+                    // additional 1 is for the zero indexing
+                    String type = curRec.getAnnotations().get(params.getReferenceBedFileType().getColumnToSplit() - 4);
+                    String databaseName = database + "_" + type;
+                    if (referenceSet.containsKey(databaseName)) {
+                        referenceSet.get(databaseName).put(curRec, curRec);
+                    } else {
+                        IntervalTreeMap<BedRecord> curNewMap = new IntervalTreeMap<>();
+                        curNewMap.put(curRec, curRec);
+                        referenceSet.put(databaseName, curNewMap);
+                    }
+                    i++;
+                }
+                LOGGER.info("Read " + i + " records from file: " + params.getReferenceFiles().get(database).getFileName());
+            }
+
+        } else {
+            throw new IllegalArgumentException("No valid ReferenceBedFileType provided");
+        }
+
+
+        return referenceSet;
+    }
 }

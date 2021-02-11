@@ -449,15 +449,107 @@ manhattan <- function (x, chr = "CHR", bp = "BP", p = "P", snp = "SNP", col = c(
   par(xpd = FALSE)
 }
 
+#----------------------------------------------------------------------------------------
+xy.plot.pvalue.colored <- function(auc.1, auc.pval.1, auc.2, auc.pval.2, xlab="X", ylab="Y", main=NULL, pval.col="either", pval.name.x="x", pval.name.y="y") {
+  auc.pval.1[auc.1 == 0] <- 1
+  auc.pval.2[auc.2 == 0] <- 1
+  
+  df.plot <- data.frame(auc.1=auc.1,
+                        auc.2=auc.2,
+                        signif.1 = auc.pval.1 < (0.05 / length(auc.1)), 
+                        signif.2 = auc.pval.2 < (0.05 / length(auc.2)))
+  
+  df.plot                <- na.omit(df.plot)
+  df.plot$signif         <- sum(df.plot$signif.1 + df.plot$signif.2)
+  df.plot$signif.both    <- (df.plot$signif.1 + df.plot$signif.2) == 2
+  df.plot$signif.either  <- (df.plot$signif.1 + df.plot$signif.2) > 0
+  df.plot                <- df.plot[order(df.plot$signif.either),]
+  
+  if (pval.col=="either") {
+    df.plot$signif.col    <- df.plot$signif.either
+    point.cols <- c(`FALSE`="#2c6c70", `TRUE`="#0ae4f2")
+    
+  } else if (pval.col=="all") {
+    df.plot$signif.col    <- rep("N.S.", nrow(df.plot))
+    if (sum(df.plot$signif.1) >= 1) {
+      df.plot[df.plot$signif.1,]$signif.col       <- pval.name.x
+    }
+    
+    if (sum(df.plot$signif.2) >= 1) {
+      df.plot[df.plot$signif.2,]$signif.col       <- pval.name.y
+    }
+    
+    df.plot[!df.plot$signif.either,]$signif.col <- "N.S."
+    
+    if (sum(df.plot$signif.both) >= 1) {
+      df.plot[df.plot$signif.both,]$signif.col    <-"Both"
+    }
+    
+    point.cols <- c("#55B397", "#59B354", "#544CB0", "#9E46B3")
+    names(point.cols) <- c(pval.name.x,  pval.name.y, "N.S.", "Both")
+  } else if (pval.col=="both") {
+    df.plot$signif.col    <- df.plot$signif.both
+    point.cols <- c(`FALSE`="#2c6c70", `TRUE`="#0ae4f2")
+  }
+  
+  lims <- c(min(c(auc.1, auc.2), na.rm=T), max(c(auc.1, auc.2), na.rm=T))  
+  
+  p <- ggplot(data=df.plot, mapping=aes(x=auc.1, y=auc.2)) +
+    geom_point(alpha=0.75, mapping=aes(col=df.plot$signif.col)) +
+    geom_abline(slope=1, intercept=0, col="grey", lty=2) +
+    coord_fixed() +
+    xlab(xlab) +
+    ylab(ylab) +
+    ggtitle(main) + 
+    scale_color_manual(values=point.cols, name=paste0("Signif. ", pval.col)) +
+    geom_smooth(method="lm") +
+    xlim(lims) +
+    ylim(lims)
+  
+  return(p)
+}
+
+#----------------------------------------------------------------------------------------
+xy.plot<- function(x, y, xlab="X", ylab="Y", main=NULL, col="") {
+
+  df.plot <- data.frame(x=x,
+                        y=y)
+
+  lims <- c(min(c(x, y), na.rm=T), max(c(x, y), na.rm=T))  
+  
+  p <- ggplot(data=df.plot, mapping=aes(x=x, y=y)) +
+    geom_point(alpha=0.75, color=col) +
+    geom_abline(slope=1, intercept=0, col="grey", lty=2) +
+    coord_fixed() +
+    xlab(xlab) +
+    ylab(ylab) +
+    ggtitle(main) + 
+    geom_smooth(method="lm") +
+    xlim(lims) +
+    ylim(lims)
+  
+  return(p)
+}
+
+
+
 ## ------------------------------------------------------------------------
 sure.palette <- list(celltype_stim=c(`k562`="#FE0000", 
                                 `caco-2`="#0000CE",
                                 `caco-2-stim`="#7EC1EE",
                                 `jurkat`="#007D5A",
                                 `jurkat-stim`="#00D69A"),
+                     celltype_stim_alt=c(`K`="#FE0000", 
+                                     `C`="#0000CE",
+                                     `Cs`="#7EC1EE",
+                                     `J`="#007D5A",
+                                     `Js`="#00D69A"),
                      celltype=c(`k562`="#FE0000", 
                                 `caco-2`="#0000CE",
                                 `jurkat`="#007D5A"),
                      stimulation=c(`aCD3/aCD28`="#00D69A",
                                    `IFNy`="#7EC1EE",
                                    `baseline`="#0965B0"))
+
+
+

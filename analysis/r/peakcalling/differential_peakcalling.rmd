@@ -1,5 +1,5 @@
 ```{r}
-setwd("../peakcalling")
+setwd("peakcalling")
 source("../sure-snp_functions.r")
 
 library(DESeq2)
@@ -13,10 +13,39 @@ row.names(meta.data)   <- meta.data$id
 meta.data$ct_caco      <- as.factor(meta.data$ct_caco)
 meta.data$ct_jurkat    <- as.factor(meta.data$ct_jurkat)
 meta.data$ct_k562      <- as.factor(meta.data$ct_k562)
+```
 
+# Scatterplots in consensus peaks
+```{r}
 deseq.full             <- DESeqDataSetFromMatrix(countData = count.matrix,
                                      colData = meta.data[colnames(count.matrix),],
                                      design = ~stimulation)
+normalized.counts      <- assay(varianceStabilizingTransformation(DESeq(deseq.full)))
+
+plots                  <- list()
+j                      <- 1
+for (stim in unique(meta.data$alt_stimulation)) {
+  cat(stim, "\n")
+   combos <- t(combn(meta.data[meta.data$alt_stimulation == stim,]$id, 2))
+   for (i in 1:nrow(combos)) {
+     x <- normalized.counts[,combos[i, 1]]
+     y <- normalized.counts[,combos[i, 2]]
+
+     p <- xy.plot(x,
+          y,
+          main=stim,
+          xlab=paste0(combos[i, 1], " (VST norm. counts)"),
+          ylab=paste0(combos[i, 2], " (VST norm. counts)"),
+          col=sure.palette$celltype_stim[stim])
+     p <- theme.plain(p) + theme(legend.position = "none")
+     plots[[j]] <-p
+     j <- j +1
+   }
+}
+
+pdf(width=20, height=15, file="output/plots/normalized_scatterplots_technicals_consensus_peaks.pdf")
+grid.arrange(grobs=plots, ncol=6)
+dev.off()
 ```
 
 # Merging technical replicates

@@ -1,6 +1,7 @@
 package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
+import nl.umcg.suresnp.pipeline.io.ReferenceBedFileType;
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.filters.NarrowPeakFilter;
 import org.apache.commons.cli.*;
@@ -20,6 +21,7 @@ public class GenomicRegionEnrichmentParameters {
     // IO arguments
     private GenericFile query;
     private Map<String, GenericFile> referenceFiles;
+    private ReferenceBedFileType referenceBedFileType;
     private GenericFile targetRegions;
 
     private String outputPrefix;
@@ -27,7 +29,7 @@ public class GenomicRegionEnrichmentParameters {
     // General arguments
     private String toolType;
     private int numberOfPermutations;
-    private int threads;
+    private boolean trimChrFromContig;
 
     private static final Options OPTIONS;
 
@@ -57,6 +59,18 @@ public class GenomicRegionEnrichmentParameters {
                 .build();
         OPTIONS.addOption(option);
 
+        option = Option.builder("rt")
+                .longOpt("reference-type")
+                .hasArg(true)
+                .desc("Determines the type of files provided. THREE_COL; all the records are read as being from the same" +
+                        "database. FOUR_COL; the records are split into databases depending on the value in an additional collum." +
+                        "THREE_COL can contained mixed filetypes as long as the first three columns are BED. FOUR_COL needs the" +
+                        "column number in all files provided to be the same. If the type is" +
+                        "FOUR_COL the database name from -r is added to the string in the split column.")
+                .argName("THREE_COL (default) | FOUR_COL:<column #>")
+                .build();
+        OPTIONS.addOption(option);
+
         option = Option.builder("f")
                 .longOpt("restrict-analysis-to-region")
                 .hasArg(true)
@@ -78,6 +92,13 @@ public class GenomicRegionEnrichmentParameters {
                 .hasArg(true)
                 .desc("The output prefix.")
                 .argName("<prefix>")
+                .build();
+        OPTIONS.addOption(option);
+
+        option = Option.builder("tchr")
+                .longOpt("trim-chr-from-contig")
+                .hasArg(false)
+                .desc("Should the preceding 'chr' be removed from the chromosome id's when reading the bed files.")
                 .build();
         OPTIONS.addOption(option);
     }
@@ -119,8 +140,28 @@ public class GenomicRegionEnrichmentParameters {
             exit(-1);
         }
 
+
+        if (cmd.hasOption("rt")) {
+            String arg = cmd.getOptionValue("rt");
+
+            if (arg.startsWith("THREE_COL")) {
+                referenceBedFileType = new ReferenceBedFileType(ReferenceBedFileType.BedFileType.THREE_COL);
+            } else if (arg.startsWith("FOUR_COL")) {
+                int colNumber = Integer.parseInt(arg.split(":")[1]);
+                referenceBedFileType = new ReferenceBedFileType(colNumber, ReferenceBedFileType.BedFileType.FOUR_COL);
+            } else {
+                LOGGER.error("Not a valid reference type");
+                exit(-1);
+            }
+        } else {
+            referenceBedFileType = new ReferenceBedFileType(ReferenceBedFileType.BedFileType.THREE_COL);
+        }
+
         if (cmd.hasOption("f")) {
             targetRegions = new GenericFile(cmd.getOptionValue("f"));
+        } else {
+            LOGGER.error("No target regions (-f) provided");
+            exit(-1);
         }
 
 
@@ -135,6 +176,8 @@ public class GenomicRegionEnrichmentParameters {
         } else {
             numberOfPermutations = 10000;
         }
+
+        trimChrFromContig = cmd.hasOption("tchr");
     }
 
 
@@ -156,6 +199,14 @@ public class GenomicRegionEnrichmentParameters {
 
     public String getOutputPrefix() {
         return outputPrefix;
+    }
+
+    public ReferenceBedFileType getReferenceBedFileType() {
+        return referenceBedFileType;
+    }
+
+    public boolean isTrimChrFromContig() {
+        return trimChrFromContig;
     }
 
     public static void printHelp() {

@@ -21,8 +21,9 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
     private static String sep = "\t";
     private String type;
     private String[] header;
+    private boolean trimChrFromContig;
 
-    public GenericGenomicAnnotationReader(GenericFile inputFile, boolean hasHeader) throws IOException {
+    public GenericGenomicAnnotationReader(GenericFile inputFile, boolean hasHeader, boolean trimChrFromContig) throws IOException {
         this.reader = inputFile.getAsBufferedReader();
         // Preserve the first buffer, header may not be longer than 8k characters
         this.reader.mark(8192);
@@ -45,7 +46,11 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
                     this.reader.reset();
                 }
         }
+        this.trimChrFromContig = trimChrFromContig;
+    }
 
+    public GenericGenomicAnnotationReader(GenericFile inputFile, boolean hasHeader) throws IOException {
+        this(inputFile, hasHeader, false);
     }
 
     @Override
@@ -111,9 +116,17 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
     }
 
     protected static GenericGenomicAnnotationRecord parseGenomicAnnotation(String line) {
+        return parseGenomicAnnotation(line, false);
+    }
+
+    protected static GenericGenomicAnnotationRecord parseGenomicAnnotation(String line, boolean trimChrFromContig) {
         String[] curLine = line.split(sep);
+        String contig = curLine[0];
+        if (trimChrFromContig) {
+            contig = contig.replaceFirst("chr", "");
+        }
         GenericGenomicAnnotationRecord curAnnot = new GenericGenomicAnnotationRecord(
-                curLine[0],
+                contig,
                 Integer.parseInt(curLine[1]),
                 Integer.parseInt(curLine[2]));
 
@@ -123,6 +136,8 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
 
         return curAnnot;
     }
+
+
 
     @Override
     public Iterator<GenericGenomicAnnotationRecord> iterator() {
@@ -159,11 +174,11 @@ public class GenericGenomicAnnotationReader implements GenomicAnnotationProvider
         if (line != null) {
             switch (type) {
                 case "NARROW_PEAK":
-                    return new GenericGenomicAnnotationRecord(NarrowPeakReader.parseNarrowPeakRecord(line));
+                    return new GenericGenomicAnnotationRecord(NarrowPeakReader.parseNarrowPeakRecord(line, trimChrFromContig));
                 case "BED":
-                    return new GenericGenomicAnnotationRecord(FourColBedFileReader.parseBedRecord(line));
+                    return new GenericGenomicAnnotationRecord(FourColBedFileReader.parseBedRecord(line, trimChrFromContig));
                 default:
-                    return parseGenomicAnnotation(line);
+                    return parseGenomicAnnotation(line, trimChrFromContig);
             }
         } else {
             return null;

@@ -16,11 +16,15 @@ public class FourColBedFileReader implements BedRecordProvider {
     private static final Logger LOGGER = Logger.getLogger(FourColBedFileReader.class);
     private BufferedReader reader;
     private static String sep = "\t";
+    private boolean trimChrFromContig;
 
     public FourColBedFileReader(GenericFile inputFile) throws IOException {
-        this.reader = inputFile.getAsBufferedReader();
+        this(inputFile, false);
     }
-
+    public FourColBedFileReader(GenericFile inputFile, boolean trimChrFromContig) throws IOException {
+        this.reader = inputFile.getAsBufferedReader();
+        this.trimChrFromContig = trimChrFromContig;
+    }
 
     public List<BedRecord> getBedRecordAsList() throws IOException {
         List<BedRecord> output = new TreeList<>();
@@ -42,15 +46,22 @@ public class FourColBedFileReader implements BedRecordProvider {
     }
 
     protected static BedRecord parseBedRecord(String line) {
-        String[] content = line.split(sep);
+        return parseBedRecord(line, false);
+    }
 
+    protected static BedRecord parseBedRecord(String line, boolean trimChrFromContig) {
+        String[] content = line.split(sep);
+        String contig = content[0];
+        if (trimChrFromContig) {
+            contig = contig.replaceFirst("chr", "");
+        }
         if (content.length == 3) {
-            return new BedRecord(content[0],
+            return new BedRecord(contig,
                     Integer.parseInt(content[1]),
                     Integer.parseInt(content[2]),
                     0);
         }
-        return new BedRecord(content[0],
+        return new BedRecord(contig,
                 Integer.parseInt(content[1]),
                 Integer.parseInt(content[2]),
                 Double.parseDouble(content[3]));
@@ -59,7 +70,7 @@ public class FourColBedFileReader implements BedRecordProvider {
     private BedRecord getNextRecord() throws IOException {
         String line = reader.readLine();
         if (line != null) {
-            return parseBedRecord(line);
+            return parseBedRecord(line, trimChrFromContig);
         } else {
             return null;
         }

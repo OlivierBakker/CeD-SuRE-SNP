@@ -1,5 +1,6 @@
 package nl.umcg.suresnp.pipeline.io;
 
+import htsjdk.samtools.util.BlockCompressedInputStream;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import org.apache.commons.io.FilenameUtils;
 
@@ -103,11 +104,11 @@ public class GenericFile {
 
     public GenericFile getTabixFile() throws FileNotFoundException {
 
-       if (isTabixIndexed()) {
-           return new GenericFile(path + ".tbi");
-       } else {
-           throw new FileNotFoundException("File either not tabixed or bgZipped: " + path);
-       }
+        if (isTabixIndexed()) {
+            return new GenericFile(path + ".tbi");
+        } else {
+            throw new FileNotFoundException("File either not tabixed or bgZipped: " + path);
+        }
 
     }
 
@@ -116,11 +117,12 @@ public class GenericFile {
     }
 
     public InputStream getAsInputStream() throws IOException {
-        if (isGZipped()) {
+        if (isBgZipped()) {
+            return new BlockCompressedInputStream(new File(path));
+        } else if (isGZipped()) {
             return new BufferedInputStream(new GZIPInputStream(new FileInputStream(new File(path))));
         } else {
             return new BufferedInputStream(new FileInputStream(new File(path)));
-
         }
     }
 
@@ -156,7 +158,7 @@ public class GenericFile {
             String tmp = new GenericFile(curFile).getBaseName();
             int idx = tmp.indexOf('.');
             if (idx > 0) {
-               outputArray[i] = tmp.substring(0, idx);
+                outputArray[i] = tmp.substring(0, idx);
             } else {
                 outputArray[i] = tmp;
             }
