@@ -3,14 +3,14 @@ setwd("peakcalling")
 source("../sure-snp_functions.r")
 
 library(DESeq2)
-library(bumphunter)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(Gviz)
 library(biomaRt)
-library(BSgenome.Hsapiens.UCSC.hg19)
+library(MGFR)
+library(bumphunter)
 
-count.matrix           <- fread("data/SuRE-SNP_GW_x4_ipcr25_filtered.countMatrix", data.table = F)
+count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
 rownames(count.matrix) <- count.matrix[,1]
 count.matrix           <- count.matrix[,-1]
 meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
@@ -28,22 +28,273 @@ results                <- DESeq(deseq.full)
 pca.obj                <- varianceStabilizingTransformation(results)
 norm.count.matrix      <- assay(pca.obj)
 
-get.range.df           <- function(range.names) {
-  ranges <- as.data.frame(t(as.data.frame(lapply(strsplit(range.names,":"), function(x){
-    tmp <- strsplit(x[2], "-")[[1]]
-    return(c(x[1],tmp[1], tmp[2]))
-  }))), stringsAsFactors=F)
-  ranges[,2] <- as.numeric(ranges[,2])
-  ranges[,3] <- as.numeric(ranges[,3])
-  rownames(ranges) <- range.names
-  return(ranges)
+# Cleanup
+rm(deseq.full, results, pca.obj)
+```
+
+# Determine marker peaks
+```{r}
+# More detaills here: https://bioconductor.org/packages/release/bioc/vignettes/MGFR/inst/doc/MGFR.pdf
+markers                  <- getMarkerGenes.rnaseq(norm.count.matrix, class.vec=meta.data$celltype)
+
+# Concat the results to a dataframe, and filter
+results.table            <- data.frame(t(sapply(unlist(markers), function(x){strsplit(x, split=" : ")[[1]]})), stringsAsFactors = F)
+results.table$celltype   <- gsub("\\_markers.*", "", rownames(results.table))
+colnames(results.table)  <- c("peak", "specificity", "celltype")
+maker.peaks              <- results.table[results.table$specificity < 0.8,]
+rownames(maker.peaks)    <- maker.peaks$peak
+
+# Cleanup
+rm(markers, results.table)
+```
+
+# Find the closest gene to marker peaks
+```{r}
+# Convert marker peaks to genomic range
+markers.as.range       <- get.as.grange(unique(maker.peaks$peak), return.as.grange=T, chr.prefix="chr")
+
+# Find the genes which have an peak upstream of the TSS
+genes.ucsc             <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+closest.gene           <- matchGenes(markers.as.range, genes.ucsc, type="fiveprime")
+rownames(closest.gene) <- names(markers.as.range)
+closest.gene$celltype  <- maker.peaks$celltype
+
+# Filter the annotated peaks to those within 10kb of the TSS
+closest.gene           <- closest.gene[closest.gene$distance < 10000, c("name", "celltype", "description", "distance", "geneL")]
+
+# Add the specificity of the peak as a marker
+closest.gene$peak               <- rownames(closest.gene)
+closest.gene$peak_specificicity <- maker.peaks[closest.gene$peak,]$specificity
+
+write.table(closest.gene, file="output/celltype_de_peaks_genome_wide_closest_tss_10kb_window.tsv", sep="\t", quote=F)
+```
+
+# Locus plots of DE markers
+```{r}
+# Read the bedgraph files showing the sure activity
+sure.activity <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions/", pattern=".*_CPM_all_samples.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.bdg.gz","\\1",file)
+  sure.activity[[name]] <- tmp
 }
 
-genes.ucsc             <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+# Read the bedgraph files showing the sure activity + strand
+sure.activity.plus <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions_strand_specific/", pattern=".*_CPM_all_samples.plus.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions_strand_specific/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.plus.bdg.gz","\\1",file)
 
-# Ensembl data, use to get read names
-ensembl                    <- read.table("../data/ensembl_genes_and_transcripts_v102_b37.txt", sep="\t", header=T, stringsAsFactors = F)
-ensembl$gene.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
+  sure.activity.plus[[name]] <- tmp
+}
+
+# Read the bedgraph files showing the sure activity - strand
+sure.activity.minus <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions_strand_specific/", pattern=".*_CPM_all_samples.minus.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions_strand_specific/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.minus.bdg.gz","\\1",file)
+
+  sure.activity.minus[[name]] <- tmp
+}
+
+# Peak files  
+sure.peaks <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions/", pattern=".*_ced_regions_bmerged.narrowPeak")) {
+  tmp  <- fread(paste0("../peakcalling/data/merged_peaks/ced_regions/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_x3_ced_regions_bmerged.narrowPeak","\\1",file)
+  sure.peaks[[name]] <- tmp
+}
+
+# Used to convert names of the files to the celltype names used in the plots
+celltype.link              <- data.frame(old.names=paste0(c("K", "C", "Cs", "J", "Js"), ""),
+                                         new.names=names(sure.palette$celltype_stim), stringsAsFactors = F)
+rownames(celltype.link)    <- celltype.link[,1]
+```
+
+# Plot
+```{r}
+# Marker genes
+regions.of.interest        <- read.table("data/celltype_marker_genes.tsv", stringsAsFactors = F, header=T)
+regions.of.interest        <- regions.of.interest[regions.of.interest$include,]
+regions.of.interest$froms  <- regions.of.interest$froms - 10000
+regions.of.interest$tos    <- regions.of.interest$tos + 10000
+
+# Reference tracks, just need to be made once
+# Track showing the genomic posistion
+genTrack  <- GenomeAxisTrack(littleTicks = F,
+                             add53 = TRUE,
+                             add35 = TRUE,
+                             labelPos="below",
+                             col="#B5B5B5")
+
+# Biomart object to retrieve gene info from
+bm <- useMart(host = "grch37.ensembl.org", 
+              biomart = "ENSEMBL_MART_ENSEMBL", 
+              dataset = "hsapiens_gene_ensembl")
+
+# Construct a trarcplot for each region defined in regions.of.interest
+plots <- apply(regions.of.interest, 1, function(x) {
+  chr        <- x[1]
+  from       <- as.numeric(x[2])
+  to         <- as.numeric(x[3])
+  ymax       <- as.numeric(x[4])
+  
+  # Ideogram track showing the chromosome
+  ideTrack   <- IdeogramTrack(genome = "hg19", chromosome = chr, from=from, to=to, showId = T)
+    
+  # Track showin the genes in the region
+  knownGenes <- BiomartGeneRegionTrack(genome = "hg19", 
+                                      chromosome = chr,
+                                      start = from,
+                                      end = to,
+                                      name = "ENSEMBL",
+                                      biomart = bm,
+                                      transcriptAnnotation="symbol",
+                                      filter = list(with_refseq_mrna=TRUE),
+                                      stacking="squish",
+                                      fill="#D4D4D4",
+                                      col=NA)
+  # Concat the tracks
+  tracks <- c(ideTrack, knownGenes)
+  
+  # Tracks showing SuRE activity
+  for (celltype in c("C", "Cs", "J", "Js", "K")) {
+    
+    tmp.plus       <- sure.activity.plus[[celltype]]
+    tmp.plus       <- tmp.plus[tmp.plus[,1] == chr,]
+    
+    tmp.minus      <- sure.activity.minus[[celltype]]
+    tmp.minus      <- tmp.minus[tmp.minus[,1] == chr,]
+    tmp.minus[,4]  <- -1 * tmp.minus[,4]
+    df.plot        <- merge.bedgraph.tracks(tmp.plus, tmp.minus)
+    
+    cur.beds       <- sure.peaks[[celltype]]
+    cur.beds       <- cur.beds[cur.beds[,1] == chr,]
+    celltype       <- celltype.link[celltype, 2]
+    
+    if (nrow(tmp) < 1) {
+      cat("[WARN] Missing data from ", chr, " in ", celltype, "\n")
+    } else {
+          tmpTrack <- DataTrack(
+                       data=t(df.plot[,-c(3:ncol(df.plot))]),
+                       start = df.plot[,4],
+                       groups=c("+", "-"),
+                       width = 1,
+                       from=from,
+                       to=to,
+                       chromosome = chr,
+                       name=celltype,
+                       genome = "hg19",
+                       strand="+",
+                       type="histogram",
+                       col=rep(sure.palette$celltype_stim[celltype], 2),
+                       col.baseline="lightgrey",
+                       col.histogram=NA,
+                       baseline=0,
+                       legend=F,
+                       ylim=c(-ymax,ymax))
+          
+          if (nrow(cur.beds) == 0) {
+            cur.beds <- data.frame(x=chr, y=0, z=1)
+          }
+          
+          peaksTrack <- AnnotationTrack(chromosome=chr,
+                                        start = cur.beds[,2],
+                                        end = cur.beds[,3],
+                                        genome="hg19",
+                                        fill=sure.palette$celltype_stim[celltype],
+                                        col=NA,
+                                        name=NULL)
+          
+          tracks <- c(tracks, tmpTrack, peaksTrack)    
+  }}
+
+  # Concat the track to the list
+  tracks <- c(tracks, genTrack)
+  
+  # Log progress
+  cat(x, "\n")
+  return(tracks)  
+})
+names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of.interest[i,1:3], collapse=":")})
+
+# Plot the tracks
+pdf(width=9, height=4, file="output/plots/celltype_marker_trackplot.pdf", paper="a4")
+  ncols <- length(plots)
+  grid.newpage()
+  pushViewport(viewport(layout = grid.layout(1, ncols)))
+  
+  for (i in 1:nrow(regions.of.interest)) {
+    x <- as.character(regions.of.interest[i,1:3])
+    chr        <- x[1]
+    from       <- as.numeric(x[2])
+    to         <- as.numeric(x[3])
+    region <- paste(x, collapse=":")
+    
+    pushViewport(viewport(layout.pos.col = ((i - 1) %% ncols) + 1, 1))
+    
+    cur.tracks <- plots[[region]]
+    plotTracks(cur.tracks,
+               chromosome = chr,
+               from=from,
+               to=to,
+               add = TRUE,
+               scale=0.9,
+               sizes=c(0.15, 0.5, rep(c(0.4, 0.15),5), 0.25),
+               background.title="white",
+               col.axis="#B5B5B5",
+               col.title="#B5B5B5",
+               col.frame="lightgray",
+               cex=0.4,
+               cex.axis=0.3,
+               cex.title=0.3,
+               cex.group=0.3,
+               stackHeight=0.5,
+               margin=0)
+    popViewport(1)
+  }
+dev.off()
+
+```
+
+```{r}
+    plotTracks(cur.tracks,
+               chromosome = chr,
+               from=from,
+               to=to,
+               add = TRUE,
+               scale=0.9,
+               sizes=c(0.2, 0.6, rep(c(0.4, 0.15),5), 0.25),
+               background.title="white",
+               col.axis="#B5B5B5",
+               col.title="#B5B5B5",
+               col.frame="lightgray",
+               stackHeight=0.5,
+               margin=0)
+```
+
+
+
+# DEPRECATED
+# Overlap with known markers
+```{r}
+marker.genes          <- read.table("data/pando_db_celltype_markers.tsv", stringsAsFactors = F, sep="\t", header = T)
+celltypes.of.interest <- c(grep("epi", unique(marker.genes$cell.type), value=T),
+                           grep("T ", unique(marker.genes$cell.type), value=T),
+                           "Erythroid-like and erythroid precursor cells")
+marker.genes          <- na.omit(marker.genes[marker.genes$cell.type %in% celltypes.of.interest,])
+
+set.a <- tolower(closest.gene$name)
+set.b <- tolower(marker.genes$official.gene.symbol)
+
+ol    <- intersect(set.a, set.b)
+
+marker.sites <- closest.gene[tolower(closest.gene$name) %in% ol,]
+marker.sites$specificity <- maker.peaks[marker.sites$peak, "specificity"]
 ```
 
 # Celltype: DE analysis
@@ -103,180 +354,4 @@ p <- ggplot(df.plot, mapping=aes(x=celltype, y=peaks, fill=celltype)) +
   scale_fill_manual(values=sure.palette$celltype) +
   ylab("DE effect vs other celltypes")
 theme.plain(p)
-```
-
-# Determine marker genes
-```{r}
-library(MGFR)
-markers                 <- getMarkerGenes.rnaseq(norm.count.matrix, class.vec=meta.data$celltype)
-
-results.table           <- data.frame(t(sapply(unlist(markers), function(x){strsplit(x, split=" : ")[[1]]})), stringsAsFactors = F)
-results.table$celltype  <- gsub("\\_markers.*", "", rownames(results.table))
-colnames(results.table) <- c("peak", "specificity", "celltype")
-celltype.peaks          <- results.table[results.table$specificity < 0.8,]
-rownames(celltype.peaks) <- celltype.peaks$peak
-```
-
-# Find the closest gene to DE celltype peaks
-```{r}
-ranges                 <- get.range.df(unique(celltype.peaks$peak))
-de.ranges              <- GRanges(seqnames=paste0("chr", ranges[,1]), ranges=IRanges(start=ranges[,2], end=ranges[,3]))
-
-closest.gene           <- matchGenes(de.ranges, genes.ucsc, type="fiveprime")
-rownames(closest.gene) <- rownames(ranges)
-closest.gene$celltype  <- celltype.peaks$celltype
-closest.gene           <- closest.gene[closest.gene$distance < 10000, c("name", "celltype", "description", "distance", "geneL")]
-closest.gene$peak      <- rownames(closest.gene)
-
-write.table(closest.gene, file="output/celltype_de_peaks_genome_wide_closest_tss_10kb_window.tsv", sep="\t", quote=F)
-```
-
-# Overlap with known markers
-```{r}
-marker.genes          <- read.table("data/pando_db_celltype_markers.tsv", stringsAsFactors = F, sep="\t", header = T)
-celltypes.of.interest <- c(grep("epi", unique(marker.genes$cell.type), value=T), grep("T ", unique(marker.genes$cell.type), value=T), "Erythroid-like and erythroid precursor cells")
-marker.genes          <- na.omit(marker.genes[marker.genes$cell.type %in% celltypes.of.interest,])
-
-set.a <- tolower(closest.gene$name)
-set.b <- tolower(marker.genes$official.gene.symbol)
-
-ol    <- intersect(set.a, set.b)
-
-marker.sites <- closest.gene[tolower(closest.gene$name) %in% ol,]
-marker.sites$specificity <- celltype.peaks[marker.sites$peak, "specificity"]
-```
-
-
-
-# Locus plots of DE markers
-```{r}
-# Read the bedgraph files showing the sure activity
-sure.activity <- list()
-for (file in list.files("data/merged_peaks/genome_wide/", pattern=".*_CPM_all_samples.bdg.gz")) {
-  tmp  <- fread(paste0("zcat data/merged_peaks/genome_wide/", file), data.table = F)
-  tmp[,1]  <- paste0("chr", tmp[,1])
-  name <- gsub("(.*)_CPM_all_samples.bdg.gz","\\1",file)
-  sure.activity[[name]] <- tmp
-}
-
-# Used to convert names of the files to the celltype names used in the plots
-celltype.link              <- data.frame(old.names=paste0(c("K", "C", "Cs", "J", "Js"), "_genome_wide"),
-                                         new.names=names(sure.palette$celltype_stim), stringsAsFactors = F)
-rownames(celltype.link)    <- celltype.link[,1]
-
-# Marker genes
-# Cannonical markers defined here: https://panglaodb.se/markers.html?cell_type=%27all_cells%27
-# Just picked some that had high specificity and a low marker count, tough its a bit random
-
-# K562 (erythroblasts) KMT5A, LMO2, USE1, GRSF1, IGBP1
-# Caco-2 (epithelial cells) EPCAM, KRT3, KRT13, MUC1
-# Jurkat (T cells) CD3D, ITK, CD247, ICOS, IFNG, CD4, CD8, CD69
-
-#regions.of.interest <- data.frame(chrs=c("chr6", "chr5", "chr2", "chr1", "chr15"),
-#                                  froms=c(390348,131826278,204798614, 8020694, 67429455),
-#                                  tos=c(391359,131827320,204799245,8022330,67430473),
-#                                  ylims=c(400, 400, 120, 3800, 200),
-#                                  stringsAsFactors = F)
-
-regions.of.interest        <- read.table("data/celltype_marker_genes.tsv", stringsAsFactors = F, header=T)
-regions.of.interest        <- regions.of.interest[regions.of.interest$include,]
-regions.of.interest$froms  <- regions.of.interest$froms - 5000
-regions.of.interest$tos    <- regions.of.interest$tos + 5000
-
-
-
-# Reference tracks, just need to be made once
-genTrack  <- GenomeAxisTrack(littleTicks = F,
-                             add53 = TRUE,
-                             add35 = TRUE,
-                             labelPos="below")
-
-
-bm <- useMart(host = "grch37.ensembl.org", 
-              biomart = "ENSEMBL_MART_ENSEMBL", 
-              dataset = "hsapiens_gene_ensembl")
-
-plots <- apply(regions.of.interest, 1, function(x) {
-  chr        <- x[1]
-  from       <- as.numeric(x[2])
-  to         <- as.numeric(x[3])
-  ymax       <- as.numeric(x[4])
-  ideTrack   <- IdeogramTrack(genome = "hg19", chromosome = chr, from=from, to=to, showId = T)
-  knownGenes <- BiomartGeneRegionTrack(genome = "hg19", 
-                                      chromosome = chr,
-                                      start = from,
-                                      end = to,
-                                      name = "ENSEMBL",
-                                      biomart = bm,
-                                      transcriptAnnotation="symbol",
-                                      stacking="squish")
-  
-  tracks <- c(ideTrack, knownGenes)
-  for (celltype in names(sure.activity)) {
-    tmp      <- sure.activity[[celltype]]
-    tmp      <- tmp[tmp[,1] == chr,]
-    celltype <- celltype.link[celltype, 2]
-    if (nrow(tmp) < 1) {
-      cat("[WARN] Missing data from ", chr, " in ", celltype, "\n")
-    } else {
-          tmpTrack <- DataTrack(start = as.numeric(tmp[,2]),
-                       width = 1,
-                       from=from,
-                       to=to,
-                       chromosome = chr,
-                       name=celltype,
-                       genome = "hg19",
-                       data=as.numeric(tmp[,4]),
-                       strand="+",
-                       type="histogram",
-                       fill.histogram=sure.palette$celltype_stim[celltype],
-                       col.histogram=NA,
-                       yTicksAt=as.numeric(c(0, ymax/2, ymax)))
-          #                       ylim=c(0, ymax),
-
-              tracks <- c(tracks, tmpTrack)
-
-    }
-
-  }
-  
-  tracks <- c(tracks, genTrack)
-  cat(x, "\n")
-  return(tracks)  
-})
-names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of.interest[i,1:3], collapse=":")})
-
-pdf(width=60, height=6, file="output/plots/trackplot_test.pdf")
-ncols <- length(plots)
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(1, ncols)))
-
-for (i in 1:nrow(regions.of.interest)) {
-  x <- as.character(regions.of.interest[i,1:3])
-  chr        <- x[1]
-  from       <- as.numeric(x[2])
-  to         <- as.numeric(x[3])
-  region <- paste(x, collapse=":")
-  
-  pushViewport(viewport(layout.pos.col = ((i - 1) %% ncols) + 1, 1))
-  
-  cur.tracks <- plots[[region]]
-  plotTracks(cur.tracks,
-             chromosome = chr,
-             from=from,
-             to=to,
-             add = TRUE,
-             scale=0.9,
-             sizes=c(0.1, 0.8, rep(0.6, length(cur.tracks)-3), 0.2),
-             background.title="white",
-             col.axis="#736E70",
-             col.title="#736E70",
-             col.frame="lightgray")
-  popViewport(1)
-}
-dev.off()
-
-
-
-
 ```

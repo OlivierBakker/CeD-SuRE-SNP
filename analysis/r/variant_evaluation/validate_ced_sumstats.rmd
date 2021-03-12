@@ -1,0 +1,62 @@
+```{r}
+setwd("variant_evaluation")
+source("../sure-snp_functions.r")
+
+trynka.b36.prm <- read.table("data/sumstats/final4_ultraclean.add.assoc.logistic", header=T, stringsAsFactors = F)
+trynka.b36.prm <- trynka.b36.prm[,c("SNP", "P")]
+rownames(trynka.b36.prm) <- trynka.b36.prm[,1]
+
+trynka.b36.obb <- read.table("data/sumstats/trynka_summary_stats_b36.mlma", header=T, stringsAsFactors = F)
+trynka.b36.obb <- trynka.b36.obb[,c("SNP", "p")]
+rownames(trynka.b36.obb) <- trynka.b36.obb[,1]
+
+trynka.b37.obb <- read.table("data/sumstats/trynka_summary_stats_b37.assoc", header=T, stringsAsFactors = F)
+trynka.b37.obb <- trynka.b37.obb[,c("snp", "p")]
+rownames(trynka.b37.obb) <- trynka.b37.obb[,1]
+
+trynka.b37.eqt <- read.table("data/sumstats/Celiac_disease_2011_22057235_hg19.txt", header=T, stringsAsFactors = F)
+trynka.b37.eqt <- trynka.b37.eqt[,c("rs", "P")]
+rownames(trynka.b37.eqt) <- make.names(trynka.b37.eqt[,1], unique=T)
+
+ponce.b37.obb <- read.table("data/sumstats/ponce_summary_stats_b37.txt", header=T, stringsAsFactors = F)
+ponce.b37.obb <- ponce.b37.obb[,c("rsId37", "P")]
+rownames(ponce.b37.obb) <- ponce.b37.obb[,1]
+
+ponce.b37.aad <- read.table("data/sumstats/Meta.PL.IT.IR.SP.UK.AR1.AR2.NL.2017.meta_correct_header.liftover", header=T, stringsAsFactors = F)
+ponce.b37.aad <- ponce.b37.aad[,c("SNP", "p_value")]
+rownames(ponce.b37.aad) <- make.names(ponce.b37.aad[,1], unique=T)
+```
+
+```{r}
+plot.pval <- function(ds1, ds2, ...) {
+  ol <- intersect(rownames(ds1), rownames(ds2))
+  x  <- ds1[ol, 2]
+  x[x==0] <- 1e-308
+
+  y  <- ds2[ol, 2]
+  y[y==0] <- 1e-308
+  
+  y[y < 1e-50] <- 1e-50
+  x[x < 1e-50] <- 1e-50
+
+  return(theme.plain(xy.plot.pvalue.colored(-log10(x),x,
+                                            -log10(y), y,
+                                            pval.col="all",
+                                            ...)))
+}
+
+p1 <- plot.pval(trynka.b36.obb, trynka.b36.prm, xlab="Trynka b36 obb", ylab="Trynka b36 prm")
+
+p2 <- plot.pval(trynka.b37.obb, trynka.b37.eqt, xlab="Trynka b37 obb", ylab="Trynka b37 eqtlgen")
+
+p3 <- plot.pval(trynka.b37.obb, ponce.b37.obb, xlab="Trynka b37 obb", ylab="Ponce b37 obb")
+
+p4 <- plot.pval(ponce.b37.obb, ponce.b37.aad, xlab="Ponce b37 obb", ylab="Ponce b37 aad")
+
+p5 <- plot.pval(ponce.b37.obb, trynka.b37.eqt, xlab="Ponce b37 obb", ylab="Trynka b37 eqtlgen")
+
+
+grid.arrange(grobs=list(p1, p2, p3, p4, p5), ncol=3)
+
+```
+

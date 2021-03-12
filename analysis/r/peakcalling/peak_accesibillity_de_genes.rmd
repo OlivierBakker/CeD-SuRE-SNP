@@ -36,11 +36,7 @@ deseq.jurkat                 <- DESeqDataSetFromMatrix(countData = count.matrix.
                                      design =  ~stimulation)
 
 # Ensembl data
-ensembl                    <- read.table("../rnaseq_analysis/data/ensembl_gene_position_b37_v100.txt", sep="\t", header=T, stringsAsFactors = F)
-ensembl                    <- ensembl[!duplicated(ensembl$Gene.stable.ID),]
-rownames(ensembl)          <- ensembl$Gene.stable.ID
-ensembl$geme.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
-
+ensembl                     <- read.ensembl("../data/ensembl_gene_position_b37_v100.txt", clean.biotypes=T) 
 ```
 
 # DE analysis

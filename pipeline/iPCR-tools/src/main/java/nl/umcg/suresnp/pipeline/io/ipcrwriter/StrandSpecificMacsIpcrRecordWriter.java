@@ -26,32 +26,7 @@ public class StrandSpecificMacsIpcrRecordWriter implements IpcrOutputWriter {
     private String[] barcodeCountFilesSampleNames;
 
     public StrandSpecificMacsIpcrRecordWriter(File outputPrefix, boolean isZipped, AdaptableScoreProvider scoreProvider, boolean writeIpcr) throws IOException {
-        this.isZipped = isZipped;
-        this.outputPrefix = outputPrefix;
-        this.writeIpcr = writeIpcr;
-
-        // Fixed writers
-        if (writeIpcr) {
-            plusIpcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + ".plus" + FileExtensions.MACS_IPCR), isZipped, new SampleSumScoreProvider(new String[]{"IPCR"}));
-            minusIpcrBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + ".minus" + FileExtensions.MACS_IPCR), isZipped, new SampleSumScoreProvider(new String[]{"IPCR"}));
-        }
-
-        plusCdnaBedWriters = new HashMap<>();
-        minusCdnaBedWriters = new HashMap<>();
-
-        BedIpcrRecordWriter cdnaBedWriter;
-        if (scoreProvider != null) {
-            // Writers for plus strand
-            cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + ".plus" + FileExtensions.MACS_CDNA), isZipped, scoreProvider);
-            plusCdnaBedWriters.put(scoreProvider.getSamplesAsString(), cdnaBedWriter);
-
-            // Writers for minus strand
-            cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + ".minus" + FileExtensions.MACS_CDNA), isZipped, scoreProvider);
-            minusCdnaBedWriters.put(scoreProvider.getSamplesAsString(), cdnaBedWriter);
-
-        } else {
-            LOGGER.info("Initializing writer with no cDNA samples");
-        }
+        this(outputPrefix, isZipped, null, scoreProvider, writeIpcr);
     }
 
     public StrandSpecificMacsIpcrRecordWriter(File outputPrefix, boolean isZipped, String[] barcodeCountFilesSampleName, AdaptableScoreProvider scoreProvider, boolean writeIpcr) throws IOException {
@@ -68,14 +43,22 @@ public class StrandSpecificMacsIpcrRecordWriter implements IpcrOutputWriter {
 
         plusCdnaBedWriters = new HashMap<>();
         minusCdnaBedWriters = new HashMap<>();
+
         if (scoreProvider != null) {
+            // Writers for the plus strand
             BedIpcrRecordWriter cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + ".plus" + FileExtensions.MACS_CDNA), isZipped, scoreProvider);
             plusCdnaBedWriters.put(scoreProvider.getSamplesAsString(), cdnaBedWriter);
+
+            // Writers for the minus strand
             cdnaBedWriter = new BedIpcrRecordWriter(new File(outputPrefix.getPath() + ".minus" + FileExtensions.MACS_CDNA), isZipped, scoreProvider);
             minusCdnaBedWriters.put(scoreProvider.getSamplesAsString(), cdnaBedWriter);
 
         } else {
-            updateCdnaBedWriters();
+            if (barcodeCountFilesSampleNames != null) {
+                updateCdnaBedWriters();
+            } else {
+                LOGGER.info("Initializing writer with no cDNA samples");
+            }
         }
     }
 

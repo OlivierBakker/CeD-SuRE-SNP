@@ -176,6 +176,7 @@ public class CreateExcel {
             }
             LOGGER.info("Read variant annotations");
         }
+        
 
         // Gene annotations
         GeneBasedGenomicAnnotation geneAnnotations = null;

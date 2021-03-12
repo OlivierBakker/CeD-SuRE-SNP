@@ -1,0 +1,193 @@
+```{r}
+setwd("peakcalling")
+source("../sure-snp_functions.r")
+library(readxl)
+#enrichments <- list()
+
+path  <-  "data/peak_enrichments/chromatin_marks/"
+for (file in list.files(path, pattern="*.results")) {
+  celltype <- gsub("peak_enrichments_", "", file)
+  celltype <- gsub(".enrichment.results", "", celltype)
+  
+  tmp <- read.table(paste0(path, file), stringsAsFactors = F, header=T)
+
+  enrichments[[celltype]] <- tmp
+}
+
+
+null.dists <- list()
+for (file in list.files(path, pattern="*.nulldist")) {
+  celltype <- gsub("peak_enrichments_", "", file)
+  celltype <- gsub(".enrichment.nulldist", "", celltype)
+  
+  null.dists[[celltype]] <- read.table(paste0(path, file), stringsAsFactors = F, header=T)
+}
+
+
+convert.pvalue.to.dits <- function(x) {
+  if (x > 0.05) {
+    return("")
+  } else if (x < 5e-4) {
+    return("***")
+  } else if (x < 5e-3) {
+    return("**")
+  } else if (x < 5e-2) {
+    return("*")
+  }
+}
+```
+
+# Histogram plots
+```{r}
+pdf(width=5, height=5, file="output/plots/tfbs_peak_enrichment_histograms.pdf")
+for (celltype in names(enrichments)) {
+  plots <- list()
+  j <- 1
+  
+  cur.enrichment           <- enrichments[[celltype]]
+  cur.nulldists            <- null.dists[[celltype]]
+  rownames(cur.enrichment) <- cur.enrichment$database
+  
+  
+  for (database in cur.enrichment$database) {
+    
+    if (database %in% c("k562", "Jurkat", "JurkatStim", "Caco", "CacoStim")) {
+      break;
+    }
+    
+    df.plot <- data.frame(value=cur.nulldists[,database])
+    
+    p <- ggplot(data=df.plot, mapping=aes(x=value)) +
+      geom_histogram(bins=(length(table(df.plot$value)) + 3), 
+                     fill="lightgrey",
+                 #fill=sure.palette$celltype_stim_alt[celltype],
+                 color="white") +
+      geom_vline(xintercept = cur.enrichment[database,]$percentage_overlap, lwd=1, colour="#254145") +
+      xlab(paste0("% of ", celltype , " peaks overlappping")) +
+      ggtitle(database) +
+      geom_text(aes(x=x, y=y, label=label),
+                data=data.frame(x=cur.enrichment[database,]$percentage_overlap,
+                                y=(max(table(df.plot[,"value"]))*2),
+                                label=paste0("p=",
+                                             format(cur.enrichment[database,]$emperical_pvalue,
+                                                    scientific=T,
+                                                    digits=2))),
+                hjust=1.1,
+                vjust=0, 
+                inherit.aes=F)
+
+    plots[[j]] <- theme.plain(p)
+    plot(theme.plain(p))
+    j <- j +1
+  }
+  
+  #grid.arrange(grobs=plots, ncol=5)
+
+}
+
+
+dev.off()
+```
+
+# Correlation of nulls
+```{r}
+
+cor.m <- cor(null.dists[[1]][,-1], method="spearman")
+cor.m <- cor.m[rowSums(is.na(cor.m)) != nrow(cor.m)-1, rowSums(is.na(cor.m)) != nrow(cor.m)-1]
+
+pdf(width=60, height=60, file="output/plots/tfbs_null_correlation_heatmap.pdf")
+simple.hm(cor.m, border_color=NA)
+dev.off()
+```
+
+# Enrichment plots
+```{r}
+enrichment.df <- as.data.frame(read_xlsx("data/peak_enrichments/chromatin_marks/SuRE-CeD_peak_enrichments_filtered.xlsx"))
+
+#i <- 0
+#for (celltype in names(enrichments)) {
+#  if (i == 0) {
+#    enrichment.df <- enrichments[[celltype]]
+#    enrichment.df$celltype <- rep(celltype, nrow(enrichment.df))
+#  } else {
+#    tmp            <- enrichments[[celltype]]
+#    tmp$celltype   <- rep(celltype, nrow(tmp))
+#    enrichment.df  <- rbind(enrichment.df, tmp)
+#  }
+#  i <- i+1
+#}
+
+
+#plots <- list()
+#for (celltype in names(enrichments)) {
+
+#enrichment.df                     <- enrichments[[celltype]]
+#enrichment.df                     <- enrichment.df[!enrichment.df$database %in% c("k562", "Jurkat", "JurkatStim", "Caco", "CacoStim"),]
+enrichment.df$id                  <- 1:nrow(enrichment.df)
+
+annots                            <- matrix(unlist(strsplit(enrichment.df$database, split="_")), ncol=2, byrow = T)
+enrichment.df$db_celltype         <- annots[,1]
+enrichment.df$db_type             <- factor(annots[,2], levels=c("Tss", "Enh", "Tx", "Repr", "Quies", "cCRE"))
+enrichment.df$relative_enrichment <- log2(enrichment.df$relative_enrichment)
+
+enrichment.df$pval_dits <- sapply(enrichment.df$emperical_pvalue * nrow(enrichment.df), convert.pvalue.to.dits)
+
+p <- ggplot(data=enrichment.df,
+            aes(x=query, y=relative_enrichment, fill=query)) +
+  geom_bar(stat="identity",
+           position = "dodge") +
+  scale_fill_manual(values=c(`K562`="#FE0000",
+                             `Caco`="#0000CE",
+                             `CacoStim`="#7EC1EE",
+                             `Jurkat`="#007D5A",
+                             `JurkatStim`="#00D69A"),
+                    name="Celltype") +
+  ggtitle("Enrichment of chromatin marks") +
+  xlab("SuRE peaks") +
+  ylab("Log2(relative enrichment)") +
+  geom_text(aes(label=pval_dits),
+            nudge_y=ifelse(sign(enrichment.df$relative_enrichment) > 0, 0.1, -0.2), size=2.5) +
+  facet_grid(~db_type) +
+  geom_hline(yintercept=0) 
+  
+
+pdf(width=10, height=4, paper="a4", file="output/plots/chromatin_mark_enrichments_ced_regions.pdf")
+theme.plain(p, base_size = 10) + theme(axis.text.x = element_text(angle = 45,  hjust=1))
+dev.off()
+```
+
+# Enrichment plots snps
+```{r}
+enrichment.df                     <- as.data.frame(read_xlsx("data/peak_enrichments/ponce_snps/peak_enrichments_ponce_5e-8.xlsx"))
+enrichment.df$id                  <- 1:nrow(enrichment.df)
+
+annots                            <- t(sapply(strsplit(enrichment.df$database, split="_"), function(x){
+  if (length(x) ==2) {
+    return(x)
+  } else {
+    return(c(x[1], "SuRE"))
+  }
+}))
+enrichment.df$query               <- as.character(enrichment.df$query)
+enrichment.df$db_celltype         <- annots[,1]
+enrichment.df$db_type             <- factor(annots[,2], levels=c("Tss", "Enh", "Tx", "Repr", "Quies", "cCRE", "SuRE"))
+enrichment.df$relative_enrichment <- log2(enrichment.df$relative_enrichment)
+
+enrichment.df$pval_dits           <- sapply(enrichment.df$emperical_pvalue * nrow(enrichment.df), convert.pvalue.to.dits)
+
+p <- ggplot(data=enrichment.df,
+            aes(x=db_celltype, y=relative_enrichment, fill=db_celltype)) +
+  geom_bar(stat="identity",
+           position = "dodge") +
+  ggtitle("Enrichment of GW SNPs") +
+  xlab("SuRE peaks") +
+  ylab("Log2(relative enrichment)") +
+  geom_text(aes(label=pval_dits),
+            nudge_y=ifelse(sign(enrichment.df$relative_enrichment) > 0, 0.1, -0.2), size=2.5) +
+  facet_grid(~db_type) +
+  geom_hline(yintercept=0) 
+
+theme.plain(p, base_size = 10) + theme(axis.text.x = element_text(angle = 45,  hjust=1))
+```
+
+

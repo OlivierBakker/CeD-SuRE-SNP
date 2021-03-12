@@ -1,10 +1,14 @@
 ```{r}
-setwd("peakcalling")
+setwd("../peakcalling")
 source("../sure-snp_functions.r")
 
 library(DESeq2)
+library(MGFR)
+library(bumphunter)
 
 count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
+#count.matrix           <- fread("data/SuRE-SNP_GW_x4_ipcr25_filtered.countMatrix", data.table = F)
+
 rownames(count.matrix) <- count.matrix[,1]
 count.matrix           <- count.matrix[,-1]
 meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
@@ -21,6 +25,8 @@ deseq.full             <- DESeqDataSetFromMatrix(countData = count.matrix,
                                      colData = meta.data[colnames(count.matrix),],
                                      design = ~stimulation)
 normalized.counts      <- assay(varianceStabilizingTransformation(DESeq(deseq.full)))
+
+#write.table(normalized.counts, file="output/SuRE_GW_consensus_peaks_x4_ipcr25_vst_normalized_count_matrix.tsv", sep="\t", quote=F)
 
 plots                  <- list()
 j                      <- 1
@@ -58,6 +64,8 @@ for(celltype in unique(meta.data$stimulation)) {
     count.matrix.tmerged[,new.id]   <- rowSums(count.matrix[, samples.to.sum])
   }
 }
+write.table(count.matrix.tmerged, file="output/SuRE_CeD_consensus_peaks_x3_count_matrix_technicals_merged.tsv", sep="\t", quote=F)
+
 
 # Normalizing using VST
 meta.data.tmerged           <- data.frame(matrix(unlist(strsplit(colnames(count.matrix.tmerged), split="_")),
@@ -73,7 +81,7 @@ results.tmerged        <- DESeq(deseq.full.tmerged)
 pca.obj.tmerged        <- varianceStabilizingTransformation(results.tmerged)
 x.tmerged              <- assay(pca.obj.tmerged)
 
-write.table(x.tmerged, file="output/SuRE_CeD_consensus_peaks_x3_vst_normalized_count_matrix_technicals_merged.tsv", sep="\t", quote=F)
+#write.table(x.tmerged, file="output/SuRE_GW_consensus_peaks_x4_ipcr25_vst_normalized_count_matrix_technicals_merged.tsv", sep="\t", quote=F)
 ```
 
 # PCA & correlations analysis of peaks: VST
@@ -145,4 +153,26 @@ jurkat.res   <- as.data.frame(jurkat.res)
 caco.res   <- results(results, contrast=c("stimulation", "iFNY", "c-baseline"), lfcThreshold = 1)
 caco.res   <- as.data.frame(caco.res)
 ```
+
+
+# Alternative DE ranking
+```{r}
+a <- c("C_B1_T1", "C_B1_T2", "C_B2_T1", "C_B2_T2", "Cs_B1_T1", "Cs_B1_T2", "Cs_B2_T1", "Cs_B2_T2")
+b <- c(0,0,0,0,1,1,1,1)
+
+
+a <- c("J_B1_T1", "J_B1_T2", "J_B2_T1", "J_B2_T2", "Js_B1_T1", "Js_B1_T2", "Js_B2_T1", "Js_B2_T2")
+b <- c(0,0,0,0,1,1,1,1)
+
+markers                  <- getMarkerGenes.rnaseq(normalized.counts[,a], class.vec=b)
+
+# Concat the results to a dataframe, and filter
+results.table            <- data.frame(t(sapply(unlist(markers), function(x){strsplit(x, split=" : ")[[1]]})), stringsAsFactors = F)
+results.table$celltype   <- gsub("\\_markers.*", "", rownames(results.table))
+colnames(results.table)  <- c("peak", "specificity", "celltype")
+maker.peaks              <- results.table[results.table$specificity < 0.8,]
+rownames(maker.peaks)    <- maker.peaks$peak
+
+```
+
 

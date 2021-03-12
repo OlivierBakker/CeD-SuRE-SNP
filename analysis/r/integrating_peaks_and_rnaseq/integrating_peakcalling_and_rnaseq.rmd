@@ -1,50 +1,195 @@
 ```{r}
 setwd("integrating_peaks_and_rnaseq")
 source("../sure-snp_functions.r")
+library(GenomicRanges)
+library(DESeq2)
+
+# List of DE genes
+caco.res                 <- read.csv("../rnaseq_analysis/output/SuRE_CeD_caco2_deseq2_results.csv", row.names=1, stringsAsFactors = F)
+jurkat.res               <- read.csv("../rnaseq_analysis/output/SuRE_CeD_jurkat_deseq2_results.csv", row.names=1, stringsAsFactors = F)
+
+# Raw peak counts
+raw.peak.counts              <- read.table("../peakcalling/data/SuRE-SNP_CeD_x3_filtered.countMatrix", stringsAsFactors = F, header=T, row.names = 1)
+
+raw.peak.counts              <- rbind(raw.peak.counts, read.table("../peakcalling/data/SuRE-SNP_GW_x4_ipcr25_filtered.countMatrix", stringsAsFactors = F, header=T, row.names = 1))
+
+# Normalized RNAseq
+rnaseq.counts            <- read.table("../rnaseq_analysis/output/SuRE_CeD_celline_gene_expression_vst_normalized.tsv", stringsAsFactors = F)
+colnames(rnaseq.counts)  <- gsub("RNA_", "", colnames(rnaseq.counts))
+
+# Peak metadata
+meta.data                <- read.table("../peakcalling/data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
+row.names(meta.data)     <- meta.data$id
+
+# Normalized peak counts
+peak.lengths     <- unlist(lapply(strsplit(gsub(".*\\:", "", rownames(raw.peak.counts)), "-"),
+                              function(x){return(as.numeric(x[2]) - as.numeric(x[1]))})) / 1000
+norm.peak.counts  <- log2(calculate.tmp(raw.peak.counts, peak.lengths))
+norm.peak.counts[norm.peak.counts==-Inf] <- 0
+
+# Ensembl file
+ensembl                 <- read.ensembl("../data/ensembl_gene_position_b37_v100.txt", clean.biotypes = T)
+
+get.tss.from.ensembl    <- function(ensembl, cur.subset=NULL, tss.window=5000) {
+  if (is.null(cur.subset)) {
+    cur.subset <- rownames(ensembl)
+  }
+  tss.col       <- ifelse(ensembl[cur.subset, "Strand"] == 1,  "Gene.start..bp.", "Gene.end..bp.")
+  tss.pos       <- sapply(1:length(cur.subset), function(index){ensembl[cur.subset[index], tss.col[index]]})
+  tss.chr       <- ensembl[cur.subset, "Chromosome.scaffold.name"]
+  
+  tss.location  <- GRanges(seqnames=tss.chr,
+                           IRanges(start=ifelse(ensembl[cur.subset, "Strand"] == 1, tss.pos - tss.window, tss.pos),
+                                   end=ifelse(ensembl[cur.subset, "Strand"] == 1, tss.pos, tss.pos + tss.window)))
+  
 
 
-rnaseq <- read.table("../rnaseq_analysis/output/SuRE_CeD_celline_gene_expression_vst_normalized.tsv", stringsAsFactors = F)
-peaks  <- read.table("../peakcalling/output/SuRE_CeD_consensus_peaks_x3_vst_normalized_count_matrix_technicals_merged.tsv", stringsAsFactors = F, header=T, row.names = 1)
-
-colnames(rnaseq) <- gsub("RNA_", "", colnames(rnaseq))
-
-
-meta.data.tmerged           <- data.frame(matrix(unlist(strsplit(colnames(peaks), split="_")),
-                                      ncol=2,
-                                      byrow=T),
-                            row.names=colnames(peaks))
-colnames(meta.data.tmerged)   <- c("short_celltype", "replicate")
-meta.data.tmerged$stimulation <- c("baseline", "baseline", "aCD3/aCD28", "aCD3/aCD28", "baseline", "baseline", "IFNy", "IFNy", "baseline", "baseline")
-meta.data.tmerged$celltype <- c(rep("jurkat", 4), rep("caco-2", 4), "k562", "k562")
+    names(tss.location) <- cur.subset
+  return(tss.location)
+}
 ```
 
-# Correlation heatmap of RNAseq and peaks
+# Correlation heatmap of rnaseq.counts and peak.counts
 ```{r}
-cor.rnaseq <- cor(rnaseq[,rownames(meta.data.tmerged)])
-cor.peaks  <- cor(peaks[,rownames(meta.data.tmerged)])
+peak.counts <- read.table("../peakcalling/output/SuRE_CeD_consensus_peaks_x3_vst_normalized_count_matrix_technicals_merged.tsv")
 
-cor.merged <- cor.rnaseq
+# Calculate sample-sample correlation in RNA seq
+cor.rnaseq                       <- cor(rnaseq.counts[,])
+
+# Calculate sample-sample correlation in SuRE peaks
+cor.peaks                        <- cor(peak.counts[,colnames(rnaseq.counts)])
+
+# Merge the matrices
+cor.merged                        <- cor.rnaseq
 cor.merged[lower.tri(cor.merged)] <- cor.peaks[lower.tri(cor.peaks)]
-diag(cor.merged) <- 0
+diag(cor.merged)                  <- 0
 
+# Plot as heatmap
 pdf(width=5, height=5, file="output/plots/rnaseq_vs_sure_activity_pearson_correlation.pdf", paper="a4")
 simple.hm(cor.merged,
           range="absolute",
           min.value = 0.6,
           cluster_rows=F,
           cluster_cols=F,
-          border_col=NA)
+          border_col=NA,
+          palette="PuBu")
 dev.off()
-          #annotation_row=meta.data.tmerged[,c("celltype", "stimulation")],
-          #annotation_colors=sure.palette)
 ```
+
+# Link DE genes to SuRE-activity
+```{r}
+find.overlaps <- function(de.genes) {
+  de.genes.tss      <- get.tss.from.ensembl(ensembl, de.genes, tss.window = 1000)
+  overlap.gr        <- findOverlaps(peaks, de.genes.tss)
+  
+  overlap           <- cbind(names(peaks[overlap.gr@from]), names(de.genes.tss[overlap.gr@to]))
+  overlap           <- cbind(overlap, ensembl[overlap[,2], c("Gene.name", "Gene.type")])
+  overlap[,1]       <- as.character(overlap[,1])
+  overlap[,2]       <- as.character(overlap[,2])
+
+  return(overlap)
+}
+
+# Find DE genes arround TSSs
+peaks               <- get.as.grange(rownames(norm.peak.counts), return.as.grange = T)
+
+# Caco2
+overlap.caco        <- find.overlaps(caco.res[caco.res$padj < 0.05,]$gene)
+overlap.caco$lfc    <- caco.res[overlap.caco[,2],]$log2FoldChange
+
+# Jurkat
+overlap.jurkat      <- find.overlaps(jurkat.res[jurkat.res$padj < 0.05,]$gene)
+overlap.jurkat$lfc  <- jurkat.res[overlap.jurkat[,2],]$log2FoldChange
+```
+
+# Overview boxplot
+```{r}
+peak.data.jurkat <- t(scale(t(norm.peak.counts[overlap.jurkat$`1`, grep("J", colnames(norm.peak.counts), value=T)])))
+peak.data.caco   <- t(scale(t(norm.peak.counts[overlap.caco$`1`, grep("C", colnames(norm.peak.counts), value=T)])))
+
+y                <- as.numeric(c(unlist(peak.data.jurkat), unlist(peak.data.caco)))
+x                <- c(rep("J", 4*nrow(overlap.jurkat)), rep("Js", 4*nrow(overlap.jurkat)),
+                      rep("C", 4*nrow(overlap.caco)), rep("Cs", 4*nrow(overlap.caco)))
+g                <- c(as.numeric(sapply(sign(overlap.jurkat$lfc), rep, 8)),
+                      as.numeric(sapply(sign(overlap.caco$lfc), rep, 8)))
+#peak.names       <- c(unlist(peak.data.jurkat), unlist(peak.data.caco))
+g[g==1]          <- "Upregulated"
+g[g==-1]         <- "Downregulated"
+
+df.plot          <- data.frame(x=x, y=y, g=g, stringsAsFactors = F)
+df.plot$y        <- as.numeric(df.plot$y)
+
+make.plot        <- function(direction) {
+  p <- ggplot(data=df.plot[df.plot$g == direction,], aes(x=x, y=y, g=g, fill=x)) +
+  geom_hline(yintercept = 0, lty=2, col="lightgrey") +
+  geom_violin(mapping=aes(color=x)) +
+  geom_boxplot(width=0.2, col="white") +
+  scale_fill_manual(values=sure.palette$celltype_stim_alt, name="Celltype") +
+  scale_color_manual(values=sure.palette$celltype_stim_alt, name="Celltype") +
+  ylab("Normalized SuRE acitivity") +
+  xlab("Celltype") +
+  ggtitle(direction) +
+  geom_signif(comparisons=list(c("C", "Cs"), c("J", "Js")),
+              tip_length = 0)
+
+  p <- theme.plain(p) + theme(legend.position = "none")
+  
+  return(p)
+}
+
+
+p1 <- make.plot("Downregulated")
+p2 <- make.plot("Upregulated")
+
+grid.arrange(grobs=list(p1, p2), ncol=2)
+
+pdf(width=6, height=4, file="output/plots/peak_acitivity_de_genes_1kb_upstream.pdf")
+p2
+dev.off()
+
+```
+
+
+# Plot per de gene
+```{r}
+#peak.data.jurkat <- norm.peak.counts[overlap.jurkat$`1`, grep("J", colnames(norm.peak.counts), value=T)]
+#peak.data.caco <- norm.peak.counts[overlap.jurkat$`1`, grep("C", colnames(norm.peak.counts), value=T)]
+
+overlap <- overlap.caco
+#y   <- as.numeric(unlist(peak.data.de.genes[,grep("C", colnames(norm.peak.counts), value=T)]))
+y   <- as.numeric(c(unlist(peak.data.caco)))
+
+g   <- as.character(sapply(grep("C", colnames(norm.peak.counts), value=T), rep, times=nrow(overlap)))
+g1  <- gsub("^.*\\_(B.*)", "\\1", g)
+g2  <- c(rep(1:nrow(overlap), 4), rep(1:nrow(overlap), 4))
+g   <- paste0(g1, "_", g2) 
+
+x   <- c(rep("C", 4*nrow(overlap)), rep("Cs", 4*nrow(overlap)))
+
+df.plot <- data.frame(x=x, y=y, g=g, col=g1, bla=rep(ensembl[overlap$`2`,]$Gene.name, 8))
+
+pdf(width=100, height=5, file="output/plots/caco_test.pdf")
+p <- ggplot(data=df.plot, aes(x=x, y=y, group=g, color=col)) +
+  geom_point() + 
+  geom_line() +
+  scale_color_manual(values=c(`B1_T1`="darkblue",
+                              `B1_T2`="lightblue", 
+                              `B2_T1`="red",
+                              `B2_T2`="green"))
+
+theme.plain(p) + facet_grid(~bla)
+
+dev.off()
+#boxplot(tmp, ylab="Scaled peak activity near Caco2 DE genes", xlab="Samples")
+```
+
+
+
+
+
 
 
 ```{r}
-
-
-
-
+pca.plot(prcomp(norm.peak.counts), color = colnames(norm.peak.counts)[unlist(apply(norm.peak.counts, 1, function(x){return(which(x == max(x))[1])}))])
 ```
-
 

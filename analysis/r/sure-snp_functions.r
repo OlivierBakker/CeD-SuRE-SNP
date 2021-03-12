@@ -288,17 +288,20 @@ make.coverage.track <- function(inputranges, chr=chr) {
 
 ## ------------------------------------------------------------------------
 # Simple heatmap with auto labels
-simple.hm <- function(data, cellwidth=12, cellheight=12, limit=NULL, range="symmetric", min.value=0, ...) {
+simple.hm <- function(data, cellwidth=12, cellheight=12, limit=NULL, range="symmetric", min.value=0, palette=NULL, ...) {
   
   if (range == "symmetric") {
     break.list <- seq(-max(abs(data)), max(abs(data)), by=max(abs(data))/100)
-    cols       <- colorRampPalette(rev(brewer.pal(n=7, name ="RdBu")))(length(break.list))
+    if (is.null(palette())) {palette="RdBu"}
+    cols       <- colorRampPalette(rev(brewer.pal(n=7, name =palette)))(length(break.list))
   } else if (range == "absolute") {
+    if (is.null(palette())) {palette="Reds"}
     break.list <- seq(min.value, max(abs(data)), by=max(abs(data))/100)
-    cols       <- colorRampPalette(brewer.pal(n=7, name ="Reds"))(length(break.list))
+    cols       <- colorRampPalette(brewer.pal(n=7, name =palette))(length(break.list))
   } else if (range == "auto") {
     break.list <- seq(-min(data), max(data), by=max(abs(data))/100)
-    cols       <- colorRampPalette(rev(brewer.pal(n=7, name ="RdBu")))(length(break.list))
+    if (is.null(palette())) {palette="RdBu"}
+    cols       <- colorRampPalette(rev(brewer.pal(n=7, name =palette)))(length(break.list))
   } else  {
     cat("[ERROR] range must be symmetric, auto, or aboslute\n")
   }
@@ -449,6 +452,7 @@ manhattan <- function (x, chr = "CHR", bp = "BP", p = "P", snp = "SNP", col = c(
   par(xpd = FALSE)
 }
 
+# Scatterplot where points are colored by p-value
 #----------------------------------------------------------------------------------------
 xy.plot.pvalue.colored <- function(auc.1, auc.pval.1, auc.2, auc.pval.2, xlab="X", ylab="Y", main=NULL, pval.col="either", pval.name.x="x", pval.name.y="y") {
   auc.pval.1[auc.1 == 0] <- 1
@@ -509,6 +513,7 @@ xy.plot.pvalue.colored <- function(auc.1, auc.pval.1, auc.2, auc.pval.2, xlab="X
   return(p)
 }
 
+# Simple scatterplot
 #----------------------------------------------------------------------------------------
 xy.plot<- function(x, y, xlab="X", ylab="Y", main=NULL, col="") {
 
@@ -531,7 +536,85 @@ xy.plot<- function(x, y, xlab="X", ylab="Y", main=NULL, col="") {
   return(p)
 }
 
+# Function to convert string of chr:start-end to dataframe
+#----------------------------------------------------------------------------------------
+get.as.grange <- function(range.names, return.as.grange=F, chr.prefix="") {
+  # Make a dataframe of the genomic range 
+  ranges <- as.data.frame(t(as.data.frame(lapply(strsplit(range.names,":"), function(x){
+    tmp <- strsplit(x[2], "-")[[1]]
+    return(c(x[1],tmp[1], tmp[2]))
+  }))), stringsAsFactors=F)
+  
+  # Convert strings to numeric
+  ranges[,2] <- as.numeric(ranges[,2])
+  ranges[,3] <- as.numeric(ranges[,3])
+  rownames(ranges) <- range.names
+  
+  # Return either the dataframe or as a genomicRange object
+  if (return.as.grange) {
+    tmp <- GRanges(seqnames=paste0(chr.prefix, ranges[,1]), ranges=IRanges(start=ranges[,2], end=ranges[,3]))
+    names(tmp) <- rownames(ranges)
+    return(tmp)
+  } else {
+    return(ranges)
+  }
+}
 
+# Simplify the biotypes fro enembl genes to coding / non-coding
+#----------------------------------------------------------------------------------------
+clean.ensembl.biotypes <- function(ensembl) {
+  # non-coding = includes 3prime_overlapping_ncrna, antisense, lincRNA, miRNA, processed_transcript, sense_overlapping, sense_intronic, misc_RNA
+  # coding = includes protein_coding, pseudogene, IG_C_pseudogene, IG_V_gene
+  # r/sn/snoRNAs = blank includes snRNA, rRNA, snoRNA (the last three are clearly defined ncRNAs with specific function, thus not of interest to this class)
+  ensembl$Gene.type <- gsub("protein_coding", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("pseudogene", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("polymorphic_coding RNA", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("processed_coding RNA", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("Mt_tRNA", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("IG\\_.*", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("TR\\_.*", "coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("3prime_overlapping_ncrna", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("antisense", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("lincRNA", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("miRNA", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("processed_transcript", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("sense_overlapping", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("sense_intronic", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("misc_RNA", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("snoRNA", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("snRNA", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("rRNA", "non-coding RNA", ensembl$Gene.type)
+  ensembl$Gene.type <- gsub("Mt_r/sn/snoRNAs", "non-coding RNA", ensembl$Gene.type)
+  
+  return(ensembl)
+}
+
+# Read an ensembl file downloaded from biomart
+#----------------------------------------------------------------------------------------
+read.ensembl <- function(file, clean.biotypes=F) {
+  ensembl                    <- read.table(file, sep="\t", header=T, stringsAsFactors = F)
+  ensembl                    <- ensembl[!duplicated(ensembl$Gene.stable.ID),]
+  rownames(ensembl)          <- ensembl$Gene.stable.ID
+  ensembl$Gene.length        <- ensembl$Gene.end..bp. - ensembl$Gene.start..bp.
+  
+  # Clean up the biptypes
+  if (clean.biotypes) {
+    ensembl <- clean.ensembl.biotypes(ensembl)
+  }
+  
+  return(ensembl)
+}
+
+# Calculate the TMP normalized counts for a count matrix
+#----------------------------------------------------------------------------------------
+calculate.tmp           <- function(count.matrix, size.vector) {
+  
+  norm.count.matrix <- count.matrix / size.vector
+  scale.factor      <- colSums(norm.count.matrix) / 1e6
+  norm.count.matrix <- t(apply(norm.count.matrix, 1, function(x){x / scale.factor}))
+  
+  return(norm.count.matrix)
+}
 
 ## ------------------------------------------------------------------------
 sure.palette <- list(celltype_stim=c(`k562`="#FE0000", 
@@ -551,5 +634,34 @@ sure.palette <- list(celltype_stim=c(`k562`="#FE0000",
                                    `IFNy`="#7EC1EE",
                                    `baseline`="#0965B0"))
 
-
-
+## ------------------------------------------------------------------------
+merge.bedgraph.tracks <- function(tmp.plus, tmp.minus) {
+  
+  rownames(tmp.plus) <- tmp.plus[,2]
+  rownames(tmp.minus) <- tmp.minus[,2]
+  
+  ol.pos         <- as.character(intersect(tmp.plus[,2], tmp.minus[,2]))
+  
+  df.plot        <- data.frame(plus=tmp.plus[ol.pos,4],
+                               minus=tmp.minus[ol.pos,4],
+                               chr=tmp.plus[ol.pos, 1],
+                               pos=tmp.plus[ol.pos,2],
+                               
+                               stringsAsFactors = F)
+  
+  uniq.plus     <- tmp.plus[!rownames(tmp.plus) %in% ol.pos,]
+  df.plot       <- rbind(df.plot,
+                         data.frame(plus=uniq.plus[,4],
+                                    minus=0,
+                                    chr=uniq.plus[,1],
+                                    pos=uniq.plus[,2]))
+  
+  uniq.minus    <- tmp.minus[!rownames(tmp.minus) %in% ol.pos,]
+  df.plot       <- rbind(df.plot,
+                         data.frame(plus=0,
+                                    minus=uniq.minus[,4],
+                                    chr=uniq.minus[,1],
+                                    pos=uniq.minus[,2]))
+  
+  return(df.plot)
+}

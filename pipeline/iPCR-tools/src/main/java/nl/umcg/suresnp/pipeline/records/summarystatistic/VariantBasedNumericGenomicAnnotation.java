@@ -25,7 +25,7 @@ public class VariantBasedNumericGenomicAnnotation {
         this.name = path.getBaseName();
         if (group.startsWith("UseLd")) {
             useLdProxies = true;
-            this.group = this.group.substring(5);
+            this.group = group.replace("UseLd", "");
         } else {
             useLdProxies = false;
         }
