@@ -192,7 +192,6 @@ public class CreateExcel {
         LOGGER.info("debug");
     }
 
-
     private static GeneticVariantInterval createSnpFromVariantContext(VariantContext curContext) {
 
         GeneticVariantInterval outputGeneticVariantInterval = new GeneticVariantInterval(curContext.getID(),

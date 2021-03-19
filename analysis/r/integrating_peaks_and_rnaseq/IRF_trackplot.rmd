@@ -137,7 +137,7 @@ plots <- apply(regions.of.interest, 1, function(x) {
     
     tmp.minus      <- sure.activity[[paste0(celltype, "s")]]
     tmp.minus      <- tmp.minus[tmp.minus[,1] == chr,]
-    tmp.minus[,4]  <- -1 * tmp.minus[,4]
+    #tmp.minus[,4]  <- -1 * tmp.minus[,4]
     df.plot        <- merge.bedgraph.tracks(tmp.plus, tmp.minus)
     
     cur.beds       <- sure.peaks[[celltype]]
@@ -151,16 +151,21 @@ plots <- apply(regions.of.interest, 1, function(x) {
                  from=from,
                  to=to,
                  chromosome = chr,
+                 aggregation="sum",
+                 aggregateGroups=T,
+                 window=250,
                  name="SuRE-activity",
                  genome = "hg19",
                  strand="+",
                  type="histogram",
-                 baseline=0,
-                 col.baseline="white",
+                 #baseline=0,
+                 #col.baseline="white",
                  col=c(sure.palette$celltype_stim[celltype], sure.palette$celltype_stim[paste0(celltype, "-stim")]),
                  col.histogram=NA,
                  legend=F,
-                 ylim=c((-1*ymax), ymax))
+                 stacked=F,
+                 #ylim=c((-1*ymax), ymax)
+                 )
     
     peaksTrack <- AnnotationTrack(chromosome=chr,
                                   start = cur.beds[,2],
@@ -211,7 +216,7 @@ plots <- apply(regions.of.interest, 1, function(x) {
   #tmp.lfc[tmp.lfc == -Inf ] <- 0
   #tmp.lfc[tmp.lfc < 0] <- 0
   
-  df.plot[,2] <- -1* df.plot[,2]
+  #df.plot[,2] <- -1* df.plot[,2]
   
   tmpTrack <- DataTrack(data=t(df.plot[,-c(3:ncol(df.plot))]),
                     start = df.plot[,4],
@@ -227,11 +232,15 @@ plots <- apply(regions.of.interest, 1, function(x) {
            col=c(sure.palette$celltype_stim[celltype],
                             sure.palette$celltype_stim[paste0(celltype, "-stim")]),
            col.histogram=NA,
-           baseline=0,
-           col.baseline="white",
+           #baseline=0,
+           #col.baseline="white",
            legend=F,
+           aggregation="sum",
+           aggregateGroups=T,
+           window=250,
+           stacked=F
            #gradient=c("white", "#4C84B5"),
-           ylim=c(-ymax.rna, ymax.rna),
+           #ylim=c(-ymax.rna, ymax.rna),
            )
   tracks <- c(tracks, tmpTrack)
   
@@ -249,7 +258,7 @@ names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of
 
 ```{r}
 # Plot the tracks
-pdf(width=12, height=5, file="output/plots/IRF1_STAT1_CD27_ICOS_trackplot.pdf", paper="a4")
+pdf(width=12, height=4, file="output/plots/IRF1_STAT1_CD27_ICOS_trackplot.pdf", paper="a4")
   ncols <- length(plots)
   
   ncols <- 2
@@ -283,7 +292,7 @@ pdf(width=12, height=5, file="output/plots/IRF1_STAT1_CD27_ICOS_trackplot.pdf", 
                to=to,
                add = TRUE,
                scale=0.7,
-               sizes=c(0.1, 0.3, rep(c(0.3, 0.075, 0.075), 1), rep(0.3, 1), 0.15),
+               sizes=c(0.1, 0.3, rep(c(0.25, 0.075, 0.075), 1), rep(0.3, 1), 0.15),
                background.title="white",
                col.axis="#736E70",
                col.title="#736E70",

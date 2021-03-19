@@ -143,7 +143,7 @@ public class ExcelWriter {
         for (XSSFTable curTable : variantOverview.getTables()){
             curTable.setArea(new AreaReference(
                     new CellReference(0, 0),
-                    new CellReference(r, numberOfCols),
+                    new CellReference(r-1, numberOfCols),
                     SpreadsheetVersion.EXCEL2007));
         }
 
@@ -295,6 +295,10 @@ public class ExcelWriter {
             }
             c = cOriginal;
 
+            // ID
+            XSSFCell idCell = row.createCell(0, CellType.STRING);
+            idCell.setCellValue(id);
+
             // Gene ID
             XSSFCell geneIdCell = row.createCell(c++, CellType.STRING);
             geneIdCell.setCellValue(curRecord.getGene());
@@ -325,22 +329,24 @@ public class ExcelWriter {
 
             }
 
+            if (populateVariantAnnotationsInSubRows) {
+                int tmp = fillVariantAnnotationCells(row, 0, id, curVariant);
+                fillDynamicVariantBasedAnnotationCells(row, tmp, curVariant, variantAnnotations);
+            }
+
             // Dynamic cells
             for (int j = 0; j < geneAnnotations.getHeader().length; j++) {
 
                 if (curRecord.getAnnotations().size() == geneAnnotations.getHeader().length) {
                     // ID
-                    XSSFCell idCell = row.createCell(0, CellType.STRING);
-                    idCell.setCellValue(id);
+                    //idCell = row.createCell(0, CellType.STRING);
+                    //idCell = row.getCell(0, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    //idCell.setCellValue(id);
+                    //idCell.setCellType(CellType.STRING);
 
                     // Dynamic annotation
                     XSSFCell curCell = row.createCell(c + j, CellType.STRING);
                     curCell.setCellValue(curRecord.getAnnotations().get(j));
-                }
-
-                if (populateVariantAnnotationsInSubRows) {
-                    int tmp = fillVariantAnnotationCells(row, 0, id, curVariant);
-                    fillDynamicVariantBasedAnnotationCells(row, tmp, curVariant, variantAnnotations);
                 }
             }
 

@@ -1,5 +1,5 @@
 ```{r}
-setwd("../rnaseq_analysis/")
+setwd("rnaseq_analysis/")
 library(DESeq2)
 library(data.table)
 
@@ -85,6 +85,47 @@ labs(color="Condition", shape="Celltype")
 
 dev.off()
 ```
+
+```{r}
+combined <- assay(vst(full))
+
+# Caluclate the percentiles for the target genes
+percentile.caco         <- ecdf(apply(combined[,c("RNA_C_B1", "RNA_C_B2")], 1, mean))
+percentile.caco.stim    <- ecdf(apply(combined[,c("RNA_Cs_B1", "RNA_Cs_B2")], 1, mean))
+percentile.jurkat       <- ecdf(apply(combined[,c("RNA_J_B1", "RNA_J_B2")], 1, mean))
+percentile.jurkat.stim  <- ecdf(apply(combined[,c("RNA_Js_B1", "RNA_Js_B2")], 1, mean))
+percentile.K562         <- ecdf(apply(combined[,c("RNA_K_B1", "RNA_K_B2")], 1, mean))
+
+percentile.caco           <- sapply(rownames(combined), function(gene){
+  percentile.caco(mean(combined[gene, c("RNA_C_B1", "RNA_C_B2")]))
+})
+
+percentile.caco.stim     <- sapply(rownames(combined), function(gene){
+  percentile.caco.stim(mean(combined[gene, c("RNA_Cs_B1", "RNA_Cs_B2")]))
+})
+
+percentile.jurkat        <- sapply(rownames(combined), function(gene){
+  percentile.jurkat(mean(combined[gene, c("RNA_J_B1", "RNA_J_B2")]))
+})
+
+percentile.jurkat.stim   <- sapply(rownames(combined), function(gene){
+  percentile.jurkat.stim(mean(combined[gene, c("RNA_Js_B1", "RNA_Js_B2")]))
+})
+
+percentile.K562          <- sapply(rownames(combined), function(gene){
+  percentile.K562(mean(combined[gene, c("RNA_K_B1", "RNA_K_B2")]))
+})
+
+percentiles  <- data.frame(Caco2=percentile.caco,
+                           Caco2Stim=percentile.caco.stim,
+                           Jurkat=percentile.jurkat,
+                           JurkatStim=percentile.jurkat.stim,
+                           K562=percentile.K562)
+
+write.table(percentiles, file="output/SuRE_CeD_percentile_gene_exression.tsv", sep="\t", quote=F)
+```
+
+
 
 ```{r}
 library(plyr)
