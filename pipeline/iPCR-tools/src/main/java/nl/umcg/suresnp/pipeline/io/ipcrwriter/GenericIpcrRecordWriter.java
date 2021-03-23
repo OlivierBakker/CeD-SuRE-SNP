@@ -3,7 +3,6 @@ package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 import nl.umcg.suresnp.pipeline.FileExtensions;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
-import nl.umcg.suresnp.pipeline.tools.runners.Recode;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
@@ -140,14 +139,14 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         // Alignment info
         write(record.getBarcode());
         write(sep);
-        write(record.getPrimaryReadName());
+        write(record.getQueryReadName());
         write(sep);
         write(record.getContig());
         write(sep);
 
-        write(Integer.toString(record.getPrimaryStart()));
+        write(Integer.toString(record.getQueryStart()));
         write(sep);
-        write(Integer.toString(record.getPrimaryEnd()));
+        write(Integer.toString(record.getQueryEnd()));
         write(sep);
 
         write(Integer.toString(record.getMateStart()));
@@ -155,22 +154,22 @@ public class GenericIpcrRecordWriter implements IpcrOutputWriter {
         write(Integer.toString(record.getMateEnd()));
         write(sep);
 
-        write(Integer.toString(record.getPrimarySamFlags()));
+        write(Integer.toString(record.getQuerySamFlags()));
         write(sep);
         write(Integer.toString(record.getMateSamFlags()));
         write(sep);
 
-        write(Integer.toString(record.getPrimaryMappingQuality()));
+        write(Integer.toString(record.getQueryMappingQuality()));
         write(sep);
         write(Integer.toString(record.getMateMappingQuality()));
         write(sep);
 
-        write(record.getPrimaryCigar());
+        write(record.getQuerySigar());
         write(sep);
         write(record.getMateCigar());
         write(sep);
 
-        write(Character.toString(record.getPrimaryStrand()));
+        write(Character.toString(record.getQueryStrand()));
         write(sep);
 
         write(Character.toString(record.getMateStrand()));

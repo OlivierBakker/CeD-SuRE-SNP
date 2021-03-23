@@ -1,7 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificIpcrRecord;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.SamBasedAlleleSpecificIpcrRecord;
 
 import java.io.*;
 import java.util.List;
@@ -36,7 +35,7 @@ public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpc
             writer.write(sep);
         }
 
-        writer.write(record.getPrimaryReadName());
+        writer.write(record.getQueryReadName());
         writer.write(sep);
 
         if (record.getGeneticVariant().getPrimaryVariantId() == null) {
@@ -80,9 +79,9 @@ public class DiscaredAlleleSpecificIpcrRecordWriter implements AlleleSpecificIpc
 */
 
         writer.write(sep);
-        writer.write(record.getPrimaryCigar());
+        writer.write(record.getQuerySigar());
         writer.write(sep);
-        writer.write(record.getPrimaryStrand());
+        writer.write(record.getQueryStrand());
 
         writer.write(sep);
         if (record.getSampleId() != null) {

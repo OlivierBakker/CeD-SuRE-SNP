@@ -13,9 +13,9 @@ public interface IpcrRecord extends Feature, Locatable {
 
     void setBarcode(String barcode);
 
-    String getPrimaryReadName();
+    String getQueryReadName();
 
-    void setPrimaryReadName(String name);
+    void setQueryReadName(String name);
 
     String getMateReadName();
 
@@ -26,13 +26,13 @@ public interface IpcrRecord extends Feature, Locatable {
     void setContig(String contig);
 
     // Paired end reads
-    int getPrimaryStart();
+    int getQueryStart();
 
-    void setPrimaryStart(int start);
+    void setQueryStart(int start);
 
-    int getPrimaryEnd();
+    int getQueryEnd();
 
-    void setPrimaryEnd(int end);
+    void setQueryEnd(int end);
 
     int getMateStart();
 
@@ -42,37 +42,39 @@ public interface IpcrRecord extends Feature, Locatable {
 
     void setMateEnd(int end);
 
-    int getPrimarySamFlags();
+    int getQuerySamFlags();
 
-    void setPrimarySamFlags(int flag);
+    void setQuerySamFlags(int flag);
 
     int getMateSamFlags();
 
     void setMateSamFlags(int flag);
 
-    int getPrimaryMappingQuality();
+    int getQueryMappingQuality();
 
-    void setPrimaryMappingQuality(int quality);
+    void getQueryMappingQuality(int quality);
 
     int getMateMappingQuality();
 
     void setMateMappingQuality(int quality);
 
-    String getPrimaryCigar();
+    String getQuerySigar();
 
-    void setPrimaryCigar(String cigar);
+    void setQuerySigar(String cigar);
 
     String getMateCigar();
 
     void setMateCigar(String cigar);
 
-    char getPrimaryStrand();
+    char getQueryStrand();
 
-    void setPrimaryStrand(char strand);
+    void setQueryStrand(char strand);
 
     char getMateStrand();
 
     void setMateStrand(char strand);
+
+    char getOrientation();
 
     Map<String, Integer> getBarcodeCountPerSample();
 
@@ -85,8 +87,6 @@ public interface IpcrRecord extends Feature, Locatable {
     void setIpcrDuplicateCount(int ipcrDuplicateCount);
 
     void flipPrimaryAndMate();
-
-    boolean isPartiallyOverlappingWindow(int start, int stop);
 
     boolean isFullyInsideWindow(int start, int stop);
 

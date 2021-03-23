@@ -3,10 +3,9 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificBedgraphIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.AlleleSpecificIpcrRecordWriter;
-import nl.umcg.suresnp.pipeline.io.ipcrwriter.MinimalAlleleSpecificIpcrRecrodWriter;
+import nl.umcg.suresnp.pipeline.io.ipcrwriter.MinimalAlleleSpecificIpcrRecordWriter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.NormalizedSampleScoreProvider;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.SampleSumScoreProvider;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -214,7 +213,7 @@ public class AssignVariantAllelesParameters {
                 outputWriter = new AlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".full.allele.specific.ipcr" + outputSuffix), zipped);
                 break;
             case "MINIMAL":
-                outputWriter = new MinimalAlleleSpecificIpcrRecrodWriter(new File(outputPrefix + ".minimal.allele.specific.ipcr" + outputSuffix), zipped);
+                outputWriter = new MinimalAlleleSpecificIpcrRecordWriter(new File(outputPrefix + ".minimal.allele.specific.ipcr" + outputSuffix), zipped);
                 break;
             case "BEDGRAPH":
                 if (!cmd.hasOption("c")) {

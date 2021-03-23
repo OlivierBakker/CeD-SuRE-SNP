@@ -8,7 +8,6 @@ import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.tools.parameters.SubsetBamParameters;
 import org.apache.log4j.Logger;
-import org.apache.log4j.spi.RootLogger;
 
 import java.io.File;
 import java.io.IOException;
@@ -152,7 +151,7 @@ public class SubsetBam {
             while (curRecord != null) {
                 logProgress(i, 1000000, "SubsetBam");
                 i++;
-                readnames.add(curRecord.getPrimaryReadName());
+                readnames.add(curRecord.getQueryReadName());
                 curRecord = reader.getNextRecord();
             }
             LOGGER.info("Read " + i + " records");

@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.*;
 
 import static nl.umcg.suresnp.pipeline.IpcrTools.logProgress;
-import static nl.umcg.suresnp.pipeline.records.ipcrrecord.VariantType.INSERTION;
 
 public class AssignVariantAlleles {
     private static final Logger LOGGER = Logger.getLogger(AssignVariantAlleles.class);
@@ -217,7 +216,6 @@ public class AssignVariantAlleles {
         String referenceAllele = curVariant.getRefAllele().getAlleleAsString();
         String alternativeAllele = String.join("", curVariant.getAlternativeAlleles().getAllelesAsString());
 
-
         int variantPos = curVariant.getStartPos();
 
         // Get the variant position in the read. SAM positions are 1 based, so are VCFs
@@ -361,7 +359,7 @@ public class AssignVariantAlleles {
             curAlleleSpecificIpcrRecord.setSampleId(params.getSampleGenotypeId());
 
             // Check if the read is a artifical haplotype, if so discard
-            if (!curAlleleSpecificIpcrRecord.getPrimaryReadName().matches("^HC[0-9]*")) {
+            if (!curAlleleSpecificIpcrRecord.getQueryReadName().matches("^HC[0-9]*")) {
                 // If the sample index is provided, use it to match the read alleles to the samples genotype
                 if (sampleIdx >= 0) {
                     int curGenotype = curAlleleSpecificIpcrRecord.getGeneticVariant().getSampleCalledDosages()[sampleIdx];

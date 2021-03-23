@@ -107,12 +107,12 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public String getPrimaryReadName() {
+    public String getQueryReadName() {
         return primarySamRecord.getReadName();
     }
 
     @Override
-    public void setPrimaryReadName(String name) {
+    public void setQueryReadName(String name) {
         throw new UnsupportedOperationException();
     }
 
@@ -132,22 +132,22 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
 
     @Override
-    public int getPrimaryStart() {
+    public int getQueryStart() {
         return primarySamRecord.getAlignmentStart();
     }
 
     @Override
-    public void setPrimaryStart(int start) {
+    public void setQueryStart(int start) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public int getPrimaryEnd() {
+    public int getQueryEnd() {
         return primarySamRecord.getAlignmentEnd();
     }
 
     @Override
-    public void setPrimaryEnd(int end) {
+    public void setQueryEnd(int end) {
         throw new UnsupportedOperationException();
     }
 
@@ -180,7 +180,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public char getPrimaryStrand() {
+    public char getQueryStrand() {
         if (primarySamRecord.getReadNegativeStrandFlag()) {
             return '-';
         } else {
@@ -189,7 +189,7 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public void setPrimaryStrand(char strand) {
+    public void setQueryStrand(char strand) {
         throw new UnsupportedOperationException();
     }
 
@@ -212,12 +212,12 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public int getPrimarySamFlags() {
+    public int getQuerySamFlags() {
         return primarySamRecord.getFlags();
     }
 
     @Override
-    public void setPrimarySamFlags(int flag) {
+    public void setQuerySamFlags(int flag) {
         throw new UnsupportedOperationException();
     }
 
@@ -236,12 +236,12 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public int getPrimaryMappingQuality() {
+    public int getQueryMappingQuality() {
         return primarySamRecord.getMappingQuality();
     }
 
     @Override
-    public void setPrimaryMappingQuality(int quality) {
+    public void getQueryMappingQuality(int quality) {
         throw new UnsupportedOperationException();
     }
 
@@ -260,12 +260,12 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
-    public String getPrimaryCigar() {
+    public String getQuerySigar() {
         return primarySamRecord.getCigarString();
     }
 
     @Override
-    public void setPrimaryCigar(String cigar) {
+    public void setQuerySigar(String cigar) {
         throw new UnsupportedOperationException();
     }
 
@@ -291,14 +291,21 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
     }
 
     @Override
+    public char getOrientation() {
+        if (getQueryStrand() == '+' && getMateStrand() == '-'){
+            return '+';
+        } else if (getQueryStrand() == '-' && getMateStrand() == '+') {
+            return '-';
+        } else {
+            return '.';
+        }
+    }
+
+
+    @Override
     public int compareTo(Object o) {
         SamBasedIpcrRecord other = (SamBasedIpcrRecord) o;
         return (barcode.compareTo(other.getBarcode()));
-    }
-
-    @Override
-    public boolean isPartiallyOverlappingWindow(int start, int stop) {
-        return isStartInWindow(start, stop) || isStopInWindow(start, stop);
     }
 
     @Override
@@ -318,9 +325,9 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getOrientationIndependentStart() {
-        if (getPrimaryStrand() == '+') {
-            return getPrimaryStart();
-        } else if (getPrimaryStrand() == '-') {
+        if (getQueryStrand() == '+') {
+            return getQueryStart();
+        } else if (getQueryStrand() == '-') {
             return getMateStart();
         } else {
             throw new IllegalStateException("Strand must be either + or -");
@@ -329,10 +336,10 @@ public class SamBasedIpcrRecord implements Comparable, IpcrRecord {
 
     @Override
     public int getOrientationIndependentEnd() {
-        if (getPrimaryStrand() == '+') {
+        if (getQueryStrand() == '+') {
             return getMateEnd();
-        } else if (getPrimaryStrand() == '-') {
-            return getPrimaryEnd();
+        } else if (getQueryStrand() == '-') {
+            return getQueryEnd();
         } else {
             throw new IllegalStateException("Strand must be either + or -");
         }

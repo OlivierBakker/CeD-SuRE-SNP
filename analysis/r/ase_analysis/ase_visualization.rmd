@@ -27,7 +27,7 @@ target.snps <- c("rs71327063")
 for (snp in target.snps) {
 # Caco snps
 sample <- "Caco2"
-#snp    <- "rs140496"
+snp    <- "rs140496"
 p1     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
                               cols=c("mediumblue", "mediumblue"), col="white") +
   theme(legend.position = "none")

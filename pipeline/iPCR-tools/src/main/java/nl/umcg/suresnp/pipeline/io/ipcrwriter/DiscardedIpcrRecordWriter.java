@@ -34,7 +34,7 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(sep);
         writer.write(record.getBarcode());
         writer.write(sep);
-        writer.write(record.getPrimaryReadName());
+        writer.write(record.getQueryReadName());
         writer.write(sep);
 
         if (record.getMateReadName() != null) {
@@ -48,9 +48,9 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(record.getContig());
         writer.write(sep);
 
-        writer.write(Integer.toString(record.getPrimaryStart()));
+        writer.write(Integer.toString(record.getQueryStart()));
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimaryEnd()));
+        writer.write(Integer.toString(record.getQueryEnd()));
         writer.write(sep);
 
         if (record.getMateStart() != 0) {
@@ -65,7 +65,7 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
             writer.write(sep);
         }
 
-        writer.write(Integer.toString(record.getPrimarySamFlags()));
+        writer.write(Integer.toString(record.getQuerySamFlags()));
         writer.write(sep);
 
         if (record.getMateSamFlags() != 0) {
@@ -75,7 +75,7 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         }
 
         writer.write(sep);
-        writer.write(Integer.toString(record.getPrimaryMappingQuality()));
+        writer.write(Integer.toString(record.getQueryMappingQuality()));
         writer.write(sep);
 
         if (record.getMateMappingQuality() != 0) {
@@ -85,7 +85,7 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         }
 
         writer.write(sep);
-        writer.write(record.getPrimaryCigar());
+        writer.write(record.getQuerySigar());
         writer.write(sep);
 
         if (record.getMateCigar() != null) {
@@ -95,7 +95,7 @@ public class DiscardedIpcrRecordWriter implements IpcrOutputWriter {
         }
         writer.write(sep);
 
-        writer.write(record.getPrimaryStrand());
+        writer.write(record.getQueryStrand());
 
         if (record.getMateStrand() != 0){
             writer.write(sep);

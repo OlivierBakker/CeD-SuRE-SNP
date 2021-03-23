@@ -229,17 +229,17 @@ public class CollapseIpcr {
         // Get the count for the record that match, discard others
         int consensusCount = 1;
         for (IpcrRecord curRecord : records) {
-            curRecord.setMateReadName(consensusRecord.getPrimaryReadName());
+            curRecord.setMateReadName(consensusRecord.getQueryReadName());
 
             if (!curRecord.getContig().equals(consensusRecord.getContig())) {
                 discardedOutputWriter.writeRecord(curRecord, "ContigMismatch");
                 continue;
             }
-            if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
+            if (curRecord.getQueryStrand() != consensusRecord.getQueryStrand()) {
                 discardedOutputWriter.writeRecord(curRecord, "PrimaryStrandMistmatch");
                 continue;
             }
-            if (!B37GenomeInfo.isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+            if (!B37GenomeInfo.isInWindowDistance(curRecord.getQueryStart(), consensusRecord.getQueryStart(), maxDistance)) {
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR1Start");
                 continue;
             }
@@ -305,17 +305,17 @@ public class CollapseIpcr {
     private void writeOutMismatchingRecords(List<IpcrRecord> records, IpcrRecord consensusRecord) throws IOException {
 
         for (IpcrRecord curRecord : records) {
-            curRecord.setMateReadName(consensusRecord.getPrimaryReadName());
+            curRecord.setMateReadName(consensusRecord.getQueryReadName());
 
             if (!curRecord.getContig().equals(consensusRecord.getContig())) {
                 discardedOutputWriter.writeRecord(curRecord, "ContigMismatch");
                 continue;
             }
-            if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
+            if (curRecord.getQueryStrand() != consensusRecord.getQueryStrand()) {
                 discardedOutputWriter.writeRecord(curRecord, "PrimaryStrandMistmatch");
                 continue;
             }
-            if (!B37GenomeInfo.isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+            if (!B37GenomeInfo.isInWindowDistance(curRecord.getQueryStart(), consensusRecord.getQueryStart(), maxDistance)) {
                 discardedOutputWriter.writeRecord(curRecord, "PositionMismatchR1Start");
                 continue;
             }
@@ -330,10 +330,10 @@ public class CollapseIpcr {
         if (!curRecord.getContig().equals(consensusRecord.getContig())) {
             return false;
         }
-        if (curRecord.getPrimaryStrand() != consensusRecord.getPrimaryStrand()) {
+        if (curRecord.getQueryStrand() != consensusRecord.getQueryStrand()) {
             return false;
         }
-        if (!B37GenomeInfo.isInWindowDistance(curRecord.getPrimaryStart(), consensusRecord.getPrimaryStart(), maxDistance)) {
+        if (!B37GenomeInfo.isInWindowDistance(curRecord.getQueryStart(), consensusRecord.getQueryStart(), maxDistance)) {
             return false;
         }
         if (!B37GenomeInfo.isInWindowDistance(curRecord.getMateEnd(), consensusRecord.getMateEnd(), maxDistance)) {

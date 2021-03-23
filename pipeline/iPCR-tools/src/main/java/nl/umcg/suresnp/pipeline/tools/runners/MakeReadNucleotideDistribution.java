@@ -138,7 +138,7 @@ public class MakeReadNucleotideDistribution {
 
             for (IpcrRecordFilter filter : filters) {
                 if (filter.passesFilter(curRecord)) {
-                    readNamesToKeep.add(curRecord.getPrimaryReadName());
+                    readNamesToKeep.add(curRecord.getQueryReadName());
                 }
             }
             curRecord = provider.getNextRecord();

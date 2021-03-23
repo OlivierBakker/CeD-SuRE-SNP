@@ -1,9 +1,6 @@
 package nl.umcg.suresnp.pipeline.io.ipcrwriter;
 
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificIpcrRecord;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
-import nl.umcg.suresnp.pipeline.records.ipcrrecord.SamBasedAlleleSpecificIpcrRecord;
-import org.molgenis.genotype.Allele;
 
 import java.io.*;
 import java.util.List;
@@ -105,7 +102,7 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         write(sep);
         write("cigarString");
         write(sep);
-        write("strand");
+        write("orientation");
         write(sep);
         write("sampleId");
         write(sep);
@@ -130,7 +127,7 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
         // Alignment info
         write(record.getBarcode());
         write(sep);
-        write(record.getPrimaryReadName());
+        write(record.getQueryReadName());
         write(sep);
         write(record.getContig());
         write(sep);
@@ -174,9 +171,9 @@ public class AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputW
             write(record.getReadAllele());
         }
         write(sep);
-        write(record.getPrimaryCigar());
+        write(record.getQuerySigar());
         write(sep);
-        write(Character.toString(record.getPrimaryStrand()));
+        write(Character.toString(record.getOrientation()));
 
         write(sep);
         if (record.getSampleId() != null) {

@@ -53,7 +53,7 @@ public class BedpeIpcrRecordWriter implements IpcrOutputWriter {
         writer.write(record.getBarcode());
         writer.write(sep);
 
-        writer.write(record.getPrimaryReadName());
+        writer.write(record.getQueryReadName());
         writer.write(sep);
 
         if (scoreProvider == null) {

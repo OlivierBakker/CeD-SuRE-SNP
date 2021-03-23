@@ -70,7 +70,7 @@ public class StrandSpecificMacsIpcrRecordWriter implements IpcrOutputWriter {
     @Override
     public void writeRecord(IpcrRecord record, String reason) throws IOException {
 
-        if (record.getPrimaryStrand() == '+') {
+        if (record.getOrientation() == '+') {
             if (writeIpcr) {
                 plusIpcrBedWriter.writeRecord(record, reason);
             }
@@ -78,7 +78,7 @@ public class StrandSpecificMacsIpcrRecordWriter implements IpcrOutputWriter {
             for (BedIpcrRecordWriter cdnaWriter : plusCdnaBedWriters.values()) {
                 cdnaWriter.writeRecord(record, reason);
             }
-        } else if (record.getPrimaryStrand() == '-'){
+        } else if (record.getOrientation() == '-'){
             if (writeIpcr) {
                 minusIpcrBedWriter.writeRecord(record, reason);
             }

@@ -157,7 +157,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
         }
         Map<String, IpcrRecord> output = new HashMap<>();
         for (IpcrRecord rec : featureReader.query(contig, start, end)) {
-            output.put(rec.getPrimaryReadName(), rec);
+            output.put(rec.getQueryReadName(), rec);
         }
         return output;
     }

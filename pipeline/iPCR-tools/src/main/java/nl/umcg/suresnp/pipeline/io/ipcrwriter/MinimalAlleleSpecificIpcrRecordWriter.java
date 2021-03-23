@@ -4,17 +4,16 @@ import nl.umcg.suresnp.pipeline.records.ipcrrecord.AlleleSpecificIpcrRecord;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
-public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter {
+public class MinimalAlleleSpecificIpcrRecordWriter extends AlleleSpecificIpcrRecordWriter implements AlleleSpecificIpcrOutputWriter {
 
     private final String sep = "\t";
 
-    public MinimalAlleleSpecificIpcrRecrodWriter(File outputPrefix, String[] barcodeCountFilesSampleNames, boolean isZipped) throws IOException {
+    public MinimalAlleleSpecificIpcrRecordWriter(File outputPrefix, String[] barcodeCountFilesSampleNames, boolean isZipped) throws IOException {
         super(outputPrefix, barcodeCountFilesSampleNames, isZipped);
     }
 
-    public MinimalAlleleSpecificIpcrRecrodWriter(File outputPrefix, boolean isZipped) throws IOException {
+    public MinimalAlleleSpecificIpcrRecordWriter(File outputPrefix, boolean isZipped) throws IOException {
         super(outputPrefix, isZipped);
     }
 
@@ -32,7 +31,7 @@ public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRec
         write(sep);
         write("alleleInRead");
         write(sep);
-        write("strand");
+        write("orientation");
         write(sep);
         write("ipcrCount");
         if (getBarcodeCountFilesSampleNames() != null) {
@@ -71,7 +70,7 @@ public class MinimalAlleleSpecificIpcrRecrodWriter extends AlleleSpecificIpcrRec
             write(record.getReadAllele());
         }
         write(sep);
-        write(Character.toString(record.getPrimaryStrand()));
+        write(Character.toString(record.getOrientation()));
         write(sep);
         write(Integer.toString(record.getIpcrDuplicateCount()));
         if (getBarcodeCountFilesSampleNames() != null) {

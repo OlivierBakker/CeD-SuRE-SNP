@@ -142,20 +142,20 @@ public class IpcrCodec extends AsciiFeatureCodec<IpcrRecord> {
             throw new IllegalArgumentException("Needed 16 columns in IPCR file, found: " + data.length);
         }
         record.setBarcode(data[0]);
-        record.setPrimaryReadName(data[1]);
+        record.setQueryReadName(data[1]);
         //record.setMateReadName(data[1]);
         record.setContig(data[2]);
-        record.setPrimaryStart(Integer.parseInt(data[3]));
-        record.setPrimaryEnd(Integer.parseInt(data[4]));
+        record.setQueryStart(Integer.parseInt(data[3]));
+        record.setQueryEnd(Integer.parseInt(data[4]));
         record.setMateStart(Integer.parseInt(data[5]));
         record.setMateEnd(Integer.parseInt(data[6]));
-        record.setPrimarySamFlags(Integer.parseInt(data[7]));
+        record.setQuerySamFlags(Integer.parseInt(data[7]));
         record.setMateSamFlags(Integer.parseInt(data[8]));
-        record.setPrimaryMappingQuality(Integer.parseInt(data[9]));
+        record.getQueryMappingQuality(Integer.parseInt(data[9]));
         record.setMateMappingQuality(Integer.parseInt(data[10]));
-        record.setPrimaryCigar(data[11]);
+        record.setQuerySigar(data[11]);
         record.setMateCigar(data[12]);
-        record.setPrimaryStrand(data[13].charAt(0));
+        record.setQueryStrand(data[13].charAt(0));
         record.setMateStrand(data[14].charAt(0));
         record.setIpcrDuplicateCount(Integer.parseInt(data[15]));
 

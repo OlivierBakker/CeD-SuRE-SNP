@@ -14,20 +14,20 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
 
     private boolean isNotPaired = false;
     private String barcode;
-    private String primaryReadName;
+    private String queryReadName;
     private String mateReadName;
     private String contig;
-    private int primaryStart;
-    private int primaryEnd;
+    private int queryStart;
+    private int queryEnd;
     private int mateStart;
     private int mateEnd;
-    private int primarySamFlags;
+    private int querySamFlags;
     private int mateSamFlags;
-    private int primaryMappingQuality;
+    private int queryMappingQuality;
     private int mateMappingQuality;
-    private String primaryCigar;
+    private String querySigar;
     private String mateCigar;
-    private char primaryStrand;
+    private char queryStrand;
     private char mateStrand;
     private Map<String, Integer> barcodeCountPerSample;
     private int ipcrDuplicateCount;
@@ -35,46 +35,46 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     public BasicIpcrRecord() {
     }
 
-    public BasicIpcrRecord(String contig, int primaryStart, int mateEnd) {
+    public BasicIpcrRecord(String contig, int queryStart, int mateEnd) {
         this.contig = contig;
-        this.primaryStart = primaryStart;
+        this.queryStart = queryStart;
         this.mateEnd = mateEnd;
     }
 
-    public BasicIpcrRecord(String barcode, String primaryReadName, String contig, int primaryStart, int primaryEnd, int mateStart, int mateEnd, int primarySamFlags, int mateSamFlags, int primaryMappingQuality, int mateMappingQuality, String primaryCigar, String mateCigar, char primaryStrand, char mateStrand, Map<String, Integer> barcodeCountPerSample) {
+    public BasicIpcrRecord(String barcode, String queryReadName, String contig, int queryStart, int queryEnd, int mateStart, int mateEnd, int querySamFlags, int mateSamFlags, int queryMappingQuality, int mateMappingQuality, String querySigar, String mateCigar, char queryStrand, char mateStrand, Map<String, Integer> barcodeCountPerSample) {
         this.barcode = barcode;
-        this.primaryReadName = primaryReadName;
+        this.queryReadName = queryReadName;
         this.contig = contig;
-        this.primaryStart = primaryStart;
-        this.primaryEnd = primaryEnd;
+        this.queryStart = queryStart;
+        this.queryEnd = queryEnd;
         this.mateStart = mateStart;
         this.mateEnd = mateEnd;
-        this.primarySamFlags = primarySamFlags;
+        this.querySamFlags = querySamFlags;
         this.mateSamFlags = mateSamFlags;
-        this.primaryMappingQuality = primaryMappingQuality;
+        this.queryMappingQuality = queryMappingQuality;
         this.mateMappingQuality = mateMappingQuality;
-        this.primaryCigar = primaryCigar;
+        this.querySigar = querySigar;
         this.mateCigar = mateCigar;
-        this.primaryStrand = primaryStrand;
+        this.queryStrand = queryStrand;
         this.mateStrand = mateStrand;
         this.barcodeCountPerSample = barcodeCountPerSample;
     }
 
     public BasicIpcrRecord(IpcrRecord record) {
         this.barcode = record.getBarcode();
-        this.primaryReadName = record.getPrimaryReadName();
+        this.queryReadName = record.getQueryReadName();
         this.contig = record.getContig();
-        this.primaryStart = record.getPrimaryStart();
-        this.primaryEnd = record.getPrimaryEnd();
+        this.queryStart = record.getQueryStart();
+        this.queryEnd = record.getQueryEnd();
         this.mateStart = record.getMateStart();
         this.mateEnd = record.getMateEnd();
-        this.primarySamFlags = record.getPrimarySamFlags();
+        this.querySamFlags = record.getQuerySamFlags();
         this.mateSamFlags = record.getMateSamFlags();
-        this.primaryMappingQuality = record.getPrimaryMappingQuality();
+        this.queryMappingQuality = record.getQueryMappingQuality();
         this.mateMappingQuality = record.getMateMappingQuality();
-        this.primaryCigar = record.getPrimaryCigar();
+        this.querySigar = record.getQuerySigar();
         this.mateCigar = record.getMateCigar();
-        this.primaryStrand = record.getPrimaryStrand();
+        this.queryStrand = record.getQueryStrand();
         this.barcodeCountPerSample = record.getBarcodeCountPerSample();
         this.ipcrDuplicateCount = record.getIpcrDuplicateCount();
     }
@@ -90,13 +90,13 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
-    public String getPrimaryReadName() {
-        return primaryReadName;
+    public String getQueryReadName() {
+        return queryReadName;
     }
 
     @Override
-    public void setPrimaryReadName(String readName) {
-        this.primaryReadName = readName;
+    public void setQueryReadName(String readName) {
+        this.queryReadName = readName;
     }
 
     @Override
@@ -130,23 +130,23 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
-    public int getPrimaryStart() {
-        return primaryStart;
+    public int getQueryStart() {
+        return queryStart;
     }
 
     @Override
-    public void setPrimaryStart(int primaryStart) {
-        this.primaryStart = primaryStart;
+    public void setQueryStart(int primaryStart) {
+        this.queryStart = primaryStart;
     }
 
     @Override
-    public int getPrimaryEnd() {
-        return primaryEnd;
+    public int getQueryEnd() {
+        return queryEnd;
     }
 
     @Override
-    public void setPrimaryEnd(int primaryEnd) {
-        this.primaryEnd = primaryEnd;
+    public void setQueryEnd(int primaryEnd) {
+        this.queryEnd = primaryEnd;
     }
 
     @Override
@@ -170,13 +170,13 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
-    public int getPrimarySamFlags() {
-        return primarySamFlags;
+    public int getQuerySamFlags() {
+        return querySamFlags;
     }
 
     @Override
-    public void setPrimarySamFlags(int primarySamFlags) {
-        this.primarySamFlags = primarySamFlags;
+    public void setQuerySamFlags(int primarySamFlags) {
+        this.querySamFlags = primarySamFlags;
     }
 
     @Override
@@ -190,13 +190,13 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
-    public int getPrimaryMappingQuality() {
-        return primaryMappingQuality;
+    public int getQueryMappingQuality() {
+        return queryMappingQuality;
     }
 
     @Override
-    public void setPrimaryMappingQuality(int primaryMappingQuality) {
-        this.primaryMappingQuality = primaryMappingQuality;
+    public void getQueryMappingQuality(int primaryMappingQuality) {
+        this.queryMappingQuality = primaryMappingQuality;
     }
 
     @Override
@@ -210,13 +210,13 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
-    public String getPrimaryCigar() {
-        return primaryCigar;
+    public String getQuerySigar() {
+        return querySigar;
     }
 
     @Override
-    public void setPrimaryCigar(String primaryCigar) {
-        this.primaryCigar = primaryCigar;
+    public void setQuerySigar(String primaryCigar) {
+        this.querySigar = primaryCigar;
     }
 
     @Override
@@ -230,13 +230,13 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
     }
 
     @Override
-    public char getPrimaryStrand() {
-        return primaryStrand;
+    public char getQueryStrand() {
+        return queryStrand;
     }
 
     @Override
-    public void setPrimaryStrand(char primaryStrand) {
-        this.primaryStrand = primaryStrand;
+    public void setQueryStrand(char primaryStrand) {
+        this.queryStrand = primaryStrand;
     }
 
     @Override
@@ -274,6 +274,17 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         this.ipcrDuplicateCount = ipcrDuplicateCount;
     }
 
+    @Override
+    public char getOrientation() {
+        if (getQueryStrand() == '+' && getMateStrand() == '-'){
+            return '+';
+        } else if (getQueryStrand() == '-' && getMateStrand() == '+') {
+            return '-';
+        } else {
+            return '.';
+        }
+    }
+
     @Deprecated
     @Override
     public void flipPrimaryAndMate() {
@@ -303,21 +314,20 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         throw new UnsupportedOperationException("Temporarly disabled for sanity check");
     }
 
-    @Override
-    public boolean isPartiallyOverlappingWindow(int start, int stop) {
-        return isStartInWindow(start, stop) || isStopInWindow(start, stop);
-    }
 
+    @Deprecated
     @Override
     public boolean isFullyInsideWindow(int start, int stop) {
         return isStartInWindow(start, stop) && isStopInWindow(start, stop);
     }
 
+    @Deprecated
     @Override
     public boolean isStartInWindow(int start, int stop) {
         return getOrientationIndependentStart() >= start && getOrientationIndependentStart() <= stop;
     }
 
+    @Deprecated
     @Override
     public boolean isStopInWindow(int start, int stop) {
         return getOrientationIndependentEnd() >= start && getOrientationIndependentEnd() <= stop;
@@ -330,12 +340,12 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         //    primaryStrand = '+';
         //}
         if (isNotPaired) {
-            return getPrimaryStart();
+            return getQueryStart();
         }
 
-        if (getPrimaryStrand() == '+') {
-            return getPrimaryStart();
-        } else if (getPrimaryStrand() == '-') {
+        if (getQueryStrand() == '+') {
+            return getQueryStart();
+        } else if (getQueryStrand() == '-') {
             return getMateStart();
         } else {
             throw new IllegalStateException("Strand must be either + or -");
@@ -349,14 +359,14 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         // }
 
         if (isNotPaired) {
-            return getPrimaryEnd();
+            return getQueryEnd();
         }
 
         // Minus is correct here
-        if (getPrimaryStrand() == '+') {
+        if (getQueryStrand() == '+') {
             return getMateEnd();
-        } else if (getPrimaryStrand() == '-') {
-            return getPrimaryEnd();
+        } else if (getQueryStrand() == '-') {
+            return getQueryEnd();
         } else {
             throw new IllegalStateException("Strand must be either + or -");
         }
@@ -364,14 +374,14 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
 
     @Override
     public int getMappingQualitySum() {
-        int totalMq = getPrimaryMappingQuality() + getMateMappingQuality();
+        int totalMq = getQueryMappingQuality() + getMateMappingQuality();
         return totalMq;
     }
 
 
     @Override
     public int getMappedBaseCount() {
-        int r1length = getPrimaryEnd() - getPrimaryStart();
+        int r1length = getQueryEnd() - getQueryStart();
         int r2length = getMateEnd() - getMateStart();
         return r1length + r2length;
     }
@@ -388,15 +398,15 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
         }
 
         // Quick check which record is which, works only because iPCR record must be proper pair
-        if ((getPrimaryStrand() == '-') == rec1.getReadNegativeStrandFlag()) {
+        if ((getQueryStrand() == '-') == rec1.getReadNegativeStrandFlag()) {
             // Santiy checks
-            int dist = Math.abs(primaryStart - rec1.getStart());
+            int dist = Math.abs(queryStart - rec1.getStart());
             if (dist > 1000) {
                 LOGGER.warn("New position more then 1kb away, are you sure this is correct?");
             }
 
-            primaryStart = rec1.getStart();
-            primaryEnd = rec1.getEnd();
+            queryStart = rec1.getStart();
+            queryEnd = rec1.getEnd();
             if (rec2 !=null) {
                 mateStart  = rec2.getStart();
                 mateEnd = rec2.getEnd();
@@ -408,12 +418,12 @@ public class BasicIpcrRecord implements IpcrRecord, Serializable {
 
         } else {
             if (rec2 !=null) {
-                primaryStart  = rec2.getStart();
-                primaryEnd = rec2.getEnd();
+                queryStart = rec2.getStart();
+                queryEnd = rec2.getEnd();
             } else {
                 isNotPaired = true;
-                primaryStart  = rec1.getStart();
-                primaryEnd = rec1.getEnd();
+                queryStart = rec1.getStart();
+                queryEnd = rec1.getEnd();
             }
             mateStart  = rec1.getStart();
             mateEnd = rec1.getEnd();
