@@ -1,0 +1,167 @@
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(gridExtra)
+library(reshape)
+
+source("~/Documents/projects/pr_integration/wd_integration/Code/UtillityScripts/PlottingFunctions.r")
+source("PrepCounts.r")
+```
+
+### Merge technical replicates
+```{r}
+cDNA.merged <- matrix(nrow=nrow(cDNA), ncol=0)
+
+for(a in 1:2) {
+    t <- cbind(cDNA[,paste0("J_Stim_B", a, "_T1")] + cDNA[,paste0("J_Stim_B", a, "_T2")],
+               cDNA[,paste0("Jurkat_B", a, "_T1")] + cDNA[,paste0("Jurkat_B", a, "_T2")],
+               cDNA[,paste0("K562_B", a+1, "_T1")] + cDNA[,paste0("K562_B", a+1, "_T2")])
+    
+    colnames(t) <- c(paste0("J_Stim_B", a), paste0("Jurkat_B", a), paste0("K562_B", a+1))
+    cDNA.merged <- cbind(cDNA.merged, t)
+}
+
+cDNA.orginal <- cDNA
+
+# Order
+cDNA.merged <- as.data.frame(cDNA.merged[,c("J_Stim_B1", "J_Stim_B2", "Jurkat_B1", "Jurkat_B2", "K562_B2", "K562_B3")])
+rownames(cDNA.merged) <- rownames(cDNA.orginal)
+
+cDNA <- cDNA.merged
+```
+
+### Calculate results per strand
+```{r}
+results <- sapply(unique(iPCR.filtered$SNP.id), function(snp){
+    sapply(c("+", "-"), function(strand) {
+        cur.snp <- iPCR.filtered[which(iPCR.filtered$SNP.id == snp & iPCR.filtered$strand == strand),]
+        
+        if (nrow(cur.snp) > 1) {
+            pvals <- sapply(colnames(cDNA), function(a){
+                # Remove any spurious alleles
+                t <- table(cur.snp$SNP.base)
+                
+                # If there is only one allele skip
+                if (length(t) < 2) {
+                    cat("[WARN]\t", "Only 1 allele present", "\n")
+                    return(NA)
+                }
+                
+                t <- t[order(t, decreasing = T)][1:2]
+                # If the smallest allele count is less then 3 skip
+                if (min(t) <= 3) {
+                    cat("[WARN]\t", "Less then 3 associations per allele", "\n")
+                    return(NA)
+                }
+                cs <- cur.snp[cur.snp$SNP.base %in% names(t),]
+                
+                tryCatch({
+                    return(t.test(log10(cDNA[cs$barcode, a] / cs$count) ~ as.factor(cs$SNP.base))$p.value)
+                }, error = function(a){
+                    cat("[ERROR]\t", "Something went wrong", "\n")
+                    return(NA)
+                }
+                )
+                
+            }) 
+        } else {
+            cat("[WARN]\t", "", "\n")
+            return(rep(NA, ncol(cDNA)))
+        }
+    })
+})
+
+results.plus  <- results[1:ncol(cDNA),]
+results.minus <- results[(ncol(cDNA)+1):(ncol(cDNA)*2),]
+```
+
+### Merge the strands
+```{r}
+results <- sapply(unique(iPCR.filtered$SNP.id), function(snp){
+        cur.snp <- iPCR.filtered[iPCR.filtered$SNP.id == snp,]
+        if (nrow(cur.snp) > 1) {
+            pvals <- sapply(colnames(cDNA), function(a){
+                # Remove any spurious alleles
+                t <- table(cur.snp$SNP.base)
+                
+                # If there is only one allele skip
+                if (length(t) < 2) {
+                    cat("[WARN]\t", "Only 1 allele present", "\n")
+                    return(NA)
+                }
+                
+                t <- t[order(t, decreasing = T)][1:2]
+                # If the smallest allele count is less then 3 skip
+                if (min(t) <= 3) {
+                    cat("[WARN]\t", "Less then 3 associations per allele", "\n")
+                    return(NA)
+                }
+                cs <- cur.snp[cur.snp$SNP.base %in% names(t),]
+                
+                tryCatch({
+                    return(t.test(log10(cDNA[cs$barcode, a] / cs$count) ~ as.factor(cs$SNP.base))$p.value)
+                }, error = function(a){
+                    cat("[ERROR]\t", "Something went wrong", "\n")
+                    return(NA)
+                }
+                )
+                
+            }) 
+        } else {
+            cat("[WARN]\t", "", "\n")
+            return(rep(NA, ncol(cDNA)))
+        }
+})
+
+results.all <- results
+```
+
+### Sorted matrix
+```{r}
+df.plot                 <- rbind(results.minus, results.plus)
+rownames(df.plot)       <- c(paste0(colnames(cDNA), "-"),
+                             paste0(colnames(cDNA), "+"))
+
+df.plot <- setNames(melt(df.plot), c('sample', 'snp', 'p-value'))
+
+df.plot <- df.plot[order(df.plot$`p-value`, decreasing=F),]
+rownames(df.plot) <- 1:nrow(df.plot)
+
+write.table(df.plot, file="output/data/SurePilotPvalues.txt")
+```
+
+### Sorted matrix strands merged
+```{r}
+df.plot <- results.all
+
+df.plot <- setNames(melt(df.plot), c('sample', 'snp', 'p-value'))
+
+df.plot <- df.plot[order(df.plot$`p-value`, decreasing=F),]
+rownames(df.plot) <- 1:nrow(df.plot)
+
+write.table(df.plot, file="output/data/SurePilotPvaluesStrandsMerged.txt")
+```
+
+
+### Histogram of top pilot hit
+```{r}
+
+barcodes <- iPCR.filtered[iPCR.filtered$SNP.id=="2:103038527", ]$barcode
+
+rownames(iPCR.filtered) <- make.names(iPCR.filtered$barcode, unique=T)
+cur.x <- data.frame(cDNA=cDNA[barcodes,]$K562_B2, base=iPCR.filtered[barcodes, ]$SNP.base, ipcr_count=iPCR.filtered[barcodes, ]$count)
+cur.x[cur.x$base == "A" | cur.x$base == "T",] <- c(NA, NA)
+
+ggplot(cur.x, aes(x=cDNA/ipcr_count, fill=base)) + geom_histogram(alpha=0.5, position="identity", binwidth = 1)
+
+library(MASS)
+
+tmp <- glm.nb(cDNA ~ ipcr_count + base, data=cur.x)
+tmp <- glm.nb(round(cDNA / ipcr_count) ~ base, data=cur.x)
+
+summary(tmp)$coefficients
+
+t.test(log2(cDNA /ipcr_count)  ~ base, data=cur.x)$`p.value`
+
+```
+

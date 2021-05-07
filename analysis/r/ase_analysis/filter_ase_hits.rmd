@@ -1,6 +1,7 @@
 ```{r}
+if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
+
 library(qqman)
-setwd("ase_analysis")
 source("../sure-snp_functions.r")
 
 k562.wilcox     <- read.ase.results("data/summary_statistics/SuRE_CeD_snps_indels_wilcox_per_strand_K562.assoc", qqman.compatible = F)

@@ -1,5 +1,5 @@
 ```{r}
-setwd("variant_evaluation")
+setwd("../variant_evaluation")
 source("../sure-snp_functions.r")
 
 trynka.b36.prm <- read.table("data/sumstats/final4_ultraclean.add.assoc.logistic", header=T, stringsAsFactors = F)
@@ -36,8 +36,8 @@ plot.pval <- function(ds1, ds2, ...) {
   y  <- ds2[ol, 2]
   y[y==0] <- 1e-308
   
-  y[y < 1e-50] <- 1e-50
-  x[x < 1e-50] <- 1e-50
+  #y[y < 1e-50] <- 1e-50
+  #x[x < 1e-50] <- 1e-50
 
   return(theme.plain(xy.plot.pvalue.colored(-log10(x),x,
                                             -log10(y), y,

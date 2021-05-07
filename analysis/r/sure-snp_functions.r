@@ -665,3 +665,17 @@ merge.bedgraph.tracks <- function(tmp.plus, tmp.minus) {
   
   return(df.plot)
 }
+
+
+## ------------------------------------------------------------------------
+convert.pvalue.to.dits <- function(x) {
+  if (x > 0.05) {
+    return("")
+  } else if (x < 5e-4) {
+    return("***")
+  } else if (x < 5e-3) {
+    return("**")
+  } else if (x < 5e-2) {
+    return("*")
+  }
+}

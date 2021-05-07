@@ -1,0 +1,102 @@
+```{r}
+fullset.frq <- read.table("~/Documents/data/celiac/genetics_meta/Trynka/TrynkaPonceMerged.frq", header=T)
+rownames(fullset.frq) <- fullset.frq$SNP
+
+fullset.hwe <- read.table("~/Documents/data/celiac/genetics_meta/Trynka/TrynkaPonceMerged.hwe", header=T, stringsAsFactors = F)
+fullset.hwe <- fullset.hwe[fullset.hwe$TEST == "ALL",]
+fullset.geno <- as.data.frame(t(as.data.frame(sapply(fullset.hwe$GENO, function(a){as.numeric(strsplit(a, split="/")[[1]])}))), row.names = fullset.hwe$SNP)
+colnames(fullset.geno) <- c("AA", "AB", "BB")
+
+subset.full <- read.table("~/Documents/projects/pr_sure-snp/wd_preliminary_testing_and_pilot/wd_sample_selection/output/case_control/SureSampleSelectionCaseControl.af", header=T)
+#subset.case <- read.table("~/Documents/tmp/wd_sure/sample_selection/output/case_only/SureSampleSelectionCases.af", header=T)
+#subset.case.hwe <- read.table("~/Documents/tmp/wd_sure/sample_selection/output/case_only/CaseOnlySamples.hwe", header=T, stringsAsFactors = F)
+
+subset.case.hwe <- read.table("~/Documents/projects/pr_sure-snp/wd_preliminary_testing_and_pilot/wd_sample_selection/output/case_only/alt_2.hwe", header=T, stringsAsFactors=F)
+subset.case.hwe <- subset.case.hwe[subset.case.hwe$TEST == "ALL",]
+
+subset.case.geno <- as.data.frame(t(as.data.frame(sapply(subset.case.hwe$GENO, function(a){as.numeric(strsplit(a, split="/")[[1]])}))), row.names = subset.case.hwe$SNP)
+colnames(subset.case.geno) <- c("AA", "AB", "BB")
+
+rownames(subset.full) <- subset.full$ID
+rownames(subset.case) <- subset.case$ID
+```
+
+### Plot MAF of subset vs fullset
+```{r}
+par(mfrow=c(1,3))
+plot(fullset.frq$MAF, subset.full$MAF, xlim=c(0, 0.5), ylim=c(0,0.5), pch=20, xlab="MAF in fullset", ylab="MAF in subset", main="Subset Case Control")
+abline(0, 1)
+
+plot(fullset.frq$MAF, subset.case$MAF, xlim=c(0, 0.5), ylim=c(0,0.5), pch=20, xlab="MAF in fullset", ylab="MAF in subset", main="Subset Case")
+abline(0, 1)
+
+plot(subset.full.frq$MAF, subset.case$MAF, xlim=c(0, 0.5), ylim=c(0,0.5), pch=20, xlab="MAF in subset caco", ylab="MAF in subset ca", main="Subset Ca vs Subset CaCo")
+abline(0, 1)
+```
+
+### Distribution of minimum Mafs
+```{r}
+subsets <- read.table("~/Documents/tmp/wd_sure/sample_selection/output/case_control/SureSampleSelectionCaseControl.allMinAf", sep="\t")
+
+#pdf(width=7.5, height=3.75, file="output/plots/SampleSelectionCaCoStats.pdf")
+par(mfrow=c(1,2))
+hist(subsets$V2, xlab="Minimal MAF", main="Minimal MAFs")
+hist(subsets$V3, xlab="Mean MAF", main="Mean MAFs")
+par(mfrow=c(1,1))
+#dev.off()
+
+subsets <- read.table("~/Documents/tmp/wd_sure/sample_selection/output/case_only/SureSampleSelectionCases.allMinAf", sep="\t")
+
+#pdf(width=7.5, height=3.75, file="output/plots/SampleSelectionCaStats.pdf")
+par(mfrow=c(1,2))
+hist(subsets$V2, xlab="Minimal MAF", main="Minimal MAFs")
+hist(subsets$V3, xlab="Mean MAF", main="Mean MAFs")
+par(mfrow=c(1,1))
+#dev.off()
+```
+
+### Genotype distribution for each SNP proportion based single plot
+```{r}
+frq  <- fullset.frq
+geno <- fullset.geno
+order <- rownames(frq[order(frq$MAF, decreasing=T),])
+geno <- geno[order,]
+total <- rowSums(geno)
+
+plot((geno[,"AA"]/total)*100, ylim=c(0, 100), type="l", col="#E41A1C", lwd=2, xlab="SNP (High MAF to low MAF)", ylab="Genotype proportions", main="Fullset", lty=3)
+lines((geno[,"AB"]/total)*100, col="#377EB8", lwd=2, lty=3)
+lines((geno[,"BB"]/total)*100, col="#4DAF4A", lwd=2, lty=3)
+
+frq  <- subset.case
+geno <- subset.case.geno
+geno <- geno[order,]
+total <- rowSums(geno)
+
+lines((geno[,"AA"]/total)*100, col=adjustcolor("#E41A1C", 0.75), lwd=2)
+lines((geno[,"AB"]/total)*100, col=adjustcolor("#377EB8", 0.75), lwd=2)
+lines((geno[,"BB"]/total)*100, col=adjustcolor("#4DAF4A", 0.75), lwd=2)
+
+legend("topleft", legend=c("AA", "AB", "BB"), fill=c("#E41A1C", "#377EB8", "#4DAF4A"))
+```
+
+
+
+
+
+
+# Totally unrelated code
+```{r}
+qtl <- read.table("~/Documents/tmp/wd_mcqtl/wd_output/500FG/regular/genome_wide_loci/rs77589665_IL17_Cryptococcus_PBMC_7days+IL17_C.albicanshyphae_PBMC_7days+IL17_C.albicansconidia_PBMC_7days_window500000_locus.txt", header=T, stringsAsFactors = F)
+rownames(qtl) <- qtl$rs
+eqtl <- read.csv("~/Downloads/eQTL_4Olivier_24April2018.csv", stringsAsFactors = F)
+rownames(eqtl) <- eqtl$snps
+ol <- intersect(eqtl$snps, qtl$rs)
+
+par(mfrow=c(2,1))
+
+plot(-log10(qtl$p_wald) ~ qtl$ps, pch=20)
+
+plot(-log10(eqtl[ol,]$pvalue) ~ qtl[ol,]$ps, pch=20)
+
+
+```

@@ -14,14 +14,21 @@ import org.apache.poi.ss.usermodel.*;
 public class ExcelStyles {
 
 	private final CellStyle zscoreStyle;
+
 	private final CellStyle largePvalueStyle;
 	private final CellStyle smallPvalueStyle;
+
 	private final CellStyle hlinkStyle;
 	private final CellStyle boldStyle;
+
 	private final CellStyle genomicPositionStyle;
 	private final CellStyle boldGenomicPositionStyle;
+
 	private final CellStyle rightAlignedText;
+	private final CellStyle boldRightAlignedText;
+
 	private final CellStyle subRowStyle;
+	private final CellStyle integerStyle;
 
 	public ExcelStyles(Workbook wb) {
 
@@ -29,10 +36,10 @@ public class ExcelStyles {
 
 		//Also used for OR and AUC
 		zscoreStyle = wb.createCellStyle();
-		zscoreStyle.setDataFormat(format.getFormat("0.00"));
+		zscoreStyle.setDataFormat(format.getFormat("0.000"));
 
 		largePvalueStyle = wb.createCellStyle();
-		largePvalueStyle.setDataFormat(format.getFormat("0.0000"));
+		largePvalueStyle.setDataFormat(format.getFormat("0.000"));
 
 		smallPvalueStyle = wb.createCellStyle();
 		smallPvalueStyle.setDataFormat(format.getFormat("0.00E+0"));
@@ -50,6 +57,9 @@ public class ExcelStyles {
 		genomicPositionStyle = wb.createCellStyle();
 		genomicPositionStyle.setDataFormat(format.getFormat("###,###,##0"));
 
+		integerStyle = wb.createCellStyle();
+		integerStyle.setDataFormat(format.getFormat("#"));
+
 		boldGenomicPositionStyle = wb.createCellStyle();
 		fontBold.setFontHeightInPoints((short) 10);
 		boldGenomicPositionStyle.setFont(fontBold);
@@ -57,6 +67,10 @@ public class ExcelStyles {
 
 		rightAlignedText = wb.createCellStyle();
 		rightAlignedText.setAlignment(HorizontalAlignment.RIGHT);
+
+		boldRightAlignedText = wb.createCellStyle();
+		boldRightAlignedText.setAlignment(HorizontalAlignment.RIGHT);
+		boldRightAlignedText.setFont(fontBold);
 
 		subRowStyle = wb.createCellStyle();
 		subRowStyle.setBorderBottom(BorderStyle.NONE);
@@ -104,7 +118,15 @@ public class ExcelStyles {
 		return rightAlignedText;
 	}
 
+	public CellStyle getBoldRightAlignedText() {
+		return boldRightAlignedText;
+	}
+
 	public CellStyle getSubRowStyle() {
 		return subRowStyle;
+	}
+
+	public CellStyle getIntegerStyle() {
+		return integerStyle;
 	}
 }

@@ -1,0 +1,398 @@
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(pheatmap)
+library(gridExtra)
+
+source("~/Documents/projects/pr_integration/wd_integration/Code/UtillityScripts/PlottingFunctions.r")
+
+
+link <- read.table("~/Documents/data/sure/pipeline_output_pilot/SureSNPSNpsRsId.txt", sep="\t", header = T)
+
+rownames(link) <- paste0(gsub("chr", "", link$chrom), ":", link$chromEnd)
+```
+
+### Pilot heatmap, individual strands
+```{r}
+# Build and transform dataframe
+df.plot                 <- rbind(results.minus, results.plus)
+#df.plot                 <- df.plot[,!(colSums(is.na(df.plot)) == ncol(cDNA)*2)]
+df.plot[is.na(df.plot)] <- 1
+df.plot                 <- -log10(df.plot)
+# Set max limit
+df.plot[df.plot > 8]    <- 8
+# Remove non significant associations
+df.plot[df.plot < -log10(0.05)] <- 0
+df.plot                 <- df.plot[,!(colSums(df.plot == 0) == ncol(cDNA)*2)]
+
+# Clean up names
+rownames(df.plot) <- gsub("J\\_", "Jurkat_", rownames(df.plot))
+colnames(cDNA) <- gsub("J\\_", "Jurkat_", colnames(cDNA))
+
+# Build annotations
+ann                     <- as.data.frame(matrix(c(rep("minus", ncol(cDNA)),
+                                                  rep("plus", ncol(cDNA)),
+                                                  rep(gsub("\\_T\\d", "", gsub("\\_B\\d", "", colnames(cDNA))), 2)), ncol=2, nrow=ncol(cDNA)*2))
+rownames(ann)           <- c(paste0(colnames(cDNA), "-"),
+                             paste0(colnames(cDNA), "+"))
+rownames(df.plot)       <- rownames(ann)
+colnames(ann)           <- c("Strand", "Celltype")
+
+
+# Re order data
+df.plot <- df.plot[c("Jurkat_B1-", "Jurkat_B2-", "Jurkat_B1+", "Jurkat_B2+", "Jurkat_Stim_B1-", "Jurkat_Stim_B2-", "Jurkat_Stim_B1+", "Jurkat_Stim_B2+", "K562_B2-", "K562_B3-", "K562_B2+", "K562_B3+"),]
+
+snp.order <- t(sapply(colnames(df.plot), function(a){strsplit(a, split=":")[[1]]}))
+colnames(snp.order) <- c("Chr", "Pos")
+snp.order <- snp.order[order(as.numeric(snp.order[,1]), as.numeric(snp.order[,2])),]
+snp.order <- as.data.frame(snp.order)
+
+df.plot <- df.plot[,rownames(snp.order)]
+
+colnames(df.plot) <- conv[colnames(df.plot), 4]
+rownames(snp.order) <- conv[rownames(snp.order), 4]
+
+cols <- list(Celltype=c(Jurkat_Stim="#8DD3C7",
+                        Jurkat="#FFFFB3",
+                        K562="#FB8072"),
+             Strand=c(minus="#FDB462",
+                      plus="#D9D9D9"),
+             Chr=c(`1`="#66C2A5",
+                   `2`="#FC8D62",
+                   `3`="#8DA0CB",
+                   `4`="#E78AC3",
+                   `7`="#A6D854",
+                   `10`="#FFD92F",
+                   `11`="#FA7D8C",
+                   `15`="#E5C494",
+                   `16`="#B3B3B3",
+                   `22`="#FFFF33"))
+
+library(grid)
+draw_colnames_45 <- function (coln, gaps, ...) {
+    coord = pheatmap:::find_coordinates(length(coln), gaps)
+    x = coord$coord - 0.5 * coord$size
+    res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3,"bigpts"), vjust = 0.8, hjust = -0.05, rot = 315, gp = gpar(...))
+    return(res)}
+
+# 'Overwrite' default draw_colnames with your own version 
+assignInNamespace(x="draw_colnames", value="draw_colnames_45",
+ns=asNamespace("pheatmap"))
+
+pdf(width=15, height=6, file="output/plots/SurePilotSignificantHitsNew.pdf")
+pheatmap(df.plot,
+         cluster_rows=F,
+         cluster_cols=F,
+         annotation_row=ann,
+         annotation_colors=cols,
+         annotation_col=snp.order[,"Chr", drop=F],
+         cellwidth=14,
+         cellheight=14,
+         color=colorRampPalette(brewer.pal(7,"Reds"))(100))
+dev.off()
+
+
+snps <- colnames(df.plot)
+```
+
+### Heatmap: orientation combined
+```{r}
+# Build and transform dataframe
+df.plot                 <- results.all[,snps]
+df.plot[is.na(df.plot)] <- 1
+df.plot                 <- -log10(df.plot)
+
+# Set max limit
+df.plot[df.plot > 8]    <- 8
+# Remove non significant associations
+df.plot[df.plot < -log10(0.05)] <- 0
+#df.plot                 <- df.plot[,!(colSums(df.plot == 0) == ncol(cDNA))]
+
+# Clean up names
+rownames(df.plot) <- gsub("J\\_", "Jurkat_", rownames(df.plot))
+colnames(cDNA) <- gsub("J\\_", "Jurkat_", colnames(cDNA))
+
+# Re order data
+df.plot <- df.plot[c("Jurkat_B1", "Jurkat_B2", "Jurkat_Stim_B1", "Jurkat_Stim_B2", "K562_B2", "K562_B3"),]
+
+pdf(width=15, height=6, file="output/plots/SurePilotSignificantHitsMergedStrand.pdf")
+pheatmap(df.plot,
+         cluster_rows=F,
+         cluster_cols=F,
+         cellwidth=14,
+         cellheight=14,
+         color=colorRampPalette(brewer.pal(7,"Reds"))(100))
+dev.off()
+```
+
+### Heatmap: Meta orientation combined
+```{r}
+library(metap)
+results.meta <- sapply(list(c("J_Stim_B1", "J_Stim_B2"), c("Jurkat_B1", "Jurkat_B2"), c("K562_B2",  "K562_B3")), function(a) {
+    x <- results.all[as.character(a),]
+    x[is.na(x)] <- 1
+    apply(x, 2, function(b){sumlog(b)$p})
+})
+
+results.meta <- t(results.meta)
+rownames(results.meta) <- c("Jurkat_stim", "Jurkat", "K562")
+
+# Build and transform dataframe
+df.plot                 <- results.meta[,snps]
+#df.plot <- results.meta
+df.plot[is.na(df.plot)] <- 1
+df.plot                 <- -log10(df.plot)
+
+# Set max limit
+df.plot[df.plot > 8]    <- 8
+# Remove non significant associations
+df.plot[df.plot < -log10(0.05)] <- 0
+df.plot                 <- df.plot[,!(colSums(df.plot == 0) == 3)]
+
+# Clean up names
+rownames(df.plot) <- gsub("J\\_", "Jurkat_", rownames(df.plot))
+colnames(cDNA) <- gsub("J\\_", "Jurkat_", colnames(cDNA))
+
+# Re order data
+df.plot <- df.plot[c("Jurkat", "Jurkat_stim", "K562"),]
+
+pdf(width=15, height=6, file="output/plots/SurePilotSignificantHitsMeta.pdf")
+pheatmap(df.plot,
+         cluster_rows=F,
+         cluster_cols=F,
+         cellwidth=14,
+         cellheight=14,
+         color=colorRampPalette(brewer.pal(7,"Reds"))(100))
+dev.off()
+```
+
+### Heatmap: Meta over all
+```{r}
+combos <- list(c("Jurkat_Stim_B1-", "Jurkat_Stim_B2-", "Jurkat_Stim_B1+", "Jurkat_Stim_B2+"),
+               c("Jurkat_B1-", "Jurkat_B2-", "Jurkat_B1+", "Jurkat_B2+"),
+               c("K562_B2-", "K562_B3-", "K562_B2+", "K562_B3+"))
+
+results.all                 <- rbind(results.minus, results.plus)
+rownames(results.all )       <- c(paste0(colnames(cDNA), "-"),
+                             paste0(colnames(cDNA), "+"))
+results.meta <- sapply(combos, function(a) {
+    x <- results.all[a,]
+    x[is.na(x)] <- 1
+    apply(x, 2, function(b){sumlog(b)$p})
+})
+
+results.meta <- t(results.meta)
+rownames(results.meta) <- c("Jurkat_stim", "Jurkat", "K562")
+
+# Build and transform dataframe
+df.plot                 <- results.meta[,snps]
+#df.plot <- results.meta
+df.plot[is.na(df.plot)] <- 1
+df.plot                 <- -log10(df.plot)
+
+# Set max limit
+df.plot[df.plot > 8]    <- 8
+# Remove non significant associations
+df.plot[df.plot < -log10(0.05)] <- 0
+df.plot                 <- df.plot[,!(colSums(df.plot == 0) == 3)]
+
+# Clean up names
+rownames(df.plot) <- gsub("J\\_", "Jurkat_", rownames(df.plot))
+colnames(cDNA) <- gsub("J\\_", "Jurkat_", colnames(cDNA))
+
+# Re order data
+df.plot <- df.plot[c("Jurkat", "Jurkat_stim", "K562"),]
+
+
+# Build annotations
+snp.order <- t(sapply(colnames(df.plot), function(a){strsplit(a, split=":")[[1]]}))
+colnames(snp.order) <- c("Chr", "Pos")
+snp.order <- snp.order[order(as.numeric(snp.order[,1]), as.numeric(snp.order[,2])),]
+snp.order <- as.data.frame(snp.order)
+
+df.plot <- df.plot[,rownames(snp.order)]
+
+cols <- list(Celltype=c(Jurkat_Stim="#8DD3C7",
+                        Jurkat="#FFFFB3",
+                        K562="#FB8072"),
+             Strand=c(minus="#FDB462",
+                      plus="#D9D9D9"),
+             Chr=c(`1`="#66C2A5",
+                   `2`="#FC8D62",
+                   `3`="#8DA0CB",
+                   `4`="#E78AC3",
+                   `7`="#A6D854",
+                   `10`="#FFD92F",
+                   `11`="#FA7D8C",
+                   `15`="#E5C494",
+                   `16`="#B3B3B3",
+                   `22`="#FFFF33"))
+
+colnames(df.plot) <- link[colnames(df.plot), "name"]
+rownames(snp.order) <- link[rownames(snp.order), "name"]
+
+pdf(width=10, height=4, file="output/plots/SurePilotSignificantHitsMetaAllForIris.pdf", onefile = F)
+pheatmap(df.plot,
+         annotation_col = snp.order[,"Chr", drop=F],
+         annotation_colors = cols,
+         cluster_rows=F,
+         cluster_cols=F,
+         cellwidth=15,
+         cellheight=15,
+         color=colorRampPalette(brewer.pal(7,"Reds"))(100))
+dev.off()
+```
+
+### Individual density plots
+```{r}
+# SNPs for Roeland's poster
+snps <- apply(snp.order[c("rs3755268", "rs4265380"),], 1, paste0, collapse=":")
+
+# All SNPs
+snps <- colnames(results)[which(apply(results.minus, 2, min) < 5e-7 | apply(results.plus, 2, min) < 5e-7)]
+
+
+
+# Snps for Iris
+rownames(snp.order) <- link[rownames(snp.order), 5]
+snps <- apply(snp.order[c("rs7536201"),], 1, paste0, collapse=":")
+
+#par(mfrow=c(1,2))
+
+#pdf(width=5, height=3, file="output/plots/IndividualPlots.pdf")
+sapply(snps, function(snp){
+    sapply(c("+", "-"), function(strand) {
+        cur.snp <- iPCR.filtered[which(iPCR.filtered$SNP.id == snp & iPCR.filtered$strand == strand),]
+        if (nrow(cur.snp) > 1) {
+            pvals <- sapply(colnames(cDNA), function(sample){
+                # Remove any spurious alleles
+                allele.count <- table(cur.snp$SNP.base)
+                
+                # If there is only one allele skip
+                if (length(allele.count) < 2) {
+                    cat("[WARN]\t", "Only 1 allele present", "\n")
+                    return(NA)
+                }
+                
+                allele.count <- allele.count[order(allele.count, decreasing = T)][1:2]
+                # If the smallest allele count is less then 3 skip
+                if (min(allele.count) <= 3) {
+                    cat("[WARN]\t", "Less then 3 associations per allele", "\n")
+                    return(NA)
+                }
+                cs <- cur.snp[cur.snp$SNP.base %in% names(allele.count),]
+                counts <- log10(cDNA[cs$barcode, sample] / cs$count)
+                
+                x1 <- counts[cs$SNP.base == names(allele.count)[1]]
+                x2 <- counts[cs$SNP.base == names(allele.count)[2]]
+                
+                ymax <- max(c(density(x1, na.rm=T)$y, density(x2, na.rm=T)$y))
+                # Density plots
+                plot(density(x1, na.rm=T),
+                     main=paste0(sample, " ~ ", link[snp, 5], " (", strand, " strand)"),
+                     xlab="Log10(SuRE Counts)",
+                     xlim=c(min(counts, na.rm=T), max(counts, na.rm=T)),
+                     ylim=c(0, ymax + 0.1*ymax),
+                     col="red", lwd=3)
+                lines(density(x2, na.rm=T), col="blue", lwd=3)
+                #"#ff6666"
+                #"#61a8ff"
+                
+                legend(x="topright",
+                       title="Allele",
+                       legend=c(paste0("(", names(allele.count)[1], ": N=", sum(!is.na(x1)), ")"),
+                               paste0("(", names(allele.count)[2], ": N=", sum(!is.na(x2)), ")")),
+                       fill=c("red", "blue"),
+                       bty="n")
+                
+                # Boxplots
+               # if (length(x1) > length(x2)) {
+                #     x <- cbind(x1, c(x2, rep(NA, length(x1) - length(x2))))
+                # } else {
+                #     x <- cbind(c(x1, rep(NA, length(x2) - length(x1))), x2)
+                # }
+                # p <- bp.box(x,
+                #             horiz=F,
+                #             cat=c(rep(paste0(names(allele.count)[1], " (N=", sum(!is.na(x1)), ")"), nrow(x)),
+                #                   rep(paste0(names(allele.count)[2], " (N=", sum(!is.na(x2)), ")"), nrow(x))),
+                #             cols=c("red", "blue"), 
+                #             main=paste0(sample, " ~ ", conv[snp, 4], " ", strand, " strand"),
+                #             xlab="Log10(SuRE counts)",
+                #             ylab="Allele") +
+                # theme(panel.background=element_blank(),
+                #         panel.grid.major=element_line("#E3E3E3", 0.5, 2),
+                #         panel.grid.minor=element_line("#E3E3E3", 0.25, 2)) +
+                #     ylim(min(counts, na.rm=T), max(counts, na.rm=T)) +
+                #     scale_x_discrete(labels=c(names(allele.count)[1], names(allele.count)[2]))
+                #     
+                # 
+                # plot(p)
+            }) 
+        } else {
+            cat("[WARN]\t", "", "\n")
+            return(rep(NA, ncol(cDNA)))
+        }
+    })
+})
+
+dev.off()
+```
+
+
+```{r}
+
+pdf(width=5, height=3, file="output/plots/IndividualPlotsForIris.pdf")
+sapply(snps, function(snp){
+        cur.snp <- iPCR.filtered[which(iPCR.filtered$SNP.id == snp),]
+        if (nrow(cur.snp) > 1) {
+            pvals <- sapply(colnames(cDNA), function(sample){
+                # Remove any spurious alleles
+                allele.count <- table(cur.snp$SNP.base)
+                
+                # If there is only one allele skip
+                if (length(allele.count) < 2) {
+                    cat("[WARN]\t", "Only 1 allele present", "\n")
+                    return(NA)
+                }
+                
+                allele.count <- allele.count[order(allele.count, decreasing = T)][1:2]
+                # If the smallest allele count is less then 3 skip
+                if (min(allele.count) <= 3) {
+                    cat("[WARN]\t", "Less then 3 associations per allele", "\n")
+                    return(NA)
+                }
+                cs <- cur.snp[cur.snp$SNP.base %in% names(allele.count),]
+                counts <- log10(cDNA[cs$barcode, sample] / cs$count)
+                
+                x1 <- counts[cs$SNP.base == names(allele.count)[1]]
+                x2 <- counts[cs$SNP.base == names(allele.count)[2]]
+                
+                ymax <- max(c(density(x1, na.rm=T)$y, density(x2, na.rm=T)$y))
+                # Density plots
+                plot(density(x1, na.rm=T),
+                     main=paste0(sample, " ~ ", link[snp, 5], " p-value ", format(wilcox.test(x1, x2)$p.value, scientific=T, digits=2)),
+                     xlab="Log10(SuRE Counts)",
+                     xlim=c(min(counts, na.rm=T), max(counts, na.rm=T)),
+                     ylim=c(0, ymax + 0.1*ymax),
+                     col="red", lwd=3)
+                lines(density(x2, na.rm=T), col="blue", lwd=3)
+                #"#ff6666"
+                #"#61a8ff"
+                
+                legend(x="topright",
+                       title="Allele",
+                       legend=c(paste0("(", names(allele.count)[1], ": N=", sum(!is.na(x1)), ")"),
+                               paste0("(", names(allele.count)[2], ": N=", sum(!is.na(x2)), ")")),
+                       fill=c("red", "blue"),
+                       bty="n")
+
+            }) 
+        } else {
+            cat("[WARN]\t", "", "\n")
+            return(rep(NA, ncol(cDNA)))
+        }
+})
+
+dev.off()
+```
+

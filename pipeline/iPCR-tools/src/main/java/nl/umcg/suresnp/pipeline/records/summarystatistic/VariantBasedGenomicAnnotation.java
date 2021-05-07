@@ -1,25 +1,19 @@
 package nl.umcg.suresnp.pipeline.records.summarystatistic;
 
-import htsjdk.samtools.util.IntervalTreeMap;
-import htsjdk.samtools.util.Locatable;
 import nl.umcg.suresnp.pipeline.io.GenericFile;
-import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
-public class VariantBasedNumericGenomicAnnotation {
+public class VariantBasedGenomicAnnotation {
 
     private final GenericFile path;
     private String[] header;
     private String name;
     private String group;
     private boolean useLdProxies;
-    private Map<String, VariantBasedNumericGenomicAnnotationRecord> records;
+    private Map<String, VariantBasedGenomicAnnotationRecord> records;
 
-    public VariantBasedNumericGenomicAnnotation(GenericFile path, String group) {
+    public VariantBasedGenomicAnnotation(GenericFile path, String group) {
         this.path = path;
         this.group = group;
         this.name = path.getBaseName();
@@ -31,7 +25,7 @@ public class VariantBasedNumericGenomicAnnotation {
         }
     }
 
-    public VariantBasedNumericGenomicAnnotation(GenericFile path, String[] header, Map<String, VariantBasedNumericGenomicAnnotationRecord> records) {
+    public VariantBasedGenomicAnnotation(GenericFile path, String[] header, Map<String, VariantBasedGenomicAnnotationRecord> records) {
         this.path = path;
         this.records = records;
         this.header = header;
@@ -59,15 +53,15 @@ public class VariantBasedNumericGenomicAnnotation {
         return useLdProxies;
     }
 
-    public Map<String, VariantBasedNumericGenomicAnnotationRecord> getRecords() {
+    public Map<String, VariantBasedGenomicAnnotationRecord> getRecords() {
         return records;
     }
 
-    public void addRecord(VariantBasedNumericGenomicAnnotationRecord record) {
+    public void addRecord(VariantBasedGenomicAnnotationRecord record) {
         records.put(record.getPrimaryVariantId(), record);
     }
 
-    public void setRecords(Map<String, VariantBasedNumericGenomicAnnotationRecord> records) {
+    public void setRecords(Map<String, VariantBasedGenomicAnnotationRecord> records) {
         this.records = records;
     }
 
@@ -79,7 +73,7 @@ public class VariantBasedNumericGenomicAnnotation {
         return header;
     }
 
-    public VariantBasedNumericGenomicAnnotationRecord query(String variantId) {
+    public VariantBasedGenomicAnnotationRecord query(String variantId) {
         return records.get(variantId);
     }
 }

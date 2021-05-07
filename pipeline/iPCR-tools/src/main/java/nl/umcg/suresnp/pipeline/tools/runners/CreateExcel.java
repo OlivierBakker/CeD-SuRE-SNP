@@ -17,7 +17,6 @@ import nl.umcg.suresnp.pipeline.io.summarystatisticreader.ReferenceDependentSumm
 import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotationRecord;
-import nl.umcg.suresnp.pipeline.records.ensemblrecord.AnnotatedGene;
 import nl.umcg.suresnp.pipeline.records.ensemblrecord.GeneBasedGenomicAnnotation;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.summarystatistic.*;
@@ -25,7 +24,6 @@ import nl.umcg.suresnp.pipeline.tools.parameters.CreateExcelParameters;
 import org.apache.log4j.Logger;
 import org.molgenis.genotype.RandomAccessGenotypeData;
 import org.molgenis.genotype.RandomAccessGenotypeDataReaderFormats;
-import org.molgenis.genotype.annotation.Annotation;
 import org.molgenis.genotype.util.LdCalculatorException;
 import org.molgenis.genotype.variant.GeneticVariant;
 
@@ -138,9 +136,9 @@ public class CreateExcel {
         }
 
         // Variant annotations, currently unaffected by the region filter option
-        Map<String, List<VariantBasedNumericGenomicAnnotation>> variantAnnotations = new HashMap<>();
+        Map<String, List<VariantBasedGenomicAnnotation>> variantAnnotations = new HashMap<>();
         if (params.getVariantAnnotationFiles() != null) {
-            for (VariantBasedNumericGenomicAnnotation curAnnotation : params.getVariantAnnotationFiles()) {
+            for (VariantBasedGenomicAnnotation curAnnotation : params.getVariantAnnotationFiles()) {
                 GenericFile file = curAnnotation.getPath();
 
                 ReferenceDependentSummaryStatisticReader reader = new ReferenceDependentSummaryStatisticReader(file,
@@ -148,14 +146,14 @@ public class CreateExcel {
                         variantCache,
                         true);
 
-                Map<String, VariantBasedNumericGenomicAnnotationRecord> records = new HashMap<>();
+                Map<String, VariantBasedGenomicAnnotationRecord> records = new HashMap<>();
                 String[] header = Arrays.copyOfRange(reader.getHeader(), 1, reader.getHeader().length);
 
-                for (int i = 0; i < header.length; i++) {
-                    header[i] = file.getBaseName() + "_" + header[i];
-                }
+                //for (int i = 0; i < header.length; i++) {
+                 //   header[i] = file.getBaseName() + "_" + header[i];
+                //}
 
-                for (VariantBasedNumericGenomicAnnotationRecord tmp : reader) {
+                for (VariantBasedGenomicAnnotationRecord tmp : reader) {
                     if (tmp != null) {
                         records.put(tmp.getPrimaryVariantId(), tmp);
                     }
@@ -167,7 +165,7 @@ public class CreateExcel {
                 if (variantAnnotations.containsKey(curAnnotation.getGroup())) {
                     variantAnnotations.get(curAnnotation.getGroup()).add(curAnnotation);
                 } else {
-                    List<VariantBasedNumericGenomicAnnotation> annotations = new ArrayList<>();
+                    List<VariantBasedGenomicAnnotation> annotations = new ArrayList<>();
                     annotations.add(curAnnotation);
                     variantAnnotations.put(curAnnotation.getGroup(), annotations);
                 }

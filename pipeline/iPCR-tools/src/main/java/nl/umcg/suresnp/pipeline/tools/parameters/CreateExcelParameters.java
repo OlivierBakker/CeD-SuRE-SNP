@@ -2,7 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.parameters;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.records.bedrecord.GenericGenomicAnnotation;
-import nl.umcg.suresnp.pipeline.records.summarystatistic.VariantBasedNumericGenomicAnnotation;
+import nl.umcg.suresnp.pipeline.records.summarystatistic.VariantBasedGenomicAnnotation;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
@@ -27,7 +27,7 @@ public class CreateExcelParameters {
     private GenericFile regionFilterFile;
     private GenericFile ensemblGenesFile;
 
-    private List<VariantBasedNumericGenomicAnnotation> variantAnnotationFiles;
+    private List<VariantBasedGenomicAnnotation> variantAnnotationFiles;
     private List<GenericGenomicAnnotation> regionAnnotationFiles;
 
     // General arguments
@@ -178,7 +178,7 @@ public class CreateExcelParameters {
                 if (params.length != 2) {
                     throw new IllegalArgumentException("Annotations not provided in proper manner");
                 }
-                variantAnnotationFiles.add(new VariantBasedNumericGenomicAnnotation(new GenericFile(params[1]), params[0]));
+                variantAnnotationFiles.add(new VariantBasedGenomicAnnotation(new GenericFile(params[1]), params[0]));
             }
         }
 
@@ -243,7 +243,7 @@ public class CreateExcelParameters {
         return regionFilterFile;
     }
 
-    public List<VariantBasedNumericGenomicAnnotation> getVariantAnnotationFiles() {
+    public List<VariantBasedGenomicAnnotation> getVariantAnnotationFiles() {
         return variantAnnotationFiles;
     }
 

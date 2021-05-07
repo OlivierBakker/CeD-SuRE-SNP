@@ -1,0 +1,158 @@
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(BEDMatrix)
+sure <- as.matrix(BEDMatrix("~/Documents/data/sure/sure_gsa/verify_genotypes/SuRE_samples.bed"))
+trynka <- as.matrix(BEDMatrix("~/Documents/data/sure/sure_gsa/verify_genotypes/Trynka.bed"))
+
+olsnp <- intersect(colnames(sure), colnames(trynka))
+
+trynka <- trynka[rownames(sure), olsnp]
+sure <- sure[,olsnp]
+
+source("~/Dropbox/integration_analysis/Code/UtillityScripts/PlottingFunctions.r")
+```
+
+### Verify the order
+```{r}
+sum(colnames(sure) == colnames(trynka))
+sum(rownames(sure) == rownames(trynka))
+```
+
+### Function definitions
+```{r}
+af_dosg2 <- function(row){
+     a1_count = 2* sum(row == 2, na.rm=T) + sum(row ==1, na.rm=T)
+     return(a1_count / (2*sum(!is.na(row))))
+}
+```
+
+### Calculate allele frequencies
+```{r}
+af2.sure <- apply(sure, 2, af_dosg2)
+af2.trynka <- apply(round(trynka), 2, af_dosg2)
+
+#theme.nature(plot.lm(af2.sure, af2.trynka) + geom_hex())
+
+afs <- as.data.frame(cbind(af2.sure, af2.trynka))
+
+theme.nature(ggplot(aes(x=af2.sure, y=af2.trynka), data=afs) +
+    geom_hex(aes(fill=log10(..count..))) +
+    geom_smooth(method=lm, color="yellow") +
+    geom_abline(intercept=0,
+                slope=1,
+                linetype=2,
+                colour="lightgreen"))
+
+```
+
+### Calculate match rates
+```{r}
+
+proportions <- apply(round(trynka), 1, function(geno.trynka){apply(sure, 1, function(geno.sure){sum(geno.trynka == geno.sure)/ncol(sure)})})
+
+break.list <- seq(0, 100, by=1)
+pheatmap(proportions*100,
+           breaks=break.list,
+           col=colorRampPalette(brewer.pal(n=7, name ="Reds"))(length(break.list)),
+           cellwidth=10,
+           cellheight=10,
+         cluster_rows=F,
+         cluster_cols=F)
+```
+
+### PCA
+```{r}
+pc <- prcomp(rbind(sure, trynka))
+
+
+pca.plot(pc, fill=c(rep("sure", 39), rep("trynka", 39)))
+```
+
+### Correlation on sample level
+```{r}
+sample.cor <- apply(sure, 1, function(a){apply(trynka, 1, function(b){cor(a, b)})})
+
+break.list <- seq(0, 1, by=0.1)
+pheatmap(sample.cor,
+           breaks=break.list,
+           col=colorRampPalette(brewer.pal(n=7, name ="Reds"))(length(break.list)),
+           cellwidth=10,
+           cellheight=10,
+         cluster_rows=F,
+         cluster_cols=F)
+```
+
+### GRM
+```{r}
+# R script to read the GRM binary file
+ReadGRMBin=function(prefix, AllN=F, size=4){
+  sum_i=function(i){
+    return(sum(1:i))
+  }
+  BinFileName=paste(prefix,".grm.bin",sep="")
+  NFileName=paste(prefix,".grm.N.bin",sep="")
+  IDFileName=paste(prefix,".grm.id",sep="")
+  id = read.table(IDFileName)
+  n=dim(id)[1]
+  BinFile=file(BinFileName, "rb");
+  grm=readBin(BinFile, n=n*(n+1)/2, what=numeric(0), size=size)
+  NFile=file(NFileName, "rb");
+  if(AllN==T){
+    N=readBin(NFile, n=n*(n+1)/2, what=numeric(0), size=size)
+  }
+  else N=readBin(NFile, n=1, what=numeric(0), size=size)
+  i=sapply(1:n, sum_i)
+  return(list(diag=grm[i], off=grm[-i], id=id, N=N))
+}
+
+grm.bin <- ReadGRMBin("~/Documents/tmp/wd_sure/validation_gsa/TrynkaSureMerged")
+
+grm <- read.table("~/Documents/tmp/wd_sure/validation_gsa/TrynkaSureMergedNotImputed.grm", stringsAsFactors = F, header=F)
+grm.id <- read.table("~/Documents/tmp/wd_sure/validation_gsa/TrynkaSureMergedNotImputed.grm.id", stringsAsFactors = F, header=F)
+
+grm <- read.table("~/Documents/tmp/wd_sure/validation_gsa/TrynkaSureMerged.grm", stringsAsFactors = F, header=F)
+grm.id <- read.table("~/Documents/tmp/wd_sure/validation_gsa/TrynkaSureMerged.grm", stringsAsFactors = F, header=F)
+
+order <- order(grm$V2)
+
+grm <- grm[order,]
+
+tt <- matrix(ncol=78, nrow=78)
+tt[lower.tri(tt, diag=T)] <- grm$V4
+rownames(tt) <- grm.id[,2]
+colnames(tt) <- grm.id[,2]
+
+
+break.list <- seq(0, 1.5, by=0.1)
+pheatmap(tt,
+         cluster_rows=F,
+         cluster_cols=F,
+         col=colorRampPalette(brewer.pal(n=7, name ="Reds"))(length(break.list)))
+```
+
+### Figure out what samples the missing ones are
+```{r}
+library(data.table)
+
+grm <- fread("~/Documents/tmp/wd_sure/validation_gsa/WrongSamplesOnly.grm",  data.table=F, stringsAsFactors = F, header=F)
+grm.id <- fread("~/Documents/tmp/wd_sure/validation_gsa/TrynkaSureMergedAllSamples.grm.id", data.table=F, stringsAsFactors = F, header=F)
+
+order <- order(grm$V2)
+
+grm <- grm[order,]
+
+tt <- matrix(ncol=23240, nrow=4)
+
+tt[lower.tri(tt, diag=T)] <- grm$V4
+rownames(tt) <- grm.id[,2]
+colnames(tt) <- grm.id[,2]
+
+
+tt <- tt[rownames(tt) %in% c("sure_208-3820", "sure_208-3840", "sure_208-3949", "sure_208-4018"),]
+
+
+```
+
+
+

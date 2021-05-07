@@ -1,0 +1,129 @@
+```{r}
+library(data.table)
+
+#snps <- fread("~/Documents/tmp/wd_sure/snp_positions/1000G_phase3_celiac_regions.vcf",data.table = F)
+snps <- fread("~/Documents/tmp/wd_sure/snp_positions/chrAll_celiac_regions_EUR_filtered_no_indels_no_genotypes.vcf",data.table = F)
+
+regions <- fread("~/Documents/tmp/wd_sure/snp_positions/celiac_regions.bed", data.table = F)
+
+rg <- lapply(1:nrow(regions), function(region){
+    tmp <- snps[snps$V1 == regions[region, 1],]
+    tmp <- tmp[tmp$V2 >= as.numeric(regions[region, 2]) & tmp$V2 <= as.numeric(regions[region, 3]), ]
+    cat("[INFO] ",region, " nsnp:", nrow(tmp), "\n")
+    tmp$region <- rep(region, nrow(tmp))
+    return(tmp)
+})
+
+rg <- do.call(rbind, rg)
+```
+
+### How many snps are located in each fragment
+```{r}
+fragment.cov  <- 100
+fragment.size <- 300
+
+tt <- sapply(1:26, function(region){
+    cur.reg     <<- rg[rg$region == region,]
+    start       <- regions[region,2]
+    end         <- regions[region,3]
+    region.size <<- end - start
+    read.count  <<- round((region.size / fragment.size) * fragment.cov)
+    reads       <<- sample((start+round(fragment.size/2)):(end-round(fragment.size/2)), read.count)
+    
+    snp.count <<- sapply(reads, function(read){
+        sum(cur.reg$V2 >= (read - round(fragment.size/2)) & cur.reg$V2 <= (read + round(fragment.size/2)))
+    })
+    
+    hist(snp.count, breaks=100)
+})
+
+br <- seq(min(reads)-fragment.size, max(reads)+fragment.size, by=300)
+hist(reads, breaks=br)
+
+
+#snp.count[snp.count ==0] <- -10
+barplot(snp.count)
+abline(h=0, col="blue")
+hist(snp.count, breaks=100)
+```
+
+### How many snps are located in each fragment given 150bp paired end seq
+```{r}
+par(mfrow=c(1,1))
+fragment.cov  <- 100
+fragment.size <- 300
+f.insert     <- 100
+r.insert     <- 50
+
+tt <- sapply(1:1, function(region){
+    cur.reg     <- rg[rg$region == region,]
+    start       <- regions[region,2]
+    end         <- regions[region,3]
+    region.size <- end - start
+    read.count  <- round((region.size / fragment.size) * fragment.cov)
+    reads       <<- sample((start+round(fragment.size/2)):(end-round(fragment.size/2)), read.count)
+    
+    snp.count <<- sapply(reads, function(read){
+        sum(cur.reg$V2 >= (read - round(fragment.size/2)) & cur.reg$V2 <= (read + round(fragment.size/2)))
+    })
+    
+    not.seq <<- sapply(reads, function(read){
+        sum(cur.reg$V2 > ((read - round(fragment.size/2)) + f.insert) & cur.reg$V2 < ((read + round(fragment.size/2)) - r.insert))
+    })
+})
+
+br <- seq(min(reads)-fragment.size, max(reads)+fragment.size, by=300)
+#hist(reads, breaks=br)
+
+#hist(snp.count, breaks=100)
+#hist(not.seq, breaks=100)
+
+prop <- not.seq[snp.count !=0]/snp.count[snp.count!=0]
+
+hist(prop, breaks=100, main=paste0("Fragment size: ", fragment.size - (f.insert+r.insert)))
+1#hist(not.seq/(snp.count+0.000000001), breaks=100)
+
+```
+
+### How many snps are located in each fragment given various fragment lengths
+```{r}
+par(mfrow=c(1,6))
+fragment.cov  <- 100
+fragment.size <- 300
+f.insert     <- 100
+r.insert     <- 100
+
+for (s in c(0, 25, 50, 100, 125, 150)) {
+    
+    f.insert     <- s
+    r.insert     <- s
+    tt <- sapply(1:1, function(region){
+        cur.reg     <- rg[rg$region == region,]
+        start       <- regions[region,2]
+        end         <- regions[region,3]
+        region.size <- end - start
+        read.count  <- round((region.size / fragment.size) * fragment.cov)
+        reads       <<- sample((start+round(fragment.size/2)):(end-round(fragment.size/2)), read.count)
+        
+        snp.count <<- sapply(reads, function(read){
+            sum(cur.reg$V2 >= (read - round(fragment.size/2)) & cur.reg$V2 <= (read + round(fragment.size/2)))
+        })
+        
+        not.seq <<- sapply(reads, function(read){
+            sum(cur.reg$V2 > ((read - round(fragment.size/2)) + f.insert) & cur.reg$V2 < ((read + round(fragment.size/2)) - r.insert))
+        })
+    })
+    
+    br <- seq(min(reads)-fragment.size, max(reads)+fragment.size, by=300)
+    #hist(reads, breaks=br)
+    
+    #hist(snp.count, breaks=100)
+    #hist(not.seq, breaks=100)
+    
+    prop <- not.seq[snp.count !=0]/snp.count[snp.count!=0]
+    
+    hist(prop, ylim=c(0, 40000), breaks=100, main=paste0("Fragment size: ", fragment.size - (f.insert+r.insert)))
+    #hist(not.seq/(snp.count+0.000000001), breaks=100)
+}
+```
+

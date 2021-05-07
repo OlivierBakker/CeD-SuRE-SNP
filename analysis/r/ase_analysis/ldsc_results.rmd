@@ -1,0 +1,33 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
+
+source("../sure-snp_functions.r")
+
+ldsc.res <- read.table("data/ldsc_results_ponce.tsv", stringsAsFactors = F, header=T)
+
+# ldsc_annotations/baseline_ldscores_immunochip_ponce,ldsc_annotations/C,ldsc_annotations/Cs,ldsc_annotations/J,ldsc_annotations/Js,ldsc_annotations/K
+ldsc.res$celltype <- c("Baseline", "caco-2", "caco-2-stim", "jurkat", "jurkat-stim", "k562")
+ldsc.res <- ldsc.res[-1,]
+```
+
+```{r}
+
+p1 <- ggplot(data=ldsc.res, mapping=aes(x=celltype,
+                                        y=Enrichment,
+                                        fill=celltype,
+                                        ymin=Enrichment - Enrichment_std_error,
+                                        ymax=Enrichment + Enrichment_std_error,
+                                        label=sapply(Enrichment_p, convert.pvalue.to.dits))) +
+  geom_col() +
+  scale_fill_manual(values=sure.palette$celltype_stim) +
+  geom_errorbar(width=0.5, col="#cfcccc") +
+  geom_point(col="#cfcccc") +
+  geom_text(mapping=aes(y=Enrichment + Enrichment_std_error),
+            nudge_y=2) +
+  ylab("% heritability / % SNPs") +
+  xlab("") 
+
+theme.plain(p1) + theme(legend.position="none", axis.text.x = element_text(angle=45, hjust=1))
+
+```
+

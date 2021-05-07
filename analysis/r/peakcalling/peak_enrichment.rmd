@@ -22,19 +22,6 @@ for (file in list.files(path, pattern="*.nulldist")) {
   
   null.dists[[celltype]] <- read.table(paste0(path, file), stringsAsFactors = F, header=T)
 }
-
-
-convert.pvalue.to.dits <- function(x) {
-  if (x > 0.05) {
-    return("")
-  } else if (x < 5e-4) {
-    return("***")
-  } else if (x < 5e-3) {
-    return("**")
-  } else if (x < 5e-2) {
-    return("*")
-  }
-}
 ```
 
 # Histogram plots

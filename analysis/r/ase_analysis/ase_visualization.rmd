@@ -1,184 +1,291 @@
 ```{r}
-setwd("ase_analysis/")
+if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
 
 library(MASS)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(Gviz)
 library(data.table)
+library(readxl)
+library(ggrepel)
 
 source("../sure-snp_functions.r")
 
-k562         <- read.ase.results("output/summary_statistics/k562_ase_wilcox_overlapped_with_peaks_x3.assoc")
-caco         <- read.ase.results("output/summary_statistics/caco_ase_wilcox_overlapped_with_peaks_x3.assoc")
-caco.stim    <- read.ase.results("output/summary_statistics/cacoStim_ase_wilcox_overlapped_with_peaks_x3.assoc")
+read.ase.from.excel <- function(path, sheet) {
+  cur         <- read_xlsx("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet=sheet)
+  
+  # Filter duplicates
+  #cur         <- cur[!duplicated(cur[,2]), 1:16]
+  
+  # Filter SNPs not in a peak
+  cur         <- cur[!is.na(cur$name), 1:16]
+  
+  # Filter non-called SNPs
+  cur         <- cur[!is.na(cur[,10]), 1:16]
+    
+  # Filter non-tested SNPs
+  cur         <- cur[cur[,10] != 1, 1:16]
 
-raw.ase.data <- fread("zcat data/SuRE_CeD_SNP.minimal.allele.specific.ipcr.gz", header=F, sep="\t") 
-snps         <- as.character(fread("../../variant_calling/output/unique_snps.txt", data.table=F, sep="\t", header=F)[,1])
-```
+  cur         <- as.data.frame(cur, stringsAsFactors=F)
+  
+  rownames(cur) <- cur[,2]
+  return(cur)
 
-# ASE effect plot
-```{r}
-target.snps <- c("rs12785262", "rs569770", "rs10892260", "rs12803363", "rs11216969", "rs6589677", "rs11072502", "rs11072504", "rs11072505", "rs11072506", "rs12903896", "rs11857376", "rs2301249", "rs140496", "rs140490", "rs2298429", "rs2888524", "rs2888523", "rs55763051", "rs116108798", "rs9277334", "rs60461436", "rs59423236", "rs56348503", "rs114620642", "rs73738027", "rs73738026", "rs73738024", "rs80087810", "rs55950816", "rs59342333", "rs11854147", "rs117825643", "rs10892260")
-
-target.snps <- c("rs9295089", "rs2451279", "rs785847","rs3120630")
-target.snps <- c("rs71327063")
-
-#pdf(width=11, height=3.5, file="output/plots/sure_snp_luciferase_target_region_ase.pdf")
-for (snp in target.snps) {
-# Caco snps
-sample <- "Caco2"
-snp    <- "rs140496"
-p1     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
-                              cols=c("mediumblue", "mediumblue"), col="white") +
-  theme(legend.position = "none")
-
-sample <- "CacoStim"
-p2     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
-                              cols=c("skyblue2", "skyblue2"), col="white") +
-  theme(legend.position = "none")
-
-sample <- "k562"
-p3     <- plot.ase.normalized(get.snp.data(raw.ase.data, snp, sample),
-                              cols=c("red", "red"), col="white") +
-  theme(legend.position = "none")
-
-grid.arrange(grobs=list(p3, p1, p2), ncol=3)
 }
-#dev.off()
+
+K562          <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="K562")
+Caco2         <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Caco2")
+Caco2Stim     <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Caco2Stim")
+Jurkat        <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Jurkat")
+JurkatStim    <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="JurkatStim")
+
+#raw.ase.data  <- fread("zcat data/SuRE_CeD_snps_indels_per_strand.minimal.ipcr.gz", header=F, sep="\t") 
+snps          <- as.character(fread("data/unique_snps_indels_full.txt", data.table=F, sep="\t", header=F)[,1])
+
+
+#ponce.b37     <- read.table("../variant_evaluation/data/sumstats/ponce_summary_stats_b37.txt", header=T, stringsAsFactors = F)
+#rownames(ponce.b37) <- ponce.b37$rsId37
+
+
+# Same as the stats used but excludes HLA region
+ponce.b37     <- read.table("../variant_evaluation/data/sumstats/Meta.PL.IT.IR.SP.UK.AR1.AR2.NL.2017.meta_correct_header.liftover", header=T, stringsAsFactors = F)
+rownames(ponce.b37) <- make.names(ponce.b37$SNP, unique=T)
+ponce.b37$P <- ponce.b37$p_value
 ```
 
-# Prep data
+# Load selection /eqtl data
 ```{r}
-rm(raw.ase.data)
-cur.snp.data       <- read.full.ase("data/rs140496/")
+# IHS data
+ihs           <- fread("data/CEU.ihs.norm")
+ihs           <- ihs[rsid %in% snps,]
+ihs           <- as.data.frame(ihs, stringsAsFactors=F)
+rownames(ihs) <- ihs$rsid
 
-cur.snp.data       <- read.full.ase("data/rs9259131/")
-cur.ipcr           <- read.full.ipcr("data/rs9259131/")
+# FST data
+avail.pos <- rbind(K562[,c(3,4,2)], Caco2[,c(3,4,2)], Caco2Stim[,c(3,4,2)], Jurkat[,c(3,4,2)], JurkatStim[,c(3,4,2)])
+avail.pos <- unique(avail.pos)
+avail.pos$link <- paste0("X", avail.pos[,1], ".", avail.pos[,2])
+rownames(avail.pos) <- avail.pos$link
 
-cur.samples        <- grep("C_",colnames(cur.snp.data), value=T)
-
-cur.snp.data$total <-  apply(cur.snp.data[,cur.samples],1, sum)
-cur.ipcr$total     <-  apply(cur.ipcr[,cur.samples],1, sum)
-
-cur.snp.data[cur.snp.data$total == 0 | cur.snp.data$total > 1000, "total"] <- NA
-
-cur.snp.data                            <- cur.snp.data[!is.na(cur.snp.data$total),]
-cur.snp.data$norm                       <- log2((cur.snp.data$total) / cur.snp.data$ipcrCount)
-cur.snp.data$norm[cur.snp.data$norm == -Inf]   <- NA
-
-
-cur.snp.ranges <- GRanges(seqnames=cur.snp.data$sequence,
-                          strand=cur.snp.data$strand,
-                          ranges=IRanges(start=cur.snp.data$alignmentStart,
-                                         end=cur.snp.data$alignmentEnd),
-                          norm=cur.snp.data$norm,
-                          total=cur.snp.data$total,
-                          allele=cur.snp.data$alleleInRead,
-                          snppos=cur.snp.data$variantStartInRead,
-                          ipcrCount=cur.snp.data$ipcrCount)
-
-cur.ipcr <- GRanges(seqnames=cur.ipcr$chromosome,
-                          ranges=IRanges(start=cur.ipcr$readOneStart,
-                                         end=cur.ipcr$readOneEnd),
-                          total=cur.ipcr$total,
-                          ipcrCount=cur.ipcr$ipcrCount)
+i <- 0
+for (f in list.files("data/CEU2CHB/", full.names = T)) {
+  cur <- fread(f, data.table=F)
+  cur <- cur[cur[,3] != "NaN",]
+  rownames(cur) <- make.names(paste0(cur[,1], ".", cur[,2]), unique=T)
+  cur <- cur[rownames(cur) %in% avail.pos$link,]
   
-chr  <- cur.snp.data$sequence[1]
-from <- min(cur.snp.data$alignmentStart) - 10000
-to   <- max(cur.snp.data$alignmentEnd) + 10000
-snppos <- cur.snp.data[1,]$variantStart
-
-# Reference tracks, just need to be made once
-seqTrack  <- SequenceTrack(Hsapiens)
-genTrack  <- GenomeAxisTrack()
-ideTrack  <- IdeogramTrack(genome = "hg19", chromosome = chr, from=from, to=to)
-knownGenes <- UcscTrack(genome = "hg19", chromosome = chr, 
-                        track = "knownGene", from = from, to = to, assembly="hg19",
-                        trackType = "GeneRegionTrack", 
-                        rstarts = "exonStarts", rends = "exonEnds", 
-                        gene = "name", symbol = "name", 
-                        transcript = "name", 
-                        fill = "#8282d2", name = "UCSC Genes")
-
-# Only needs to be made once
-cov <- make.coverage.track(cur.snp.ranges, chr=chr)
-cov2 <- make.coverage.track(cur.ipcr, chr=chr)
-
-```
-
-# Prep annotationt tracks
-```{r}
-# BAM based
-folder <- "data/reference_tracks/caco2/"
-files <- list.files(folder, pattern="*.bam$")
-
-bamFiles <- sapply(files, function(file.name){
-  file <- paste0(folder, "/", file.name)
-  
-  if (!file.exists(paste0(file, ".bai"))) {
-    cat("[INFO] No index found for BAM, indexing\n")
-    indexBam(file)
-  }
-  
-  tmp <- AlignmentsTrack(file, type="coverage", name=gsub("\\.bam", "", file.name))
-  return(tmp)
-})
-```
-
-```{r}
-cols <- cur.snp.data$strand
-cols[cols=="+"] <- "blue"
-cols[cols=="-"] <- "red"
-
-tmp <- fread("data/reference_tracks/caco2/SuRE_CeD_Cs_B1_vs_B2_x3.bed", data.table=F)
-
-surePeaks <- AnnotationTrack(start=tmp[,2], end=tmp[,3], chr=tmp[,1], name="CoreMarks")
-
-coreMarks <- AnnotationTrack("data/reference_tracks/caco2/E109_15_coreMarks_mnemonics.bed.gz", name="CoreMarks")
-algTrack  <- AlignmentsTrack(cur.snp.ranges, max.height=1, coverageHeight = 0.08)
-srcTrack  <- DataTrack(start = cur.snp.data$alignmentStart, width=1, chromosome = chr, name = "SuRE-score", type=c("p","smooth"), genome="hg19", data=cur.snp.data$norm, strand="+", col=cols)
-peakTrack <- DataTrack(cov, name = "Count density", type=c("histogram"), genome="hg19", strand="+", data=cov$score)
-peakTrackFull <- DataTrack(cov2, name = "Count density", type=c("histogram"), genome="hg19", strand="+", data=cov2$score)
-
-
-tracks <- c(ideTrack, genTrack, knownGenes, srcTrack, peakTrackFull, peakTrack, surePeaks, coreMarks, bamFiles, seqTrack)
-tracks <- HighlightTrack(trackList=tracks, start=snppos-1, width=1, chromosome=chr)
-
-pdf(width=10, height=15, file="output/plots/testrack.pdf")
-plotTracks(tracks, from=from, to=to, sizes=c(0.2, 0.2, 0.5, 1,1,1,1,1,rep(1, length(bamFiles)),0.1))
-dev.off()
-```
-
-
-# Test chiSqr for zeroes
-```{r}
-x <- raw.ase.data
-snp <- "rs140496"
-# Run in parallel
-out <- mclapply(k562.active$SNP, function(snp) {
-  cur.x                            <- as.data.frame(x[ V2 == snp ])
-  cur.x$total                      <- cur.x$V16 + cur.x$V17 + cur.x$V18 + cur.x$V19
-
-  cur.x <- cur.x[cur.x$total == 0,]
-
-  if (length(table(cur.x$V6)) == 2) {
-    cur.tab <- table(cur.x$V6)
-    
-    a1 <- sum(cur.x[cur.x$V6 == names(cur.tab)[1],"V7"])
-    a2 <- sum(cur.x[cur.x$V6 == names(cur.tab)[2],"V7"])
-
-    mat <- matrix(c(cur.tab[1], a1, cur.tab[2], a2), ncol=2, byrow=T)
-    
-    return(fisher.test(mat)$p.value)
+  if (i == 0) {
+    fst <- cur
   } else {
-    return(1)
+    fst <- rbind(fst, cur)
   }
-    
-}, mc.cores=4)
 
-pvals <- unlist(out)
-pvals <- pvals[pvals < 0.99999999999 ]
-fancy.qq.plot(pvals)
-hist(pvals, breaks=40)
+  i <- i + 1
+}
+
+rownames(fst) <- avail.pos[rownames(fst), "variant_id"]
+
+
+# Eqtlgen 
+eqtl <- fread("~/Documents/data/eqtlgen/2019-12-11-cis-eQTLsFDR0.05-ProbeLevel-CohortInfoRemoved-BonferroniAdded.txt.gz")
+eqtl <- eqtl[SNP %in% snps]
+eqtl <- as.data.frame(eqtl, stringsAsFactors=F)
+```
+
+# QQplot: Dataprep
+```{r}
+df.plot <- data.frame(pvals = c(K562$K562_P,
+                                Caco2$Caco2_P,
+                                Caco2Stim$Caco2Stim_P,
+                                Jurkat$Jurkat_P,
+                                JurkatStim$JurkatStim_P),
+                      pvals.ponce = c(K562$ponce_P,
+                                Caco2$ponce_P,
+                                Caco2Stim$ponce_P,
+                                Jurkat$ponce_P,
+                                JurkatStim$ponce_P),
+                      celltype = c(rep("k562", nrow(K562)),
+                                   rep("caco-2", nrow(Caco2)),
+                                   rep("caco-2-stim", nrow(Caco2Stim)),
+                                   rep("jurkat", nrow(Jurkat)),
+                                   rep("jurkat-stim", nrow(JurkatStim))),
+                      snps = c(K562$variant_id,
+                               Caco2$variant_id,
+                               Caco2Stim$variant_id,
+                               Jurkat$variant_id,
+                               JurkatStim$variant_id),
+                      stringsAsFactors = F
+                      )
+```
+
+# QQplot: Enrichment of overlapping SNPs
+```{r}
+# Remove untested SNPs
+df.plot <- df.plot[df.plot$pvals != 1, ]
+
+# Sort by pvalue
+df.plot <- df.plot[order(df.plot$celltype, df.plot$pvals),]
+
+# Add expected pvals
+expected.pvals <- c()
+for (ct in unique(df.plot$celltype)) {
+  cur.rows <- sum(df.plot$celltype == ct)
+  expected.pvals <- c(expected.pvals, 1:cur.rows / cur.rows)
+}
+
+df.plot$expected <- expected.pvals
+
+# -log10
+df.plot$pvals    <- -log10(df.plot$pvals)
+df.plot$expected <- -log10(df.plot$expected)
+
+df.plot$label                    <- df.plot$snps
+df.plot$label[df.plot$pvals < 4] <- NA
+
+# plot
+p1 <- ggplot(data=df.plot, mapping=aes(x=expected,
+                                       y=pvals,
+                                       color=celltype,
+                                       label=label)) + 
+  geom_abline(slope=1, intercept = 0, col="grey") +
+  geom_point(alpha=0.5) +
+  xlab("-log10(expected p-value)") +
+  ylab("-log10(observed p-value)") +
+  coord_fixed() +
+  xlim(c(0, 8)) +
+  scale_colour_manual(values=sure.palette$celltype_stim) +
+  geom_text_repel()
+  
+theme.plain(p1) + theme(legend.position = "none")
+```
+
+# QQplot: ASE effects
+```{r}
+# Sort by pvalue
+df.plot <- df.plot[order(df.plot$celltype, df.plot$pvals.ponce),]
+
+# Add expected pvals
+expected.pvals <- c()
+ponce.b37 <- ponce.b37[order(ponce.b37$P),]
+
+for (ct in unique(df.plot$celltype)) {
+  cur.rows <- sum(df.plot$celltype == ct)
+  #expected.pvals <- c(expected.pvals, 1:cur.rows / cur.rows)
+  expected.pvals <- c(expected.pvals, ponce.b37[seq(from=1, to=nrow(ponce.b37), length.out = cur.rows), "P"])
+}
+
+df.plot$expected <- expected.pvals
+
+# -log10
+df.plot$pvals    <- -log10(df.plot$pvals.ponce)
+df.plot$expected <- -log10(df.plot$expected)
+df.plot          <- df.plot[!is.na(df.plot$pvals),]
+df.plot[df.plot$pvals > 30, "pvals"] <- 30 
+df.plot[df.plot$expected > 30, "expected"] <- 30 
+
+
+df.plot$label                    <- df.plot$snps
+df.plot$label[df.plot$pvals < 4] <- NA
+
+# Test for uniformity of pvalues
+#ks.test(df.plot[df.plot$celltype == "k562","pvals"], "punif", 0, 1)
+#ct <- "jurkat-stim"
+#ks.test(df.plot[df.plot$celltype == ct,"pvals"], df.plot[df.plot$celltype == ct,"expected"])
+
+# plot
+p2 <- ggplot(data=df.plot, mapping=aes(x=expected,
+                                       y=pvals,
+                                       color=celltype,
+                                       label=label)) + 
+  geom_abline(slope=1, intercept = 0, col="grey") +
+  geom_point(alpha=0.5) +
+  xlab("-log10(expected CeD GWAS p-value)") +
+  ylab("-log10(observed CeD GWAS p-value)") +
+  scale_colour_manual(values=sure.palette$celltype_stim) +
+  geom_line(alpha=0.2) +
+  geom_text(data=data.frame(x=c(25, 25, 25, 25, 25),
+                            y=c(10, 8, 6, 4, 2),
+                            label=c("p < 2.2e-16", "p=1.211e-09", "p=1.999e-11", "p=1.974e-06", "p=2.176e-05"),
+                            celltype=c("k562", "caco-2", "caco-2-stim", "jurkat", "jurkat-stim")),
+            mapping=aes(x=x, y=y, label=label, col=celltype))
+
+theme.plain(p2) + theme(legend.position = "none")
+```
+
+# Barplot of SNPs overlapping peaks & ASE
+```{r}
+tmp   <- data.frame(nsnps=c(nrow(Caco2),
+                              nrow(Caco2Stim),
+                              nrow(Jurkat),
+                              nrow(JurkatStim),
+                              nrow(K562)),
+                      celltype = c("caco-2",
+                                   "caco-2-stim",
+                                   "jurkat",
+                                   "jurkat-stim",
+                                   "k562"),
+                      nase=c(sum(Caco2$Caco2_P < 0.05),
+                             sum(Caco2Stim$Caco2Stim_P <0.05),
+                             sum(Jurkat$Jurkat_P <0.05),
+                             sum(JurkatStim$JurkatStim_P < 0.05),
+                             sum(K562$K562_P < 0.05)),
+                    stringsAsFactors = F)
+
+df.plot <- data.frame(counts=c(tmp$nsnps - tmp$nase, tmp$nase),
+                      celltype=c(tmp$celltype, tmp$celltype),
+                      type=c(rep("no", 5), rep("yes", 5)),
+                      stringsAsFactors = F)
+
+df.plot$type <- factor(df.plot$type, levels=c("yes", "no"))
+
+p1 <- ggplot(data=df.plot, mapping=aes(x=celltype,
+                                       y=counts,
+                                       fill=type)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=c(`no`="#034e7b", `yes`="#a6bddb"), name="Has ASE\neffect") +
+  ylab("# overlapping variants") +
+  xlab("")
+
+
+theme.plain(p1) + theme(axis.text.x = element_text(angle=45, hjust=1))
+```
+
+
+
+
+# Deprecated
+# ASE vs eQTL
+```{r}
+max.pvals <- sapply(unique(df.plot$snps), function(x){
+  return(max(df.plot[df.plot$snps == x, "pvals"]))
+})
+names(max.pvals) <- unique(df.plot$snps)
+
+max.eqtl.zscore <- sapply(unique(eqtl$SNP), function(x){
+  return(max(abs(eqtl[eqtl$SNP == x, "Zscore"])))
+})
+names(max.eqtl.zscore) <- unique(eqtl$SNP)
+
+
+par(mfrow=c(1,1))
+ol <- intersect(names(max.pvals), names(max.eqtl.zscore))
+cor(max.pvals[ol], max.eqtl.zscore[ol])
+plot(max.pvals[ol], max.eqtl.zscore[ol], ylab="Max eQTL zscore", xlab="Max -log10(SuRE-pvalue)")
+```
+
+# ASE vs selective pressure
+```{r}
+par(mfrow=c(1,2))
+max.pvals <- sapply(unique(df.plot$snps), function(x){
+  return(max(df.plot[df.plot$snps == x, "pvals"]))
+})
+names(max.pvals) <- unique(df.plot$snps)
+
+# IHS
+ol <- intersect(names(max.pvals), rownames(ihs))
+plot(max.pvals[ol], ihs[ol,]$standarizediHS, ylab="Integrated haplotype score (iHS)", xlab="Max -log10(SuRE-pvalue)")
+
+# FST
+ol <- intersect(names(max.pvals), rownames(fst))
+plot(max.pvals[ol], fst[ol,]$WEIR_AND_COCKERHAM_FST, ylab="Fixation index (FST)", xlab="Max -log10(SuRE-pvalue)")
 ```
 

@@ -1,0 +1,68 @@
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(gridExtra)
+
+source("~/Dropbox/integration_analysis/Code/UtillityScripts/PlottingFunctions.r")
+source("~/Dropbox/SuRE_analysis/Code/count_analysis/PrepCounts.r")
+```
+
+### Correlation between replicates
+```{r}
+# Correlation between technical replicates
+pdf(width=5, height=5, file="output/plots/CorTrepSurePilot.pdf")
+sapply(c(1,2), function(a){
+  plot(theme.nature(plot.lm(cDNA[,paste0("J_Stim_B", a, "_T1")], cDNA[,paste0("J_Stim_B", a, "_T2")],
+                            ylab=paste0("Jurkat_stim_B", a, "_T2"),
+                            xlab=paste0("Jurkat_stim_B", a, "_T1"))))
+  plot(theme.nature(plot.lm(cDNA[,paste0("Jurkat_B", a, "_T1")], cDNA[,paste0("Jurkat_B", a, "_T2")],
+                            ylab=paste0("Jurkat_B", a, "_T2"),
+                            xlab=paste0("Jurkat_B", a, "_T1"))))
+  plot(theme.nature(plot.lm(cDNA[,paste0("K562_B", a+1, "_T1")], cDNA[,paste0("K562_B", a+1, "_T2")],
+                            ylab=paste0("K562_B", a+1, "_T2"),
+                            xlab=paste0("K562_B", a+1, "_T1"))))
+})
+dev.off()
+
+# Correlation between biological replicates
+pdf(width=10, height=6.66, file="output/plots/CorBrepSurePilotLog2.pdf")
+plots <- lapply(c(1,2), function(a){
+  p1 <- theme.nature(plot.lm(log2(cDNA[,paste0("J_Stim_B1_T", a)]), log2(cDNA[,paste0("J_Stim_B2_T", a)]),
+                             ylab=paste0("Jurkat_stim_B1_T", a),
+                             xlab=paste0("Jurkat_stim_B2_T", a))) + theme(plot.title = element_text(hjust = 0.5))
+  p2 <- theme.nature(plot.lm(log2(cDNA[,paste0("Jurkat_B1_T", a)]), log2(cDNA[,paste0("Jurkat_B2_T", a)]),
+                             ylab=paste0("Jurkat_B1_T", a),
+                             xlab=paste0("Jurkat_B2_T", a))) + theme(plot.title = element_text(hjust = 0.5))
+  p3 <- theme.nature(plot.lm(log2(cDNA[,paste0("K562_B2_T", a)]), log2(cDNA[,paste0("K562_B3_T", a)]),
+                             ylab=paste0("K562_B2_T", a),
+                             xlab=paste0("K562_B3_T", a))) + theme(plot.title = element_text(hjust = 0.5))
+  return(list(p1, p2, p3))
+})
+plots <- c(plots[[1]], plots[[2]])
+grid.arrange(grobs=plots, layout_matrix=matrix(c(1,2,3,4,5,6), nrow=2, byrow=T))
+dev.off()
+```
+
+### Correlation between biological replicates after iPCR QC
+```{r}
+ol <- intersect(unique(iPCR.filtered$barcode), rownames(cDNA))
+cDNA.filtered <- cDNA[ol,]
+
+pdf(width=10, height=6.66, file="output/plots/CorBrepSurePilotFilteredLog2.pdf")
+
+plots <- lapply(c(1,2), function(a){
+  p1 <- theme.nature(plot.lm(log2(cDNA.filtered[,paste0("J_Stim_B1_T", a)]), log2(cDNA.filtered[,paste0("J_Stim_B2_T", a)]),
+                             ylab=paste0("Jurkat_stim_B1_T", a),
+                             xlab=paste0("Jurkat_stim_B2_T", a))) + theme(plot.title = element_text(hjust = 0.5))
+  p2 <- theme.nature(plot.lm(log2(cDNA.filtered[,paste0("Jurkat_B1_T", a)]), log2(cDNA.filtered[,paste0("Jurkat_B2_T", a)]),
+                             ylab=paste0("Jurkat_B1_T", a),
+                             xlab=paste0("Jurkat_B2_T", a))) + theme(plot.title = element_text(hjust = 0.5))
+  p3 <- theme.nature(plot.lm(log2(cDNA.filtered[,paste0("K562_B2_T", a)]), log2(cDNA.filtered[,paste0("K562_B3_T", a)]),
+                             ylab=paste0("K562_B2_T", a),
+                             xlab=paste0("K562_B3_T", a))) + theme(plot.title = element_text(hjust = 0.5))
+  return(list(p1, p2, p3))
+})
+plots <- c(plots[[1]], plots[[2]])
+grid.arrange(grobs=plots, layout_matrix=matrix(c(1,2,3,4,5,6), nrow=2, byrow=T))
+dev.off()
+```
