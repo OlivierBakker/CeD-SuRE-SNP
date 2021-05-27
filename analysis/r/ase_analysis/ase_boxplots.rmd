@@ -1,0 +1,150 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
+source("../sure-snp_functions.r")
+library(ggsignif)
+library(ggbeeswarm)
+
+sure.data <- fread("zcat data/SuRE_CeD_snps_indels_per_strand.minimal.ipcr.gz")
+
+## ------------------------------------------------------------------------
+# ASE plot using normalized sure scores
+plot.ase.normalized <- function(cur.x, cols=c("#FF6863", "#4082F5"), col="black") {
+  p <- ggplot(cur.x, aes(y=norm, x=V6, fill=V6)) + 
+    geom_violin(col=NA) +
+    geom_boxplot(alpha=0.5, width=0.1, position="identity", col=col) +
+    xlab(paste0("Genotype for: ", snp)) +
+    ylab(paste0("Normalized SuRE score for ", sample)) +
+    scale_fill_manual(name="Genotype", values=cols) +
+    geom_signif(comparisons =list(levels(cur.x$V6)), tip_length = 0)
+
+  p1 <- theme.plain(p)
+  return(p1)
+}
+
+#----------------------------------------------------------------------------------------
+get.snp.data <- function(x, snp, celltype, strand="both") {
+  
+  # Select the current SNP
+  if (strand=="both") {
+    cur.x                              <- as.data.frame(x[ V2 == snp ])
+  } else if (strand == "+" || strand == "-") {
+    cur.x                              <- x[ V2 == snp ]
+    cur.x                              <- as.data.frame(cur.x[ V7 == strand ])
+  } else {
+    cat("[ERROR] No valid strand provided. Must be '+', '-' or 'both' \n")
+    q(save="no", status=-1)
+  }
+  
+  # Determine the current celltype to regress on
+  if (celltype == "jurkat") {
+    cur.x$total                      <- cur.x$V9 + cur.x$V10 + cur.x$V11 + cur.x$V12
+  } else if (celltype == "jurkat-stim") {
+    cur.x$total                      <- cur.x$V13 + cur.x$V14 + cur.x$V15 + cur.x$V16
+  } else if (celltype == "caco-2") {
+    cur.x$total                      <- cur.x$V17 + cur.x$V18 + cur.x$V19 + cur.x$V20
+  } else if (celltype == "caco-2-stim") {
+    cur.x$total                      <- cur.x$V21 + cur.x$V22 + cur.x$V23 + cur.x$V24
+  } else if (celltype == "k562") {
+    cur.x$total                      <- cur.x$V25 + cur.x$V26 + cur.x$V27 + cur.x$V28
+  } else {
+    cat("[ERROR] No valid celltype provided.\n")
+    q(save="no", status=-1)
+  }
+
+  # Remove zeroes, extreme outliers and NA's
+  cur.x[cur.x$total == 0 | cur.x$total > 500, "total"] <- NA
+  
+  cur.x                            <- cur.x[!is.na(cur.x$total),]
+  cur.x$norm                       <- log2(cur.x$total / cur.x$V8)
+  #cur.x$norm[cur.x$norm == -Inf]   <- NA
+  
+  cur.tab                          <- table(cur.x$V6)
+  
+  label.lookup                     <- c(paste0(names(cur.tab)[1], " (N=", cur.tab[1], ")"),
+                                        paste0(names(cur.tab)[2], " (N=", cur.tab[2], ")"))
+  names(label.lookup)              <- names(cur.tab)
+  cur.x$name                       <- label.lookup[cur.x$V6]
+  
+  cur.x$name                       <- factor(cur.x$name)
+  cur.x$V6                         <- factor(cur.x$V6)
+
+  return(cur.x)
+}
+```
+
+```{r}
+snp  <- "rs140496"
+
+for (snp in c("rs140496", "rs10892260", "rs11072504", "rs140490", "rs2888524", "rs55950816", "rs785847", "rs71327063")) {
+df.plot <- data.frame()
+
+for (ct in c("k562", "caco-2", "caco-2-stim")) {
+  a           <- get.snp.data(sure.data, snp, ct, "-")
+  df.plot     <- rbind(df.plot, cbind(rep(ct, nrow(a)), a))
+
+  a           <- get.snp.data(sure.data, snp, ct, "+")
+  df.plot     <- rbind(df.plot, cbind(rep(ct, nrow(a)), a))
+
+}
+colnames(df.plot)[1] <- "celltype"
+
+a1           <- names(table(df.plot$V6))[1]
+a2           <- names(table(df.plot$V6))[2]
+allele.order <- c(paste0(a1, "-"),
+                  paste0(a2, "-"),
+                  paste0(a1, "+"), 
+                  paste0(a2, "+"))
+
+df.plot$comps <- factor(paste0(as.character(df.plot$V6), df.plot$V7),
+                        levels=allele.order)
+
+
+ymax <- max(df.plot$norm) +1
+ymin <- min(df.plot$norm)
+
+p1 <- ggplot(data=df.plot, mapping=aes(x=V6, y=norm, fill=celltype, col=celltype)) + 
+  geom_hline(yintercept=0, col="#dedede", lty=2) +
+  geom_violin(position=position_dodge(), col="white", alpha=0.2) +
+  geom_quasirandom() +
+  geom_boxplot(width=0.2, position=position_dodge(width=0.9), col="black", alpha=0.8, outlier.shape = NA) +
+  facet_wrap(~celltype, scale="free") +
+  geom_signif(mapping=aes(x=V6, y=norm),
+              comparisons = list(c(a1, a2)),
+              inherit.aes = F,
+              tip_length=0,
+              y_position=ymax-0.75) +
+  scale_fill_manual(values=sure.palette$celltype_stim) +
+  scale_color_manual(values=sure.palette$celltype_stim) +
+  ylab("Normalized SuRE activity") +
+  xlab(snp) +
+  ylim(c(ymin, ymax))
+
+p1 <- theme.plain(p1) + theme(legend.position = "none")
+
+p2 <- ggplot(data=df.plot, mapping=aes(x=comps, fill=V7, col=V7, y=norm)) + 
+  geom_hline(yintercept=0, col="#dedede", lty=2) +
+  geom_violin(position=position_dodge(), col="white", alpha=0.2) +
+  geom_quasirandom() +
+  geom_boxplot(width=0.2,position=position_dodge(width=0.9), col="black", alpha=0.8, outlier.shape = NA) +
+  facet_wrap(~celltype, scale="free") +
+  geom_signif(comparisons = list(c(allele.order[1], allele.order[2]),
+                                 c(allele.order[3], allele.order[4])),
+              tip_length=0,
+              col="black",
+              y_position=ymax-0.75) +
+  scale_fill_manual(values=c(`-`="#1e6e50", `+`="#34ba77")) +
+  scale_color_manual(values=c(`-`="#1e6e50", `+`="#34ba77")) +
+  ylab("Normalized SuRE activity") +
+  xlab(snp) +
+  ylim(c(ymin, ymax))
+
+
+p2 <- theme.plain(p2) + theme(legend.position = "none")
+
+
+pdf(width=9.5, height=7.5, file=paste0("output/plots/ase_plots/", snp, "_ase_per_strand.pdf"))
+grid.arrange(grobs=list(p1, p2), ncol=1)
+dev.off()
+}
+```
+
