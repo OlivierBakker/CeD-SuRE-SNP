@@ -141,48 +141,6 @@ read.bedfile <- function(path) {
   return(list(data=peakset, genomicRanges=peakset.gr))
 }
 
-#----------------------------------------------------------------------------------------
-get.snp.data <- function(raw.ase.data, snp, sample) {
-  cur.x                                 <- as.data.frame(raw.ase.data[ V2 == snp ])
-  
-  # K562 total count
-  cur.x$k562.total                      <- cur.x$V16 + cur.x$V17 + cur.x$V18 + cur.x$V19
-  
-  # Caco total count
-  cur.x$caco.total                      <- cur.x$V8 + cur.x$V9 + cur.x$V10 + cur.x$V11
-  
-  # Caco stim total count
-  cur.x$cacoStim.total                  <- cur.x$V12 + cur.x$V13 + cur.x$V14 + cur.x$V15
-  
-  
-  if (sample %in% c("k562", "K562")) {
-    cur.x$total <- cur.x$k562.total
-  } else if (sample %in% c("caco", "caco2", "Caco", "Caco2")) {
-    cur.x$total <- cur.x$caco.total
-  } else if (sample %in% c("cacoStim", "CacoStim", "caco2Stim", "caco2stim")) {
-    cur.x$total <- cur.x$cacoStim.total
-  } else {
-    cat("[ERROR] sample not found")
-  }
-  
-  # Remove zeroes, extreme outliers and NA's
-  cur.x[cur.x$total == 0 | cur.x$total > 500, "total"] <- NA
-  
-  cur.x                            <- cur.x[!is.na(cur.x$total),]
-  cur.x$norm                       <- log2((cur.x$total) / cur.x$V7)
-  cur.x$norm[cur.x$norm == -Inf]   <- NA
-  
-  cur.tab                          <- table(cur.x$V6)
-  
-  label.lookup                     <- c(paste0(names(cur.tab)[1], " (N=", cur.tab[1], ")"),
-                                        paste0(names(cur.tab)[2], " (N=", cur.tab[2], ")"))
-  names(label.lookup)              <- names(cur.tab)
-  cur.x$V6                         <- label.lookup[cur.x$V6]
-  
-  cur.x$V6                         <- factor(cur.x$V6)
-  
-  return(cur.x)
-}
 
 ## ------------------------------------------------------------------------
 # Simple plotting theme for ggplot using arial family font
@@ -201,21 +159,6 @@ theme.plain <- function(p, base_size = 11, base_family = "ArialMT") {
           complete = TRUE,
           plot.title = element_text(hjust=0.5))
   return(p)
-}
-
-## ------------------------------------------------------------------------
-# ASE plot using normalized sure scores
-plot.ase.normalized <- function(cur.x, cols=c("#FF6863", "#4082F5"), col="black") {
-  p <- ggplot(cur.x, aes(y=norm, x=V6, fill=V6)) + 
-    geom_violin(col=NA) +
-    geom_boxplot(alpha=0.5, width=0.1, position="identity", col=col) +
-    xlab(paste0("Genotype for: ", snp)) +
-    ylab(paste0("Normalized SuRE score for ", sample)) +
-    scale_fill_manual(name="Genotype", values=cols) +
-    geom_signif(comparisons =list(levels(cur.x$V6)), tip_length = 0)
-
-  p1 <- theme.plain(p)
-  return(p1)
 }
 
 ## ------------------------------------------------------------------------
@@ -246,7 +189,6 @@ read.full.ase <- function(folder.name) {
   #rownames(output) <- output[,1]
   return(output)
 }
-
 
 ## ------------------------------------------------------------------------
 read.full.ipcr <- function(folder.name) {

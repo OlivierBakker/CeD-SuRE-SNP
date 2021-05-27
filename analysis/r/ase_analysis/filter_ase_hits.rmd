@@ -1,3 +1,4 @@
+# Deprecated
 ```{r}
 if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
 
