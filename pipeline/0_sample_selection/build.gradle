@@ -1,0 +1,59 @@
+group 'MafSampleSubset'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin:'application'
+
+sourceCompatibility = 1.8
+mainClassName = "nl.umcg.mafsamplesubset.MafSampleSubset"
+
+repositories {
+    mavenCentral()
+}
+
+run {
+    if (project.hasProperty("appArgs")) {
+        args Eval.me(appArgs)
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': "$mainClassName",
+        )
+    }
+}
+task fatJar(type: Jar) {
+    manifest.from jar.manifest
+    classifier = 'all'
+    from {
+        configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+dependencies {
+
+
+    compile group: 'com.opencsv', name: 'opencsv', version: '4.1'
+    compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
+    compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile "commons-io:commons-io:2.4"
+    compile "org.utgenome.thirdparty:picard:1.102.0"
+    compile "org.mockito:mockito-all:1.8.4"
+    compile "log4j:log4j:1.2.17"
+    compile "com.google.guava:guava:14.0.1"
+    compile "com.kenai.nbpwr:edu-umd-cs-findbugs-annotations:1.3.2-201002241900"
+    compile "com.google.code.findbugs:jsr305:2.0.1"
+    compile "net.sf.trove4j:trove4j:3.0.3"
+    compile "commons-cli:commons-cli:1.2"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile files("libs/Genotype-IO-1.0.6-SNAPSHOT.jar")
+}
