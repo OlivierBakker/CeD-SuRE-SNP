@@ -458,7 +458,6 @@ public class AssignVariantAlleles {
         return output;
     }
 
-
     private Map<String, PairedSamRecord> getOverlappingSamRecords(GeneticVariant curVariant) {
         return getOverlappingSamRecords(curVariant, 0);
     }

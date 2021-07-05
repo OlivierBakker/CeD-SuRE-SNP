@@ -6,7 +6,9 @@ public enum IpcrRecordFilterType {
     IN_REGION,
     ANY_BC_GT_EQ,
     ANY_BC_ST_EQ,
-    SAMPLE_BC_GT_EQ;
+    SAMPLE_BC_GT_EQ,
+    IPCR_COUNT_ST_EQ,
+    IPCR_COUNT_GT_EQ;
 
     /**
      * Create filter.
@@ -18,8 +20,8 @@ public enum IpcrRecordFilterType {
         String[] filters = arg.trim().split(";");
         String filterType = filters[0];
         String args = filters[1];
-        System.out.println(arg);
-        System.out.println(args);
+        //System.out.println(arg);
+        //System.out.println(args);
         String[] splitArgs;
         int count;
         boolean invert;
@@ -48,6 +50,16 @@ public enum IpcrRecordFilterType {
                     invert = splitArgs[1].toUpperCase().equals("TRUE");
                     String[] samples = splitArgs[2].split("\\+");
                     return new SampleSumBarcodeGreaterThenEqualsFilter(count, samples, invert);
+                case IPCR_COUNT_ST_EQ:
+                    splitArgs = args.split(":");
+                    count = Integer.parseInt(splitArgs[0]);
+                    invert = splitArgs[1].toUpperCase().equals("TRUE");
+                    return new IpcrCountSmallerEqualsFilter(count, invert);
+                case IPCR_COUNT_GT_EQ:
+                    splitArgs = args.split(":");
+                    count = Integer.parseInt(splitArgs[0]);
+                    invert = splitArgs[1].toUpperCase().equals("TRUE");
+                    return new IpcrCountGreaterEqualsFilter(count, invert);
             }
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid filter type specified: " + filterType);

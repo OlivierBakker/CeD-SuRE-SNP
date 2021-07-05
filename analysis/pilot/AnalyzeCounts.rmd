@@ -1,4 +1,6 @@
 ```{r}
+setwd("~/Documents/projects/pr_sure_snp/analysis/pilot/")
+
 library(ggplot2)
 library(RColorBrewer)
 library(gridExtra)
@@ -6,7 +8,7 @@ library(reshape)
 
 source("~/Documents/projects/pr_integration/wd_integration/Code/UtillityScripts/PlottingFunctions.r")
 source("PrepCounts.r")
-```
+    ```
 
 ### Merge technical replicates
 ```{r}

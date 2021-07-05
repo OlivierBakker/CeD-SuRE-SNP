@@ -2,9 +2,7 @@ package nl.umcg.suresnp.pipeline.tools.runners;
 
 import nl.umcg.suresnp.pipeline.io.GenericFile;
 import nl.umcg.suresnp.pipeline.io.infofilereader.GenericInfoFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.BlockCompressedIpcrFileReader;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IpcrRecordProvider;
-import nl.umcg.suresnp.pipeline.io.ipcrreader.IterativeMultiFileIpcrReader;
+import nl.umcg.suresnp.pipeline.io.ipcrreader.*;
 import nl.umcg.suresnp.pipeline.io.ipcrwriter.IpcrOutputWriter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
@@ -47,27 +45,50 @@ public class Recode {
             filters = new ArrayList<>();
         }
 
+        // Filter for genomic regions. Defined seperately for speedy tabix reading
+        InRegionFilter regionFilter = null;
+        if (params.getRegionFilterFile() != null) {
+            LOGGER.info("Applying region filter");
+            regionFilter = new InRegionFilter(params.getRegionFilterFile(), false);
+        }
+
         // Define input reader, needs to be done here as to know which samples are available.
         // If a indexed iPCR file is provided, init a BlockCompressedIpcrReader
         IpcrRecordProvider ipcrReader;
-        if (params.getInputIpcr().length > 1 || !params.getInputType().equals("IPCR_INDEXED")) {
-            LOGGER.info("Using generic IpcrFileReader. Using multiple ipcr files with Tabix is currently not supported");
-            ipcrReader = new IterativeMultiFileIpcrReader(params.getInputIpcr());
+
+        if (!params.getInputType().equals("IPCR_INDEXED")) {
+            // Non-indexed iPCR files
+            if (params.getInputIpcr().length > 1) {
+                LOGGER.info("Using IterativeMultiFileIpcrReader");
+                ipcrReader = new IterativeMultiFileIpcrReader(params.getInputIpcr());
+            } else {
+                LOGGER.info("Using generic IpcrReader");
+                ipcrReader = new IpcrFileReader(new GenericFile(params.getInputIpcr()[0]), true);
+            }
+
             // When not using tabix indexed file reader apply classical filtering
-            if (params.getRegionFilterFile() != null) {
+            if (regionFilter != null) {
                 LOGGER.info("Will loop over all records to extract loci");
-                filters.add(new InRegionFilter(params.getRegionFilterFile(), false));
+                filters.add(regionFilter);
             }
         } else {
-            LOGGER.info("Using BlockCompressedIpcrFileReader");
-            if (params.getRegionFilterFile() != null) {
-                LOGGER.info("Using Tabix for fast extraction of loci");
-                ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), new InRegionFilter(params.getRegionFilterFile(), false));
+            // Indexed iPCR files
+            if (params.getInputIpcr().length > 1) {
+                LOGGER.info("Using MultiFileBlockCompressedIpcrFileReader");
+                if (regionFilter != null) {
+                    ipcrReader = new MultiFileBlockCompressedIpcrFileReader(params.getInputIpcr(), regionFilter);
+                } else {
+                    ipcrReader = new MultiFileBlockCompressedIpcrFileReader(params.getInputIpcr());
+                }
             } else {
-                ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
+                LOGGER.info("Using BlockCompressedIpcrFileReader");
+                if (regionFilter != null) {
+                    ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]), regionFilter);
+                } else {
+                    ipcrReader = new BlockCompressedIpcrFileReader(new GenericFile(params.getInputIpcr()[0]));
+                }
             }
         }
-
 
         LOGGER.info("Applying the following filters:");
         for (IpcrRecordFilter filter : filters) {

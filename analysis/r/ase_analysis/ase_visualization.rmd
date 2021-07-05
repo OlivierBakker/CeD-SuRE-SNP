@@ -117,7 +117,7 @@ df.plot <- data.frame(pvals = c(K562$K562_P,
                       )
 ```
 
-# QQplot: Enrichment of overlapping SNPs
+# QQplot: ASE effects
 ```{r}
 # Remove untested SNPs
 df.plot <- df.plot[df.plot$pvals != 1, ]
@@ -158,7 +158,7 @@ p1 <- ggplot(data=df.plot, mapping=aes(x=expected,
 theme.plain(p1) + theme(legend.position = "none")
 ```
 
-# QQplot: ASE effects
+# QQplot: SNPs overlapping peaks
 ```{r}
 # Sort by pvalue
 df.plot <- df.plot[order(df.plot$celltype, df.plot$pvals.ponce),]

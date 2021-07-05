@@ -33,7 +33,6 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
         addRegion(contig, start, stop);
     }
 
-
     public InRegionFilter(GenericFile regionFile, boolean skipFirstLine) throws IOException, ParseException {
         this.contigs = new ArrayList<>();
         this.starts = new ArrayList<>();
@@ -118,29 +117,38 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
 
     @Override
     public boolean hasNext() {
-        if (!(currentIndex < contigs.size())) {
-            // reset the index if it is the exit condition
-            currentIndex = 0;
-            return false;
-        } else {
-            return true;
-        }
+        return currentIndex < contigs.size();
     }
 
     @Override
     public BedRecord next() {
         int cachedIndex = currentIndex;
+
+        if (hasNext()) {
+            currentIndex++;
+            return new BedRecord(contigs.get(cachedIndex), starts.get(cachedIndex), stops.get(cachedIndex));
+        } else {
+            // reset the index if it is the exit condition
+            //currentIndex = 0;
+            return null;
+        }
+
+/*        int cachedIndex = currentIndex;
         currentIndex++;
 
         if (cachedIndex < contigs.size()) {
             return new BedRecord(contigs.get(cachedIndex), starts.get(cachedIndex), stops.get(cachedIndex));
         } else {
             return null;
-        }
+        }*/
     }
 
     @Override
     public Iterator<BedRecord> iterator() {
         return this;
+    }
+
+    public void resetIndex() {
+        currentIndex = 0;
     }
 }

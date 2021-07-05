@@ -36,6 +36,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     public BlockCompressedIpcrFileReader(GenericFile file) throws IOException {
         this.coreInputStream = new BlockCompressedInputStream(new File(file.getPathAsString()));
         this.sep = "\t";
+
         setBarcodeReader(file);
         setHeader();
         setFeatureReader(file.getPathAsString());
@@ -46,12 +47,16 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     }
 
     public BlockCompressedIpcrFileReader(GenericFile file, InRegionFilter regions) throws IOException {
-        this.regions = regions;
         this.coreInputStream = new BlockCompressedInputStream(new File(file.getPathAsString()));
         this.sep = "\t";
+        this.regions = regions;
+
         setBarcodeReader(file);
         setHeader();
         setFeatureReader(file.getPathAsString());
+
+        this.cachedIterator = null;
+        this.cachedRegion = null;
     }
 
     private void setFeatureReader(String file) throws FileNotFoundException {
@@ -85,9 +90,19 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
                 cachedRegion = regions.next();
             }
 
-            if ((cachedIterator == null || !cachedIterator.hasNext()) && cachedRegion != null) {
+            if (cachedIterator != null && !cachedIterator.hasNext()) {
+                cachedIterator.close();
+                cachedIterator = null;
+            }
+
+            if (cachedIterator == null && cachedRegion != null) {
                 cachedIterator = this.query(cachedRegion.getContig(), cachedRegion.getStart(), cachedRegion.getEnd());
                 cachedRegion = regions.next();
+            }
+
+            if (cachedIterator == null && cachedRegion == null) {
+                regions.resetIndex();
+                return null;
             }
 
             return cachedIterator.next();
@@ -172,7 +187,7 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
             if (file.isGZipped()) {
                 suffix = ".gz";
             }
-            String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.gz$", "") + ".barcodes" + suffix;
+            String curPath = file.getFolder() + file.getFileName().trim().replaceFirst("\\.bgz$", "") + ".barcodes" + suffix;
             LOGGER.info("Reading barcodes from: " + curPath);
             this.barcodeReader = new GenericFile(curPath).getAsBufferedReader();
         } catch (FileNotFoundException e) {
@@ -184,5 +199,9 @@ public class BlockCompressedIpcrFileReader extends IpcrFileReader implements Ipc
     @Override
     public Iterator<IpcrRecord> iterator() {
         return new IpcrRecordIterator(this);
+    }
+
+    public void resetRegionIterator() {
+        regions.resetIndex();
     }
 }

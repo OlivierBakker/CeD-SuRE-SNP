@@ -8,6 +8,7 @@ import nl.umcg.suresnp.pipeline.records.bedrecord.BedRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.AdaptableScoreProvider;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecord;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.IpcrRecordIterator;
+import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.InRegionFilter;
 import nl.umcg.suresnp.pipeline.records.ipcrrecord.filters.IpcrRecordFilter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.log4j.Logger;
@@ -29,6 +30,16 @@ public class MultiFileBlockCompressedIpcrFileReader extends IterativeMultiFileIp
         this.providers = new ArrayList<>();
         for (String file : files) {
             this.providers.add(new BlockCompressedIpcrFileReader(new GenericFile(file)));
+        }
+        this.setCurrentProvider(providers.get(this.getCurrentFileIndex()));
+    }
+
+    public MultiFileBlockCompressedIpcrFileReader(String[] files, InRegionFilter regionFilter) throws IOException {
+        super(files, 0);
+
+        this.providers = new ArrayList<>();
+        for (String file : files) {
+            this.providers.add(new BlockCompressedIpcrFileReader(new GenericFile(file), regionFilter));
         }
         this.setCurrentProvider(providers.get(this.getCurrentFileIndex()));
     }

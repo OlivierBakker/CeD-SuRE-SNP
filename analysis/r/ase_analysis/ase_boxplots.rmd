@@ -72,6 +72,7 @@ get.snp.data <- function(x, snp, celltype, strand="both") {
 }
 ```
 
+# SNP plots
 ```{r}
 snp  <- "rs140496"
 
@@ -146,5 +147,26 @@ pdf(width=9.5, height=7.5, file=paste0("output/plots/ase_plots/", snp, "_ase_per
 grid.arrange(grobs=list(p1, p2), ncol=1)
 dev.off()
 }
+```
+
+# Boxplots of SuRE count vs iPCR count
+```{r}
+ipcr.count <- sure.data$V8
+ipcr.bin   <- sure.data$V8 > 1
+
+# Jurkat
+total                      <- sure.data$V9 + sure.data$V10 + sure.data$V11 + sure.data$V12
+
+
+cor(ipcr.count, total)
+
+ipcr.bin <- ipcr.bin[total!=0]
+#total    <- log2(total[total!=0] /  ipcr.count[total!=0])
+total    <- log2(total[total!=0])
+
+boxplot(total ~ ipcr.bin,
+        ylab="Normalized Jurkat expression",
+        xlab="iPCR count > 1")
+t.test(total ~ ipcr.bin)
 ```
 

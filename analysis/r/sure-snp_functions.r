@@ -234,15 +234,15 @@ simple.hm <- function(data, cellwidth=12, cellheight=12, limit=NULL, range="symm
   
   if (range == "symmetric") {
     break.list <- seq(-max(abs(data)), max(abs(data)), by=max(abs(data))/100)
-    if (is.null(palette())) {palette="RdBu"}
+    if (is.null(palette)) {palette="RdBu"}
     cols       <- colorRampPalette(rev(brewer.pal(n=7, name =palette)))(length(break.list))
   } else if (range == "absolute") {
-    if (is.null(palette())) {palette="Reds"}
+    if (is.null(palette)) {palette="Reds"}
     break.list <- seq(min.value, max(abs(data)), by=max(abs(data))/100)
     cols       <- colorRampPalette(brewer.pal(n=7, name =palette))(length(break.list))
   } else if (range == "auto") {
     break.list <- seq(-min(data), max(data), by=max(abs(data))/100)
-    if (is.null(palette())) {palette="RdBu"}
+    if (is.null(palette)) {palette="RdBu"}
     cols       <- colorRampPalette(rev(brewer.pal(n=7, name =palette)))(length(break.list))
   } else  {
     cat("[ERROR] range must be symmetric, auto, or aboslute\n")

@@ -6,9 +6,18 @@ cdna.samples <- read.table("../data/cdna_samples_final.txt", stringsAsFactors = 
 
 histograms <- list()
 
-for (sample in cdna.samples) {
-  histograms[[sample]] <- read.table(paste0("data/v4/", sample, ".count.histogram.tsv.gz"), stringsAsFactors = F)
+#for (sample in cdna.samples) {
+#  histograms[[sample]] <- read.table(paste0("data/v4/", sample, ".count.histogram.tsv.gz"), stringsAsFactors = F)
+#}
+
+
+for (sample in list.files("data/jurkat_tests/")) {
+  histograms[[sample]] <- read.table(paste0("data/jurkat_tests/", sample), stringsAsFactors = F)
 }
+
+
+
+names(histograms) <- gsub(".count.histogram.tsv.gz", "", names(histo))
 
 ```
 
@@ -28,15 +37,16 @@ plot.histogram <- function(sample, xmax=25) {
   
   barplot(cur.data$V2 ~ cur.data$V1, 
           names.arg = cur.data$labels,
-          ylab=paste0("Frequency in ", sample),
+          main=paste0("Frequency in ", sample),
+          ylab="",
           xlab=paste0("Barcode frequency in cDNA library"),
           las=2,
           border=NA)
 }
 
-pdf(width=15, height = 7.5, file="output/plots/cdna_count_histograms.pdf", pointsize = 9)
+pdf(width=15, height = 7.5, file="output/plots/cdna_count_histograms_jurkat_tests.pdf", pointsize = 9)
 par(mfrow=c(4,5), mar=c(2,10,2,0))
-sapply(cdna.samples, plot.histogram)
+sapply(names(histograms), plot.histogram)
 dev.off()
 ```
 
