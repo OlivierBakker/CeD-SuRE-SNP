@@ -1,0 +1,149 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
+source("../sure-snp_functions.r")
+library(data.table)
+library(readxl)
+
+order <- c()
+names <- c()
+full.matrix <- c()
+colnames <- c("Caco2_hg19", "Caco2Stim_hg19", "Caco2Stim_Caco2", "Caco2_K562", "Jurkat_hg19", "JurkatStim_hg19", "JurkatStim_Jurkat", "Jurkat_K562", "K562_hg19")
+
+tf.name <- as.data.frame(read_xlsx("../ase_analysis/data/ManuallyCombined_fixed.xlsx"), stringsAsFactors=F)
+
+for (file in colnames) {
+  path <- paste0("../../homer_analysis/enrichment_of_tfs_under_peaks/output/", file, "/knownResults.txt")
+  
+  cur.tab <- fread(path, sep="\t", stringsAsFactors = F, data.table=F)
+  rownames(cur.tab) <- make.names(cur.tab[,1], unique=T)
+  
+  if (length(order)==0) {
+    order <- rownames(cur.tab)
+    names <- cur.tab[,1]
+  }
+  
+  full.matrix <- cbind(full.matrix, cur.tab[order,"P-value"])
+}
+#full.matrix           <- as.data.frame(full.matrix)[-grep("Unknown", names),]
+colnames(full.matrix) <- colnames
+
+names2 <- sapply(names, function(x){strsplit(x, split="\\/")[[1]][1]})
+names2 <- sapply(names2, function(x){strsplit(x, split="\\(")[[1]]})
+names2 <- t(sapply(names2, function(x) {
+  if(length(x) ==2) {
+    return(x)
+  } else {
+    return(c(x, "?"))
+  }
+}))
+
+names2[,2] <- gsub("\\)", "", names2[,2])
+colnames(names2) <- c("TF", "Family")
+
+rownames(names2) <- order
+names2 <- data.frame(names2, stringsAsFactors=F)
+
+rownames(full.matrix) <- order
+
+#full.matrix <- full.matrix[,-9]
+
+bonf.thresh <- 0.05 / (9*440)
+
+full.matrix <- full.matrix[rowSums(full.matrix < bonf.thresh) >=1, ]
+```
+
+
+```{r}
+m.plot <- t(-log10(full.matrix))
+#m.plot[m.plot < -log10(bonf.thresh)] <- 0
+
+# Clean up names
+rownames(m.plot) <- gsub("\\_hg19", "", rownames(m.plot))
+rownames(m.plot) <- gsub("\\_", " v.s. ", rownames(m.plot))
+
+#  Filter TFs on fams with >3 TFs
+fams         <- table(names2[colnames(m.plot), 2])
+fams.to.keep <- names(fams)[fams > 3]
+tfs.to.keep  <- rownames(names2)[names2[,2] %in% fams.to.keep]
+
+m.plot <- m.plot[,colnames(m.plot) %in% tfs.to.keep]
+
+# TF fam colors
+cols <- colorRampPalette(brewer.pal(9, "Set1"))(length(to.keep))
+labs <- unique(names2[colnames(m.plot), 2])
+labs <- labs[order(labs)]
+names(cols) <- labs
+
+pdf(file="output/plots/tf_enrichment_under_peaks.pdf", height=4, width=8, paper="a4")
+simple.hm(m.plot,
+          cellwidth =3,
+          range="absolute",
+          fontsize_col=3,
+          cluster_rows=F,
+          labels_col=names2[colnames(m.plot), 1],
+          annotation_col=names2[,2, drop=F],
+          annotation_colors=list(Family=cols),
+          border=NA,
+          cutree_cols=4)
+
+# Order by family
+tmp <- names2[colnames(m.plot),]
+order <- rownames(tmp[order(tmp[,2]),])
+
+simple.hm(m.plot[,order],
+          cellwidth =3,
+          range="absolute",
+          fontsize_col=3,
+          cluster_rows=F,
+          cluster_cols=F,
+          labels_col=names2[order, 1],
+          annotation_col=names2[,2, drop=F],
+          annotation_colors=list(Family=cols),
+          border=NA,
+          cutree_cols=4)
+
+# Barplot
+df.plot <- data.frame(y=as.numeric(m.plot),
+                      tf=as.character(sapply(names2[colnames(m.plot), 1], rep, nrow(m.plot))),
+                      fam=as.character(sapply(names2[colnames(m.plot), 2], rep, nrow(m.plot))),
+                      celltype=rep(rownames(m.plot), ncol(m.plot)))
+
+pal <- c(`Caco2`="#2F4A99",
+         `Caco2 v.s. K562`="#2F4A99",
+         `Caco2Stim`="#7BC1E8",
+         `Caco2Stim v.s. Caco2`="#8C7BB4",
+         `Jurkat`="#087C5D",
+         `Jurkat v.s. K562`="#087C5D",
+         `JurkatStim` = "#3FBA92",
+         `JurkatStim v.s. Jurkat`="#D18164",
+         `K562`="#FF0000"
+         )
+
+p <- ggplot(data=df.plot, mapping=aes(y=y, x=fam, fill=celltype)) +
+  geom_boxplot() +
+  ylab("-Log10(TF enrichment)") +
+  xlab("TF Family") +
+  scale_fill_manual(values=pal)
+
+theme.plain(p)
+dev.off()
+
+m.plot <- t(m.plot)
+
+pdf(file="output/plots/tf_enrichment_under_peaks_full.pdf", height=20, width=8, paper="a4")
+simple.hm(m.plot,
+          cellheight=7,
+          range="absolute",
+          fontsize_row=7,
+          fontsize_col=8,
+          cluster_cols=F,
+          labels_row=names2[rownames(m.plot), 1],
+          annotation_row=names2[,2, drop=F],
+          border=NA,
+          cutree_cols=4,
+          annotation_colors=list(Family=cols))
+
+dev.off()
+
+```
+

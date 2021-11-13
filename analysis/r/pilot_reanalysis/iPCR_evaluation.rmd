@@ -1,0 +1,207 @@
+```{r}
+setwd("/home/work/Documents/projects/pr_sure_snp/analysis/r/pilot_reanalysis")
+source("../sure-snp_functions.r")
+
+
+ipcr <- fread("zcat data/sure_pilot_B.ipcr.bgz", data.table=F)[,-31]
+hist(ipcr$ipcrCount, breaks=200)
+ipcr <- ipcr[ipcr$ipcrCount > 1,]
+
+samples <- colnames(ipcr)[17:30]
+
+
+cDNA.counts <- ipcr[,samples]
+cDNA.counts <- apply(cDNA.counts, 2, function(x){
+return((x  * 1e6) / sum(x))
+})
+cDNA.counts <- log10(cDNA.counts / ipcr$ipcrCount)
+#cDNA.counts <- log10(cDNA.counts)
+cDNA.counts[abs(cDNA.counts) ==Inf] <- NA
+```
+
+# Histograms
+```{r}
+make.hist <- function(sample, data) {
+  vec <- data[, sample]
+  #vec[vec > 20] <- 20
+  hist(log10(vec),
+       main=sample,
+       breaks=50,
+       xlab="log10(Raw cDNA count)",
+       xlim=c(0, 4.5))
+
+}
+
+par(mfrow=c(3,5))
+sapply(samples, make.hist, ipcr)
+par(mfrow=c(1,1))
+
+make.hist <- function(sample, data) {
+  vec <- data[, sample]
+  hist(vec,
+       main=sample,
+       breaks=50,
+       xlab="Normalized cDNA count",
+       xlim=c(-2.5, 3)) 
+  abline(v=0, col="blue", lwd=2)
+
+}
+par(mfrow=c(3,5))
+sapply(samples, make.hist, cDNA.counts)
+par(mfrow=c(1,1))
+
+means <- sapply(samples, function(sample){
+  vec <- cDNA.counts[,sample]
+  vec <- vec[vec !=0]
+  return(mean(vec, na.rm=T))
+
+})
+
+par(mar=c(15,5,5,5))
+barplot(means, las=2, ylab="Mean of non-zeroes")
+par(mar=c(5,5,5,5))
+```
+
+# Scatterplots between samples
+```{r}
+
+col.vec <- ipcr$ipcrCount
+col.vec[col.vec > 1] <- 2
+
+p1 <- ggplot(mapping=aes(x=cDNA.counts[,"Uncut_228_S14_R1_001" ],
+                                      y=cDNA.counts[,"Jurkat_B2_T2"],
+                                      col=col.vec)) +
+  geom_point(alpha=0.5) +
+  geom_abline(slope=1, intercept=0, col="grey", lty=2) +
+  coord_fixed() +
+  geom_smooth(method="lm") +
+  xlab("Uncut_228_S14_R1_001") +
+  ylab("Jurkat_B2_T2")  + 
+  xlim(c(-2, 3)) + 
+  ylim(c(-2, 3))
+p1 <- theme.plain(p1)
+
+
+p2 <- ggplot(mapping=aes(x=cDNA.counts[,"Uncut_228_S14_R1_001" ],
+                                      y=cDNA.counts[,"ApaLI_220_S10_R1_001"],
+                                      col=col.vec)) +
+  geom_point(alpha=0.5) +
+  geom_abline(slope=1, intercept=0, col="grey", lty=2) +
+  coord_fixed() +
+  geom_smooth(method="lm") +
+  xlab("Uncut_228_S14_R1_001") +
+  ylab("ApaLI_220_S10_R1_001") + 
+  xlim(c(-2, 3)) + 
+  ylim(c(-2, 3))
+p2 <- theme.plain(p2)
+
+
+grid.arrange(grobs=list(p1, p2), ncol=2)
+
+par(mfrow=c(3,5))
+for (sample in samples) {
+  boxplot(cDNA.counts[,sample] ~ col.vec, col=c("darkblue", "lightblue"),
+          main=sample,
+          ylab="Normalized cDNA count",
+          xlab="iPCR count")
+}
+par(mfrow=c(1,1))
+
+```
+
+# Histograms per fragment
+```{r}
+#ipcr <- fread("zcat data/sure_pilot_B.ipcr.bgz", data.table=F)[,-31]
+
+
+#ipcr$fragment.name <- paste0(ipcr$chromosome, "_", ipcr$readOneStart)
+#fragments <- table(ipcr$fragment.name)
+#fragments <- fragments[fragments > 75]
+
+#ipcr.filtered <- ipcr[ipcr$fragment.name %in% names(fragments),]
+ipcr.ase <- fread("zcat data/sure_pilot_B.minimal.allele.specific.ipcr.gz.gz", data.table=F)
+colnames(ipcr.ase)[9:22] <- samples
+
+ipcr.ase <- ipcr.ase[ipcr.ase$V8 == 1,]
+
+pdf(width=40, height=40, file="output/plots/iPCR_histograms_per_fragment.pdf")
+
+par(mfrow=c(10,10))
+#for(fragment in names(fragments)) {
+for(snp in unique(ipcr.ase$V2)) {
+  #hist(ipcr.filtered[ipcr.filtered$fragment.name == fragment,]$ipcrCount, breaks=50)
+  hist(ipcr.ase[ipcr.ase$V2 == snp,]$V8,
+       breaks=50,
+       main=paste0("Fragments covering ", snp),
+       xlim=c(0,100))
+
+}
+par(mfrow=c(1,1))
+
+dev.off()
+
+
+
+means <- sapply(unique(ipcr.ase$V2), function(snp){
+  sapply(samples, function(sample){
+    
+    cur.ipcr.ase <- ipcr.ase[ipcr.ase$V2 == snp, ]
+    cur.vec <-  cur.ipcr.ase[,sample]
+    ipcr    <-  cur.ipcr.ase$V8[cur.vec != 0]
+    cur.vec <- cur.vec[cur.vec != 0]
+    cur.vec <- log10(((cur.vec /ipcr) * 1e6) / sum(cur.vec))
+    return(mean(cur.vec, na.rm=T))
+  })
+})
+means[is.na(means)] <- 0
+
+
+simple.hm(means,
+          cellwidth=8,
+          cellheight =8,
+          range="absolute")
+
+```
+
+
+
+```{r}
+#cor.m <- cor(cDNA.counts, use="pairwise.complete.obs")
+#simple.hm(cor.m)
+
+
+#plot(cDNA.counts[,1], cDNA.counts[,2])
+
+
+ipcr <- fread("zcat data/sure_pilot_B.ipcr.bgz", data.table=F)[,-31]
+hist(ipcr$ipcrCount, breaks=200)
+#ipcr <- ipcr[ipcr$ipcrCount > 1,]
+
+
+cDNA.counts <- ipcr[,samples]
+cDNA.counts <- apply(cDNA.counts, 2, function(x){
+  return((x  * 1e6) / sum(x))
+})
+#cDNA.counts <- log10(cDNA.counts / ipcr$ipcrCount)
+cDNA.counts <- log10(cDNA.counts)
+cDNA.counts[abs(cDNA.counts) ==Inf] <- NA
+
+
+
+p1 <- theme.plain(xy.plot(log10(ipcr$ipcrCount), 
+        cDNA.counts[,"Uncut_228_S14_R1_001" ],
+        col="black",
+        xlab="log10(iPCR count)", 
+        ylab="Uncut_228_S14_R1_001"))
+
+p1
+
+boxplot(cDNA.counts[,"Uncut_228_S14_R1_001" ] ~ log10(ipcr$ipcrCount))
+abline(h=0)
+
+boxplot(cDNA.counts[,"K562_B2_T1"] ~ log10(ipcr$ipcrCount))
+abline(h=0)
+```
+
+
+

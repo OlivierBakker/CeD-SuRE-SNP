@@ -1,5 +1,5 @@
 ```{r}
-setwd("peakcalling")
+if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
 source("../sure-snp_functions.r")
 library(readxl)
 #enrichments <- list()

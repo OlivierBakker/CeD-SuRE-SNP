@@ -11,11 +11,10 @@ ldsc.res <- ldsc.res[-1,]
 ```
 
 ```{r}
-
 p1 <- ggplot(data=ldsc.res, mapping=aes(x=celltype,
                                         y=Enrichment,
                                         fill=celltype,
-                                        ymin=Enrichment - Enrichment_std_error,
+                                          ymin=Enrichment - Enrichment_std_error,
                                         ymax=Enrichment + Enrichment_std_error,
                                         label=sapply(Enrichment_p, convert.pvalue.to.dits))) +
   geom_col() +
@@ -27,7 +26,8 @@ p1 <- ggplot(data=ldsc.res, mapping=aes(x=celltype,
   ylab("% heritability / % SNPs") +
   xlab("") 
 
+pdf(width=4, height=4, file="output/plots/sure_snp_ldsc_results.pdf", useDingbats = F)
 theme.plain(p1) + theme(legend.position="none", axis.text.x = element_text(angle=45, hjust=1))
-
+dev.off()
 ```
 

@@ -1,0 +1,26 @@
+```{r}
+library(MASS)
+
+
+ipcr.low  <- rnegbin(3e5, 0.5, 1)
+
+ipcr.high <- rnegbin(1e6, 25, 2)
+
+par(mfrow=c(1,3))
+hist(ipcr.low, breaks=50)
+hist(ipcr.high, breaks=50)
+hist(c(ipcr.high, ipcr.low), breaks=50)
+par(mfrow=c(1,1))
+
+
+combo.dist <- c(ipcr.high, ipcr.low)
+
+par(mfrow=c(1,3))
+hist(sample(combo.dist, 1e3), breaks=50)
+hist(sample(combo.dist, 1e4), breaks=50)
+hist(sample(combo.dist, 1e5), breaks=50)
+par(mfrow=c(1,1))
+
+
+```
+

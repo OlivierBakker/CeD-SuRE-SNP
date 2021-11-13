@@ -1,0 +1,43 @@
+```{r}
+setwd("/home/work/Documents/projects/pr_sure_snp/analysis/r/pilot_reanalysis")
+source("../sure-snp_functions.r")
+
+ipcr <- fread("zcat data/sure_pilot_B.ipcr.bgz", data.table=F)[,-31]
+ipcr.ase <- fread("zcat data/sure_pilot_B.minimal.allele.specific.ipcr.gz.gz", data.table=F)
+
+samples <- colnames(ipcr)[17:30]
+
+colnames(ipcr.ase)[9:22] <- samples
+
+ipcr.ase <- ipcr.ase[ipcr.ase$V8 > 1,]
+#ipcr.ase <- ipcr.ase[ipcr.ase$V8 == 1,]
+
+snps <- unique(ipcr.ase$V2)
+```
+
+```{r}
+
+pvals <- sapply(snps, function(snp) {
+  sapply(samples, function(celltype, snp){
+      cat(snp, " ", celltype, "\n")
+      cur.x <- ipcr.ase[ipcr.ase$V2 == snp, ]
+      cur.x <- cur.x[cur.x[,celltype] !=0,]
+      cur.x$norm <- log2(cur.x[,celltype] / cur.x$V8)
+
+      if (length(table(cur.x$V6)) == 2 && nrow(cur.x) > 6) {
+       return(wilcox.test(cur.x$norm ~cur.x$V6)$`p.value`)
+      } else {
+        return(1)
+      }
+  }, snp=snp)
+})
+
+pvals <- -log10(pvals)
+pvals[pvals> 8] <- 8
+simple.hm(pvals,
+          cellwidth = 8,
+          cellheight = 8,
+          range="absolute")
+
+```
+

@@ -1,0 +1,405 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
+source("../sure-snp_functions.r")
+library(readxl)
+library(data.table)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(Gviz)
+library(biomaRt)
+library(GenomicRanges)
+
+tf.binding <- read.table("data/homer_tf_enrichment_30bp_window_luciferase_snps_v2.tsv", sep="\t", stringsAsFactors = F, header=T)
+
+tf.name <- as.data.frame(read_xlsx("data/ManuallyCombined_fixed.xlsx"), stringsAsFactors=F)
+
+name.link <- t(matrix(unlist(name.link <- sapply(tf.binding$Name, function(x){
+  tf.name[tf.name$Homer_TF_name %in% x, c("Homer_TF_name", "Ensemble", "Gene_Name","Source")][1,]
+})), nrow=4, byrow=F))
+colnames(name.link) <- c("TfName", "EnsemblId", "GeneName", "Source")
+name.link <- data.frame(name.link, stringsAsFactors=F)
+tf.binding <- cbind(tf.binding, name.link[,2:4])
+
+
+# Add expression data
+expression           <- read.table("../rnaseq_analysis/output/SuRE_CeD_percentile_gene_exression.tsv", sep="\t", stringsAsFactors = F, header=T)
+rownames(expression) <- expression[,1]
+expression           <- expression[,-1]
+colnames(expression) <- c("C", "Cs", "J", "Js", "K")
+tf.binding           <- cbind(tf.binding, expression[tf.binding$EnsemblId,])
+
+chrpos <- t(sapply(tf.binding$Locus, function(x){strsplit(x,split=":")[[1]]}))
+chr    <- chrpos[,1]
+pos    <- t(sapply(chrpos[,2], function(x){strsplit(x,split="-")[[1]]}))
+
+tf.binding$Chr      <- chr
+tf.binding$Start    <- as.numeric(pos[,1])
+tf.binding$End      <- as.numeric(pos[,2])
+tf.binding$TfLength <- sapply(tf.binding$Sequence, nchar)
+```
+
+# Determine the positions of the TFBS
+```{r}
+tf.pos <- t(sapply(1:nrow(tf.binding), function(i){
+  
+  offset   <- tf.binding[i, "Offset"]
+  tfLength <- tf.binding[i, "TfLength"]
+  strand   <- tf.binding[i, "Strand"]
+  snp      <- tf.binding[i, "Start"] + 31
+
+  if (strand == "-") {
+    if (offset > 0) {
+      offset <- offset +1
+    }
+    
+    tfStart <- snp + ((offset + 1) - tfLength)
+  } else {
+    if (offset < 0) {
+      offset <- offset +1
+    }
+        tfStart <- snp + offset
+  }
+  
+  tfEnd <- tfStart + tfLength
+
+  if (tf.binding[i, "End"]+1 < tfEnd) {
+    cat("[WARN] TF pos exceeds limits of fragment, this shoud not happen.\n")
+  }
+  
+  return(c(tfStart, tfEnd))
+}))
+
+tf.binding$TfStart <- tf.pos[,1]
+tf.binding$TfEnd   <- tf.pos[,2]
+
+# 1. Start fragment (inclusive)
+# 2. End framgent (inclusive)
+# 3. TF length
+# 4. Start TF (inclusive)
+# 5. End TF (inclusive)
+#272295	272355	10	272322	272331
+# Start 27 bases in        <----------  
+# End 36 bases in          ----------->
+#GCCACACCCTCCAACTCACGCAATCTCTGA T TCACTTCTGTCACCATAATTTTGCTCTATCN
+#                          CTGA T TCACT	
+# Check OK
+
+#272295	272355	10	272321	272331
+# Start 26 bases in       *
+#GCCACACCCTCCAACTCACGCAATCTCTGA C TCACTTCTGTCACCATAATTTTGCTCTATCN
+#                         TCTGA C TCAC	
+# Check OK
+
+#46465326	46465386	10	46465326	46465336
+# Start 0 bases in
+#CTGAGTCATGCTGCACCAGAAGGCTGCCTCAGCCTACTCCTGACTAAAGCACAACCATCTCN
+#CTGAGTCATG
+# Check OK
+
+#46368431	46368491	12	46368439	46368451
+# Start 8 bases in
+#ACAAGGTGCTGGGTGGGGAAATCATGAGACCCTTTTTCTGGGACAGGAGTGTCACAAGGTCN
+#       GCTGGGTGGGGA
+# Check OK
+
+#21926426	21926486	12	21926459	21926471
+# Start 33 bases in              *  
+#AGAAAACTCTGAGGCAGGCCAGGCGTGGTGGCTCACACCTGTAATCCCAGCTCTTTGGGAGN
+#                                TCACACCTGTAA	
+# Check OK
+```
+
+# Trackplots: Load data
+```{r}
+regions.of.interest        <- data.frame(chrs=c("chr9", "chr3", "chr22", "chr6", "chr3", "chr22", "chr15"),
+                                         froms=c(272295, 46465326, 21926426, 33029797, 46368431, 21921656, 75052881),
+                                         tos=c(272355, 46465386, 21926486, 33029857, 46368491, 21921716, 75052941),
+                                         variant=c("rs785847", "rs71327063", "rs140496", "rs55950816", "rs2888524", "rs140490", "rs11072504"),
+                                         celltype=c("K","K","C","C","Cs","C","C"),
+                                         stringsAsFactors = F)
+
+
+# Read the bedgraph files showing the sure activity
+sure.activity    <- list()
+sure.activity.gr <- list()
+
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions/", pattern="[CK].*_CPM_all_samples.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.bdg.gz","\\1",file)
+  sure.activity[[name]] <- tmp
+  sure.activity.gr[[name]] <- GRanges(seqnames=tmp[,1], ranges=IRanges(start=tmp[,2], end=tmp[,2]), mcols=tmp[,4,drop=F])
+}
+
+# Peak files  
+sure.peaks <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions/", pattern="[JCK].*_ced_regions_bmerged.narrowPeak")) {
+  tmp  <- fread(paste0("../peakcalling/data/merged_peaks/ced_regions/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_x3_ced_regions_bmerged.narrowPeak","\\1",file)
+  sure.peaks[[name]] <- tmp
+}
+
+encode.tfbs <- fread("zcat data/all_celltypes_encode3_chipseq_tfbs.sorted.collapsed.bgz")
+
+# Used to convert names of the files to the celltype names used in the plots
+celltype.link              <- data.frame(old.names=paste0(c("K", "C", "Cs", "J", "Js"), ""),
+                                         new.names=names(sure.palette$celltype_stim), stringsAsFactors = F)
+rownames(celltype.link)    <- celltype.link[,1]
+
+```
+
+# Trackplots: Make plots
+```{r}
+region <- 1
+
+# Loop start
+for (region in 1:nrow(regions.of.interest)) {
+# Define the region
+chr      <- regions.of.interest[region, ]$chrs
+from     <- regions.of.interest[region, ]$froms
+to       <- regions.of.interest[region, ]$tos
+variant  <- regions.of.interest[region, ]$variant
+celltype <- regions.of.interest[region, ]$celltype
+
+cur.encode.tfbs     <- as.data.frame(encode.tfbs[V1 == gsub("chr", "", chr)], stringsAsFactors=F)
+cur.encode.tfbs[,1] <- paste0("chr", cur.encode.tfbs[,1])
+cur.encode.gr       <- GRanges(seqnames=chr, ranges = IRanges(start=cur.encode.tfbs[,2], end=cur.encode.tfbs[,3]))
+cur.overlap         <- findOverlaps(GRanges(chr, IRanges(from, to)), 
+                                      cur.encode.gr)
+cur.encode.tfbs     <- cur.encode.tfbs[cur.overlap@to,]
+
+# Ideogram
+iTrack <- IdeogramTrack(genome = "hg19", chromosome = chr)
+
+# Genomic axis
+genTrack  <- GenomeAxisTrack(littleTicks = F,
+                             add53 = TRUE,
+                             add35 = TRUE,
+                             labelPos="below",
+                             cex=1)
+
+fcol   <- c(A="darkgray", C="darkgray", T="darkgray", G="darkgray")
+sTrack.fw <- SequenceTrack(Hsapiens,
+                        noLetters=F,
+                        fontcolor=fcol,
+                        add53=T,
+                        fontsize=8)
+sTrack.rev <- SequenceTrack(Hsapiens,
+                        noLetters=F,
+                        fontcolor=fcol,
+                        add53=T,
+                        complement=TRUE,
+                        fontsize=8)
+
+# TF tracks
+cur.tfbs   <- tf.binding[tf.binding$Variant ==  regions.of.interest[region, ]$variant,]
+
+# Color the genes by expression
+mypal      <- colorRampPalette( c( "blue", "red" ) )( nrow(cur.tfbs) )
+map2color  <- function(x, pal, limits=NULL){
+    if(is.null(limits)) limits=range(x)
+    pal[findInterval(x,
+                     seq(limits[1],limits[2],length.out=length(pal)+1),
+                     all.inside=TRUE)]
+}
+cur.tfbs$fill <- map2color(cur.tfbs[,celltype], mypal, limits=c(0,1))
+
+# Add encode chipseq info
+cur.tfbs$PlotName <- cur.tfbs$Name
+cur.tfbs[cur.tfbs$GeneName %in% cur.encode.tfbs$V7, "PlotName"] <- paste0(cur.tfbs[cur.tfbs$GeneName %in% cur.encode.tfbs$V7, "PlotName"], " *")
+
+# Alle specific TF binding
+a1 <- names(table(cur.tfbs$Allele))[1]
+a2 <- names(table(cur.tfbs$Allele))[2]
+
+cur.a1 <- cur.tfbs[cur.tfbs$Allele == a1,]
+cur.a2 <- cur.tfbs[cur.tfbs$Allele == a2,]
+
+tfbsTrack.a1 <- AnnotationTrack(chromosome=cur.a1[,"Chr"],
+                                start=cur.a1[,"TfStart"],
+                                end =cur.a1[,"TfEnd"],
+                                strand=cur.a1[,"Strand"],
+                                id=cur.a1[,"PlotName"],
+                                genome="hg19",
+                                col=NA,
+                                fill=cur.a1[,"fill"],
+                                name=paste0("Allele: ", a1),
+                                featureAnnotation = "id")
+
+tfbsTrack.a2 <- AnnotationTrack(chromosome=cur.a2[,"Chr"],
+                                start=cur.a2[,"TfStart"],
+                                end =cur.a2[,"TfEnd"],
+                                strand=cur.a2[,"Strand"],
+                                id=cur.a2[,"PlotName"],
+                                genome="hg19",
+                                col=NA,
+                                fill=cur.a2[,"fill"],
+                                name=paste0("Allele: ", a2),
+                                featureAnnotation = "id")
+
+# ENCODE chip seq
+#encode.track    <- AnnotationTrack(chromosome=cur.encode.tfbs[,1],
+#                                start=cur.encode.tfbs[,2],
+#                                end =cur.encode.tfbs[,3],
+#                                id=cur.encode.tfbs[,7],
+#                                genome="hg19",
+#                                col=NA,
+#                                name=paste0("ENCODE Chip-Seq "),
+#                                featureAnnotation = "id")
+
+
+# W/O encode
+cur.tracks <- c(iTrack, genTrack, sTrack.fw,sTrack.rev, tfbsTrack.a1, tfbsTrack.a2)
+
+# SNP highlight
+snppos <- from + (((to ) - from) / 2)
+ht         <- HighlightTrack(trackList = cur.tracks,
+                     start = c(snppos),
+                     width = 0,
+                     chromosome = chr,
+                     fill=NA,
+                     col="darkgrey")
+
+pdf(height=8, width=8, file=paste0("output/plots/",variant ,"_locus", region,"_tfbs_overview.pdf"), useDingbats=F)
+plotTracks(ht,
+               chromosome = chr,
+               from=from,
+               to=to, 
+           shape="arrow")
+dev.off()
+
+# Activity track
+pdf(height=2, width=8, file=paste0("output/plots/",variant ,"_locus", region,"_activity_tracks.pdf"), useDingbats=F)
+
+
+get.data <- function(celltype) {
+  cur.range <- GRanges(seqnames=chr, IRanges(start=from-1000, end=to+1000))
+  overlaps  <- findOverlaps(cur.range, sure.activity.gr[[celltype]])
+  df.plot       <- sure.activity[[celltype]][overlaps@to,]
+  return(df.plot)
+}
+
+make.track <- function(df.plot, celltype, ylim) {
+  # Build the plot
+  activityTrack <- DataTrack(
+                chromosome= df.plot[,1],
+                data=df.plot[,4],
+                start = df.plot[,2],
+                end=df.plot[,3],
+                from=from,
+                to=to,
+                name="SuRE-activity",
+                genome = "hg19",
+                strand="+",
+                type="histogram",
+                fill=sure.palette$celltype_stim_alt[celltype],
+                col.histogram=NA,
+                legend=F,
+                stacked=F,
+                ylim=ylim)
+}
+
+
+  data.k  <- get.data("K")
+  data.c  <- get.data("C")
+  data.cs <- get.data("Cs")
+
+  max <- max(data.k[,4], data.c[,4], data.cs[,4])
+
+  track.k  <- make.track(data.k, "K", c(0, max))
+  track.c  <- make.track(data.c, "C", c(0, max))
+  track.cs <- make.track(data.cs, "Cs", c(0, max))
+
+  # Biomart object to retrieve gene info from
+  bm <- useMart(host = "grch37.ensembl.org", 
+              biomart = "ENSEMBL_MART_ENSEMBL", 
+              dataset = "hsapiens_gene_ensembl")
+  
+  # Track showin the genes in the region
+  knownGenes <- BiomartGeneRegionTrack(genome = "hg19", 
+                                      chromosome = chr,
+                                      start = from - 1000,
+                                      end = to + 1000,
+                                      name = "ENSEMBL",
+                                      biomart = bm,
+                                      transcriptAnnotation="symbol",
+                                      filter = list(with_refseq_mrna=TRUE),
+                                      stacking="squish",
+                                      fill="#D4D4D4",
+                                      col=NA)
+  ht         <- HighlightTrack(trackList = c(track.k, track.c, track.cs, knownGenes),
+                       start = c(snppos),
+                       width = 0,
+                       chromosome = chr,
+                       fill=NA,
+                       col="darkgrey",)
+  plotTracks(ht,
+                 chromosome = chr,
+                 from=from - 1000,
+                 to=to + 1000)
+
+dev.off()
+
+
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+#Fragment (snp in center)
+                                             0123456789  
+#           AGAAAACTCTGAGGCAGGCCAGGCGTGGTG A CTCACACCTGTAATCCCAGCTCTTTGGGAG
+# i1  4   -                           GGTG A CTCAC                           > (SNP + (offset+1)) - length
+# i7  -5  +                           GGTG A CTCACAC                         > SNP - offset
+# i16 2   +                                    CACACCTGTA                    > SNP + offset
+#     16  -                                           GTAATCCC               > (SNP + (offset+1)) - length
+#     9 -                                G A CTCACTTCTG	                     > (SNP + (offset+1)) - length
+#           GCCACACCCTCCAACTCACGCAATCTCTGA C TCACTTCTGTCACCATAATTTTGCTCTATC
+# i30 -21	- GCCACACCCT                                                       > SNP - (|offset| + tfLength)
+#     -19 - GCCACACCCTCC                                                     > SNP - (|offset| + tfLength)
+#       4 -                          TCTGA C TCAC                            > (SNP + (offset+1)) - length
+#       6 -                          TCTGA C TCACTT
+#       9 -                             GA C TCACTTCTG
+#       5 +                                      TTCTGTCACC
+i <- 7
+sapply(1:nrow(tf.binding), function(i){
+  
+  offset   <- tf.binding[i, "Offset"]
+  tfLength <- tf.binding[i, "TfLength"]
+  strand   <- tf.binding[i, "Strand"]
+  snp      <- tf.binding[i, "Start"] + 30
+  
+  if (strand == "-") {
+    if (offset < 0) {
+      tfStart <- snp - (abs(offset) + tfLength)
+    } else {
+      tfStart <- (SNP + (offset+1)) - length
+    }
+  } else {
+      tfStart <- snp + offset
+  }
+  tfEnd <- tfStart + tfLength
+
+  if (tf.binding[i, "End"] >= tfEnd+1) {
+    cat("[WARN] TF pos exceeds limits of fragment, this shoud not happen.\n")
+  }
+  
+  
+  return(c(tfStart, tfEnd))
+})
+
+```
+

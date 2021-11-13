@@ -183,7 +183,10 @@ plots <- apply(regions.of.interest, 1, function(x) {
                        data=t(df.plot[,-c(3:ncol(df.plot))]),
                        start = df.plot[,4],
                        groups=c("+", "-"),
-                       width = 1,
+                       width=1,
+                       aggregation="median",
+                       aggregateGroups=T,
+                       window=1000,
                        from=from,
                        to=to,
                        chromosome = chr,
@@ -197,7 +200,9 @@ plots <- apply(regions.of.interest, 1, function(x) {
                        baseline=0,
                        legend=F,
                        ylim=c(-ymax,ymax))
-          
+                       #transformation=function(x) { or <- sign(x); tmp <- log10(abs(x) +1); return(or * tmp) })
+       #                          transformation=function(x){tmp <- log10(x +1); if (is.na(tmp)){return(0)}else {return(tmp)}},
+
           if (nrow(cur.beds) == 0) {
             cur.beds <- data.frame(x=chr, y=0, z=1)
           }
@@ -223,7 +228,7 @@ plots <- apply(regions.of.interest, 1, function(x) {
 names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of.interest[i,1:3], collapse=":")})
 
 # Plot the tracks
-pdf(width=9, height=4, file="output/plots/celltype_marker_trackplot.pdf", paper="a4")
+pdf(width=9, height=4, file="output/plots/celltype_marker_trackplot_v2.pdf", paper="a4")
   ncols <- length(plots)
   grid.newpage()
   pushViewport(viewport(layout = grid.layout(1, ncols)))

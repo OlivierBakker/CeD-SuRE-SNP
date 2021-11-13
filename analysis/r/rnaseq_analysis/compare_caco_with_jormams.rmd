@@ -1,0 +1,71 @@
+```{r}
+if (getwd() != "/home/work/Documents/projects/pr_sure_snp/analysis/r") {setwd("../rnaseq_analysis/")} else {setwd("rnaseq_analysis/")}
+library(DESeq2)
+library(data.table)
+library(ggrepel)
+
+# Load functions  
+source("../sure-snp_functions.r")
+
+# Read meta data
+meta.data                 <- read.table("data/SuRE_CeD_RNAseq_metadata.tsv", sep="\t", header=T, stringsAsFactors = F)
+rownames(meta.data)       <- meta.data[,1]
+meta.data$condition       <- as.factor(meta.data$condition)
+
+# Raw count data
+raw.counts                <- read.table("data/SuRE_CeD_RNAseq.expression.genelevel.v75.htseq.txt.table", header=T, row.names = 1)
+raw.counts                <- raw.counts[,grep("_C_", colnames(raw.counts))]
+
+raw.counts.joram          <- read.table("data/JoramMooiweer_Germany.expression.genelevel.v75.htseq.txt.table", header=T, row.names = 1)
+raw.counts.joram          <- raw.counts.joram[,grep("EC", colnames(raw.counts.joram))]
+
+raw.counts.maria          <- read.table("data/1601_Zorro_RNAseq.expression.genelevel.v75.htseq.txt.table", header=T, row.names = 1)
+raw.counts.maria          <- raw.counts.maria[,grep("wt_unsti", colnames(raw.counts.maria))]
+
+
+genes <- intersect(intersect(rownames(raw.counts), rownames(raw.counts.joram)), rownames(raw.counts.maria))
+raw.counts <- cbind(raw.counts[genes,], raw.counts.joram[genes,], raw.counts.maria[genes,])
+
+
+meta.data <- data.frame(source=c(rep("sure", 2), rep("joram", 20), rep("maria", 2)),
+                        condition=c(rep("sure", 2), rep("not-sure", 22)))
+
+# Ensembl data, use to get read names
+ensembl                   <- read.ensembl("../data/ensembl_gene_position_b37_biotype.txt", clean.biotypes=T)
+
+# Color definitions
+tricolors                <- c("coding RNA" = "#EC4F4B", "non-coding RNA" ="#2F9486", "r/sn/snoRNAs" = "#9DD945")
+
+#
+```
+
+```{r}
+filtered.counts.caco   <- raw.counts[rowSums(raw.counts > 10) >=2,]
+
+# Caco2
+deseq.caco   <- DESeqDataSetFromMatrix(countData=filtered.counts.caco,
+                                       colData=meta.data,
+                                     design = ~ condition)
+deseq.caco   <- DESeq(deseq.caco)
+
+
+caco.res   <- results(deseq.caco, contrast=c("condition", "sure", "not-sure"), lfcThreshold = 1)
+caco.res   <- data.frame(gene=rownames(caco.res), caco.res)
+
+caco.res <- caco.res[order(caco.res$log2FoldChange, decreasing = T), ]
+cat(as.character(caco.res[1:50,]$gene), sep="\n")
+
+
+
+combined <- t(assay(vst(deseq.caco)))
+pca      <- prcomp(combined)
+
+
+theme.plain(pca.plot(pca,
+                     color=meta.data$source,
+                     size=4,
+                     alpha=0.75,
+                     comp.1 = 5,
+                     comp.2 = 6)) + geom_text_repel(mapping=aes(label=colnames(filtered.counts.caco)))
+```
+

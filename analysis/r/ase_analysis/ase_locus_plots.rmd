@@ -1,0 +1,273 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("ase_analysis")} else {setwd("../ase_analysis")}
+library(MASS)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(Gviz)
+library(data.table)
+library(readxl)
+library(ggrepel)
+library(biomaRt)
+
+source("../sure-snp_functions.r")
+
+read.ase.from.excel <- function(path="../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet, with.annot=F, snp.filter=NULL) {
+  cur         <- read_xlsx(path, sheet=sheet)
+  
+  # Filter duplicates
+  #cur         <- cur[!duplicated(cur[,2]), 1:16]
+  
+  if (!with.annot) {
+      # Filter SNPs not in a peak
+      cur         <- cur[!is.na(cur$name),]
+      # Filter non-called SNPs
+      cur         <- cur[!is.na(cur$P),]
+      # Filter non-tested SNPs
+      cur         <- cur[cur$P != 1,]
+  }
+  
+
+  cur         <- as.data.frame(cur, stringsAsFactors=F)
+  
+  if (!with.annot) {
+      rownames(cur) <- cur[,2]
+  } 
+  
+  if (!is.null(snp.filter)) {
+    cur <- cur[cur$variant_id %in% snp.filter, ]
+  }
+  
+  return(cur)
+
+}
+
+K562          <- read.ase.from.excel(sheet="K562")
+Caco2         <- read.ase.from.excel(sheet="Caco2")
+Caco2Stim     <- read.ase.from.excel(sheet="Caco2Stim")
+Jurkat        <- read.ase.from.excel(sheet="Jurkat")
+JurkatStim    <- read.ase.from.excel(sheet="JurkatStim")
+
+ase.snps      <- unique(c(K562$variant_id, Caco2$variant_id, Caco2Stim$variant_id, Jurkat$variant_id, JurkatStim$variant_id))
+
+K562.annot          <- read.ase.from.excel(sheet="K562", with.annot = T, snp.filter = ase.snps)
+Caco2.annot         <- read.ase.from.excel(sheet="Caco2", with.annot = T, snp.filter = ase.snps)
+Caco2Stim.annot     <- read.ase.from.excel(sheet="Caco2Stim", with.annot = T, snp.filter = ase.snps)
+Jurkat.annot        <- read.ase.from.excel(sheet="Jurkat", with.annot = T, snp.filter = ase.snps)
+JurkatStim.annot    <- read.ase.from.excel(sheet="JurkatStim", with.annot = T, snp.filter = ase.snps)
+```
+
+# Locus plots of DE markers
+```{r}
+# Read the bedgraph files showing the sure activity
+sure.activity <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions/", pattern="[JC].*_CPM_all_samples.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.bdg.gz","\\1",file)
+  sure.activity[[name]] <- tmp
+}
+
+# Read the bedgraph files showing the sure activity + strand
+sure.activity.plus <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions_strand_specific/", pattern="[JC].*_CPM_all_samples.plus.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions_strand_specific/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.plus.bdg.gz","\\1",file)
+  sure.activity.plus[[name]] <- tmp
+}
+
+# Read the bedgraph files showing the sure activity - strand
+sure.activity.minus <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions_strand_specific/", pattern="[JC].*_CPM_all_samples.minus.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../peakcalling/data/merged_peaks/ced_regions_strand_specific/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_ced_regions_CPM_all_samples.minus.bdg.gz","\\1",file)
+  sure.activity.minus[[name]] <- tmp
+}
+
+# Peak files  
+sure.peaks <- list()
+for (file in list.files("../peakcalling/data/merged_peaks/ced_regions/", pattern="[JC].*_ced_regions_bmerged.narrowPeak")) {
+  tmp  <- fread(paste0("../peakcalling/data/merged_peaks/ced_regions/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  name <- gsub("(.*)_x3_ced_regions_bmerged.narrowPeak","\\1",file)
+  sure.peaks[[name]] <- tmp
+}
+
+# Read the bedgraph files showing the RNAseq activity
+rna.activity <- list()
+for (file in list.files("../rnaseq_analysis/data/coverage_tracks/", pattern="[CJ].*B1.*coverage.bdg.gz")) {
+  tmp  <- fread(paste0("zcat ../rnaseq_analysis/data/coverage_tracks/", file), data.table = F)
+  tmp[,1]  <- paste0("chr", tmp[,1])
+  tmp[,4]  <- tmp[,4] / (sum(tmp[,4]) / 1000000)
+  name <- gsub("RNA_(.*)_B1.coverage.bdg.gz","\\1",file)
+  rna.activity[[name]] <- tmp
+}
+
+
+# Used to convert names of the files to the celltype names used in the plots
+celltype.link              <- data.frame(old.names=paste0(c("K", "C", "Cs", "J", "Js"), ""),
+                                         new.names=names(sure.palette$celltype_stim), stringsAsFactors = F)
+rownames(celltype.link)    <- celltype.link[,1]
+
+# Marker genes
+#12:6,545,858-6,555,436
+#Cs_B1_T1+Cs_B1_T2_peak_2419|Cs_B2_T1+Cs_B2_T2_peak_2576 5:131826279-131827320
+
+# UBE2l3 C_B1_T1+C_B1_T2_peak_2122|C_B2_T1+C_B2_T2_peak_2041 22:21926122-21926621
+
+regions.of.interest        <- data.table(chrs=c("chr5", "chr22"),
+                                         froms=c(131826279 - 200,
+                                                 21926122 - 200),
+                                         tos=c(131827320 + 200,
+                                               21926621 + 200),
+                                         ylims=c(350, 1000),
+                                         ylims_rna=c(1, 1),
+                                         gene=c("IRF1", "UBE2L3"),
+                                         include=c(TRUE, TRUE),
+                                         celltype=c("C","C"))
+regions.of.interest        <- regions.of.interest[regions.of.interest$include,]
+```
+
+
+# Prepare the plot
+```{r}
+# Reference tracks, just need to be made once
+# Track showing the genomic posistion
+genTrack  <- GenomeAxisTrack(littleTicks = F,
+                             add53 = TRUE,
+                             add35 = TRUE,
+                             labelPos="below",
+                             cex=0.7)
+
+# Biomart object to retrieve gene info from
+bm <- useMart(host = "grch37.ensembl.org", 
+              biomart = "ENSEMBL_MART_ENSEMBL", 
+              dataset = "hsapiens_gene_ensembl")
+
+# Construct a trackplot for each region defined in regions.of.interest
+plots <- apply(regions.of.interest, 1, function(x) {
+  chr        <- x[1]
+  from       <- as.numeric(x[2])
+  to         <- as.numeric(x[3])
+  ymax       <- as.numeric(x[4])
+  ymax.rna   <- as.numeric(x[5])
+  ct         <- x[8]
+
+  # Tracks showing SuRE activity
+  celltype       <- ct
+  tmp.plus       <- sure.activity[[celltype]]
+  tmp.plus       <- tmp.plus[tmp.plus[,1] == chr,]
+  
+  tmp.minus      <- sure.activity[[paste0(celltype, "s")]]
+  tmp.minus      <- tmp.minus[tmp.minus[,1] == chr,]
+  #tmp.minus[,4]  <- -1 * tmp.minus[,4]
+  df.plot        <- merge.bedgraph.tracks(tmp.plus, tmp.minus)
+  
+  cur.beds       <- sure.peaks[[celltype]]
+  cur.beds       <- cur.beds[cur.beds[,1] == chr,]
+  celltype       <- celltype.link[celltype, 2]
+
+  activityTrack <- DataTrack(data=t(df.plot[,-c(3:ncol(df.plot))]),
+                          start = df.plot[,4],
+                          groups=c("Baseline", "Stim"),
+                 width = 1,
+                 from=from,
+                 to=to,
+                 chromosome = chr,
+                 aggregation="sum",
+                 aggregateGroups=T,
+                 window=100,
+                 name="SuRE-activity",
+                 genome = "hg19",
+                 strand="+",
+                 type="histogram",
+                 col=c(sure.palette$celltype_stim[celltype], sure.palette$celltype_stim[paste0(celltype, "-stim")]),
+                 col.histogram=NA,
+                 legend=F,
+                 stacked=F,
+                 )
+    
+  peaksTrack <- AnnotationTrack(chromosome=chr,
+                                start = cur.beds[,2],
+                                end = cur.beds[,3],
+                                genome="hg19",
+                                fill=sure.palette$celltype_stim[celltype],
+                                col=NA,
+                                name=NULL)
+    
+  celltype       <- paste0(ct, "s")
+  cur.beds       <- sure.peaks[[celltype]]
+  cur.beds       <- cur.beds[cur.beds[,1] == chr,]
+  celltype       <- celltype.link[celltype, 2]
+  
+  peaksTrackStim <- AnnotationTrack(chromosome=chr,
+                            start = cur.beds[,2],
+                            end = cur.beds[,3],
+                            genome="hg19",
+                            fill=sure.palette$celltype_stim[celltype],
+                            col=NA,
+                            name=NULL)
+  
+    
+  tracks <- c(activityTrack, peaksTrack, peaksTrackStim)
+
+  # Log progress
+  cat(x, "\n")
+  return(tracks)  
+})
+names(plots) <- sapply(1:nrow(regions.of.interest), function(i){paste(regions.of.interest[i,1:3], collapse=":")})
+```
+
+
+```{r}
+# Plot the tracks
+pdf(width=12, height=4, file="output/plots/variant_trackplots_test.pdf", paper="a4")
+  ncols <- length(plots)
+  
+  ncols <- 2
+  nrows <- 2
+  currow <- 0
+  curcol <- 0
+
+  grid.newpage()
+  pushViewport(viewport(layout = grid.layout(ncols, nrows)))
+  
+  for (i in 1:length(plots)) {
+    x          <- as.character(regions.of.interest[i,1:3])
+    chr        <- x[1]
+    from       <- as.numeric(x[2])
+    to         <- as.numeric(x[3])
+    region <- paste(x, collapse=":")
+
+    if ((i-1) %% nrows == 0) {
+      currow <- currow + 1
+      curcol <- 0
+    } 
+    curcol <- curcol + 1
+  
+    pushViewport(viewport(layout.pos.col = curcol,
+                          layout.pos.row = currow))
+    
+    cur.tracks <- plots[[region]]
+    plotTracks(cur.tracks,
+               chromosome = chr,
+               from=from,
+               to=to,
+               add = TRUE,
+               scale=0.7,
+               #sizes=c(0.1, 0.3, rep(c(0.25, 0.075, 0.075), 1), rep(0.3, 1), 0.15),
+               background.title="white",
+               col.axis="#736E70",
+               col.title="#736E70",
+               col.frame="lightgray",
+               collapseTranscripts = "meta",
+               cex.axis=0.3,
+               stackHeight=0.5,
+               cex.title=0.3
+               )
+    popViewport(1)
+  }
+dev.off()
+
+#collapseTranscripts = "meta"
+```

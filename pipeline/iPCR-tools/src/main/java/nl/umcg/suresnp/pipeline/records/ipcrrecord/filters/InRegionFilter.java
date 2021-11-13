@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -66,6 +67,25 @@ public class InRegionFilter implements IpcrRecordFilter, Iterator<BedRecord>, It
         reader.close();
 
         LOGGER.info("Instantiated region filter for " + contigs.size() + " loci");
+    }
+
+    public InRegionFilter(Collection<BedRecord> records) throws IOException, ParseException {
+        this.contigs = new ArrayList<>();
+        this.starts = new ArrayList<>();
+        this.stops = new ArrayList<>();
+        this.currentIndex = 0;
+        this.filterFailed = false;
+
+        for (BedRecord record: records) {
+            addRegion(record);
+        }
+
+    }
+
+    public void addRegion(BedRecord record) {
+        contigs.add(record.getContig());
+        starts.add(record.getStart());
+        stops.add(record.getEnd());
     }
 
     public void addRegion(String contig, int start, int stop) {

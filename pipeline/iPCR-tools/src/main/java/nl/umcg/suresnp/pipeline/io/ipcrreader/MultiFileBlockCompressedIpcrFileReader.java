@@ -79,6 +79,7 @@ public class MultiFileBlockCompressedIpcrFileReader extends IterativeMultiFileIp
         return output;
     }
 
+
     public IntervalTreeMap<IpcrRecord> queryAsIntervalTreeMap(String contig, int start, int end) throws IOException {
         IntervalTreeMap<IpcrRecord> output = new IntervalTreeMap<>();
         for (int i=0; i < getFiles().length; i++) {

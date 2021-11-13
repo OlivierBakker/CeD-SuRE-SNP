@@ -189,7 +189,7 @@ public class GenomicRegionEnrichment {
      * @param regionsToSampleFrom
      * @return
      */
-    private List<BedRecord> generatePermutedGenomicRegionsMatchingQuery(Collection<BedRecord> query, Map<String, ArrayList<BedRecord>> regionsToSampleFrom) throws IOException {
+    public static List<BedRecord> generatePermutedGenomicRegionsMatchingQuery(Collection<BedRecord> query, Map<String, ArrayList<BedRecord>> regionsToSampleFrom) throws IOException {
         List<BedRecord> output = new ArrayList<>(query.size());
 
         for (BedRecord currentQuery : query) {
@@ -203,13 +203,13 @@ public class GenomicRegionEnrichment {
             int newRegionMidPoint = ThreadLocalRandom.current().nextInt(regionToSampleIn.getStart(), regionToSampleIn.getEnd());
             BedRecord tmp = new BedRecord(currentQuery.getContig(), newRegionMidPoint - (size / 2), newRegionMidPoint + (size / 2));
             output.add(tmp);
-            debugRandomRecordWriter.writeRecord(tmp);
+            //debugRandomRecordWriter.writeRecord(tmp);
         }
 
         return output;
     }
 
-    private int[] determineOverlap(Collection<BedRecord> query, IntervalTreeMap<BedRecord> reference) {
+    public static int[] determineOverlap(Collection<BedRecord> query, IntervalTreeMap<BedRecord> reference) {
         int[] output = new int[2];
 
         for (BedRecord curRecord : query) {
@@ -222,7 +222,7 @@ public class GenomicRegionEnrichment {
         return output;
     }
 
-    private IntervalTreeMap<BedRecord> intersectTreeMaps(Collection<BedRecord> query, IntervalTreeMap<BedRecord> reference) {
+    public static IntervalTreeMap<BedRecord> intersectTreeMaps(Collection<BedRecord> query, IntervalTreeMap<BedRecord> reference) {
         IntervalTreeMap<BedRecord> output = new IntervalTreeMap<>();
 
         int removed = 0;

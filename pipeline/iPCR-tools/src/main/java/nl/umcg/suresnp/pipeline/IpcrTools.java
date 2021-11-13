@@ -102,6 +102,10 @@ public class IpcrTools {
                     GenomicRegionEnrichment genomicRegionEnrichment = new GenomicRegionEnrichment(new GenomicRegionEnrichmentParameters(args));
                     genomicRegionEnrichment.run();
                     break;
+                case "SureActivityOverBackground":
+                    SureActivityOverBackground sureActivityOverBackground = new SureActivityOverBackground(new SureActivityOverBackgroundParameters(args));
+                    sureActivityOverBackground.run();
+                    break;
                 default:
                     LOGGER.error("Did not supply a valid tooltype");
                     IpcrToolParameters.printHelp();

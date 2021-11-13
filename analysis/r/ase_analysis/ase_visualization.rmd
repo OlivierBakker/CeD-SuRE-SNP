@@ -11,19 +11,19 @@ library(ggrepel)
 source("../sure-snp_functions.r")
 
 read.ase.from.excel <- function(path, sheet) {
-  cur         <- read_xlsx("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet=sheet)
+  cur         <- read_xlsx(path, sheet=sheet)
   
   # Filter duplicates
   #cur         <- cur[!duplicated(cur[,2]), 1:16]
   
   # Filter SNPs not in a peak
-  cur         <- cur[!is.na(cur$name), 1:16]
+  cur         <- cur[!is.na(cur$name),]
   
   # Filter non-called SNPs
-  cur         <- cur[!is.na(cur[,10]), 1:16]
+  cur         <- cur[!is.na(cur$P),]
     
   # Filter non-tested SNPs
-  cur         <- cur[cur[,10] != 1, 1:16]
+  cur         <- cur[cur$P != 1,]
 
   cur         <- as.data.frame(cur, stringsAsFactors=F)
   
@@ -93,16 +93,16 @@ eqtl <- as.data.frame(eqtl, stringsAsFactors=F)
 
 # QQplot: Dataprep
 ```{r}
-df.plot <- data.frame(pvals = c(K562$K562_P,
-                                Caco2$Caco2_P,
-                                Caco2Stim$Caco2Stim_P,
-                                Jurkat$Jurkat_P,
-                                JurkatStim$JurkatStim_P),
-                      pvals.ponce = c(K562$ponce_P,
-                                Caco2$ponce_P,
-                                Caco2Stim$ponce_P,
-                                Jurkat$ponce_P,
-                                JurkatStim$ponce_P),
+df.plot <- data.frame(pvals = c(K562$P,
+                                Caco2$P,
+                                Caco2Stim$P,
+                                Jurkat$P,
+                                JurkatStim$P),
+                      pvals.ponce = c(K562$PONCE_P,
+                                Caco2$PONCE_P,
+                                Caco2Stim$PONCE_P,
+                                Jurkat$PONCE_P,
+                                JurkatStim$PONCE_P),
                       celltype = c(rep("k562", nrow(K562)),
                                    rep("caco-2", nrow(Caco2)),
                                    rep("caco-2-stim", nrow(Caco2Stim)),
@@ -155,7 +155,10 @@ p1 <- ggplot(data=df.plot, mapping=aes(x=expected,
   scale_colour_manual(values=sure.palette$celltype_stim) +
   geom_text_repel()
   
+
+pdf(width=4, height=4, file="output/plots/sure_snp_ase_effects_qqplot.pdf", useDingbats = F)
 theme.plain(p1) + theme(legend.position = "none")
+dev.off()
 ```
 
 # QQplot: SNPs overlapping peaks
@@ -208,7 +211,9 @@ p2 <- ggplot(data=df.plot, mapping=aes(x=expected,
                             celltype=c("k562", "caco-2", "caco-2-stim", "jurkat", "jurkat-stim")),
             mapping=aes(x=x, y=y, label=label, col=celltype))
 
+pdf(width=4, height=4, file="output/plots/sure_snp_ced_enrichment_qqplot.pdf", useDingbats = F)
 theme.plain(p2) + theme(legend.position = "none")
+dev.off()
 ```
 
 # Barplot of SNPs overlapping peaks & ASE
@@ -223,11 +228,11 @@ tmp   <- data.frame(nsnps=c(nrow(Caco2),
                                    "jurkat",
                                    "jurkat-stim",
                                    "k562"),
-                      nase=c(sum(Caco2$Caco2_P < 0.05),
-                             sum(Caco2Stim$Caco2Stim_P <0.05),
-                             sum(Jurkat$Jurkat_P <0.05),
-                             sum(JurkatStim$JurkatStim_P < 0.05),
-                             sum(K562$K562_P < 0.05)),
+                      nase=c(sum(Caco2$P < 0.05),
+                             sum(Caco2Stim$P <0.05),
+                             sum(Jurkat$P <0.05),
+                             sum(JurkatStim$P < 0.05),
+                             sum(K562$P < 0.05)),
                     stringsAsFactors = F)
 
 df.plot <- data.frame(counts=c(tmp$nsnps - tmp$nase, tmp$nase),
@@ -242,11 +247,13 @@ p1 <- ggplot(data=df.plot, mapping=aes(x=celltype,
                                        fill=type)) +
   geom_bar(stat="identity") +
   scale_fill_manual(values=c(`no`="#034e7b", `yes`="#a6bddb"), name="Has ASE\neffect") +
-  ylab("# overlapping variants") +
+  ylab("Number of overlapping variants") +
   xlab("")
 
+pdf(width=4, height=4, file="output/plots/sure_snp_variant_enrichment_barplot.pdf", useDingbats = F)
+theme.plain(p1) + theme(axis.text.x = element_text(angle=45, hjust=1))+ theme(legend.position = "none")
+dev.off()
 
-theme.plain(p1) + theme(axis.text.x = element_text(angle=45, hjust=1))
 ```
 
 
