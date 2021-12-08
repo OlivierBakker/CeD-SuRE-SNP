@@ -26,11 +26,20 @@ public class MakeBarcodeComplexityCurve {
 
     public void run() throws IOException {
 
-        int[] intervals = generateIntervals(0, params.getIntervalMax(), params.getnDownSampleIntervals());
-        LOGGER.info("Calculating unique barcode counts for following intervals: " + Arrays.toString(intervals));
 
         // Read barcode file
         List<String> barcodeList = readBarcodes();
+        int[] intervals;
+
+        LOGGER.debug("Number of barcodes: " + barcodeList.size());
+
+        if (params.getIntervalMax() > 0) {
+            intervals = generateIntervals(0, params.getIntervalMax(), params.getnDownSampleIntervals());
+        } else {
+            intervals = generateIntervals(0, barcodeList.size(), params.getnDownSampleIntervals());
+        }
+        LOGGER.info("Calculating unique barcode counts for following intervals: " + Arrays.toString(intervals));
+
 
         // Write header line
         writer.write("iteration");
@@ -38,6 +47,9 @@ public class MakeBarcodeComplexityCurve {
             writer.write("\t" + interval);
         }
         writer.newLine();
+
+        //Set<String> tmp = new HashSet<>(barcodeList);
+        //LOGGER.info("Number of unique barcodes: " + tmp.size());
 
         // Calculate # of unique barcodes
         for (int i = 0; i < params.getnIterations(); i++) {
@@ -48,10 +60,19 @@ public class MakeBarcodeComplexityCurve {
                 if (randomReadCount == barcodeList.size()) {
                     writer.write("\t" + new HashSet<>(barcodeList).size());
                 } else {
+
+                    // Replaced this with the old code again, as this was way less efficient. I guess due to overhead
+                    // it scaled poorly with N eventough all actions should be O(1)
+                    // Also had much poorer memory overhead
                     // Sample a random barcode without replacement
-                    BarcodeConsumer consumer = new BarcodeConsumer(new HashSet<>(), barcodeList);
-                    new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).forEach(consumer);
-                    writer.write("\t" + consumer.getSize());
+                    // Computation time went from 30min to 8.30 min, and from 40G to about 16G
+                    //BarcodeConsumer consumer = new BarcodeConsumer(new HashSet<>(), barcodeList);
+                    //new Random().ints(0, barcodeList.size()).distinct().limit(randomReadCount).forEach(consumer);
+                    //writer.write("\t" + consumer.getSize());
+
+                    HashSet<String> uniqueBarcodes = pickNRandomElementsAsSet(barcodeList, randomReadCount);
+                    writer.write("\t" + uniqueBarcodes.size());
+
                     writer.flush();
                 }
 
@@ -97,18 +118,26 @@ public class MakeBarcodeComplexityCurve {
             }
 
             if (bc.length() == params.getBarcodeLength()) {
-                if (savedRecods < params.getIntervalMax()) {
+
+                if (params.getIntervalMax() > 0) {
+                    if (savedRecods < params.getIntervalMax()) {
+                        barcodeList.add(bc);
+                        savedRecods++;
+                    } else {
+                        LOGGER.info("Read " + barcodeList.size() + " records");
+                        break;
+                    }
+                } else {
                     barcodeList.add(bc);
                     savedRecods++;
-                } else {
-                    LOGGER.info("Read " + barcodeList.size() + " records");
-                    break;
                 }
+
             }
 
             curRecord++;
         }
         System.out.print("\n"); // Flush progress bar
+        LOGGER.info("Read " + barcodeList.size() + " records");
         reader.close();
 
 
@@ -117,14 +146,24 @@ public class MakeBarcodeComplexityCurve {
 
     private static int[] generateIntervals(int start, int end, int nValues) {
 
-        int interval = Math.round((end - start) / nValues);
+/*        int interval = Math.round((end - start) / nValues);
         int[] out = new int[nValues];
         int j = 0;
         for (int i = start + interval; i <= end || j <= nValues - 1; i += interval) {
             out[j] = i;
             j++;
+        }*/
+
+        int stepSize = Math.round((end - start) / (float) nValues);
+        int[] out = new int[nValues];
+
+        for(int j=0; j < nValues; j++) {
+            out[j] = start + (stepSize * (j+1));
         }
 
+        if (out[nValues-1] > end) {
+            out[nValues-1] = end-1;
+        }
 
         return out;
     }
@@ -201,6 +240,20 @@ public class MakeBarcodeComplexityCurve {
     public static <E> List<E> pickNRandomElements(List<E> list, int n) {
         return pickNRandomElements(list, n, ThreadLocalRandom.current());
     }
+
+    public static HashSet<String> pickNRandomElementsAsSet(List<String> list, int n) {
+        Random r = ThreadLocalRandom.current();
+        int length = list.size();
+
+        if (length < n) return null;
+
+        // We don't need to shuffle the whole list
+        for (int i = length - 1; i >= length - n; --i) {
+            Collections.swap(list, i, r.nextInt(i + 1));
+        }
+        return new HashSet<>(list.subList(length - n, length));
+    }
+
 
 
 }

@@ -2,14 +2,12 @@
 if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
 source("../sure-snp_functions.r")
 
-
 cov.gow <- fread("data/sure_snp_ipcr_1000kb_window_coverage.bed", data.table=F)
 cov.ced <- fread("data/sure_snp_ipcr_1000kb_window_coverage_ced_regions.bed", data.table=F)
-
 ```
 
+# Barplots of iPCR coverage per 1mb window
 ```{r}
-
 pdf(width=9, height=15, paper="a4", file="output/plots/sure_snp_ipcr_coverage_plot.pdf")
 
 par(mfrow=c(6, 4), mar=c(1,2,2,0))
@@ -24,16 +22,16 @@ for (chr in unique(cov.gow[,1])) {
   df.plot$col <- rep("grey", nrow(df.plot))
   df.plot[df.plot$is.ced, "col"] <- "blue"
   
-  
   barplot(df.plot[,4],
           col=df.plot$col,
           border=NA, 
           main=paste0("Chr ", chr),
-          ylim=range(pretty(c(0, df.plot[,4]))),
+          #ylim=range(pretty(c(0, df.plot[,4]))),
+          ylim=range(pretty(c(0, 6e6))),
           axes=F)
   
   m <- max(df.plot[,4])
-  
+  m <- 6e6
   axis(side=2,
        at=c(0, m),
        labels=c("0", formatC(m, format="e", digits=0)))
@@ -48,5 +46,21 @@ legend("topright",
 par()
 dev.off()
 
+```
+
+# Aproximate coverage numbers
+```{r}
+aprox.cov.per.base <- function(data, window=1e6, mean.fragment.length=250) {
+  
+  data <- data[data[,4] != 0,]
+  nbases <- nrow(data) * window
+  
+  aprox.cov <- (sum(data[,4]) * mean.fragment.length) / nbases
+  
+  return(c(`aprox.cov`=aprox.cov, nfragment=sum(data[,4]), nbases=nbases))
+}
+
+aprox.cov.per.base(cov.ced)
+aprox.cov.per.base(cov.gow)
 ```
 

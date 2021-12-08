@@ -7,7 +7,7 @@ import java.util.function.IntConsumer;
 public class BarcodeConsumer implements IntConsumer {
 
     private Set<String> uniqueBarcodes;
-    private List<String> barcodePool;
+    private final List<String> barcodePool;
 
     public BarcodeConsumer(Set<String> uniqueBarcodes, List<String> barcodePool) {
         this.uniqueBarcodes = uniqueBarcodes;

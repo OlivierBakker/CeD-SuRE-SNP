@@ -1,5 +1,5 @@
 ```{r}
-setwd("../peakcalling")
+if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
 source("../sure-snp_functions.r")
 
 library(DESeq2)
@@ -154,7 +154,6 @@ caco.res   <- results(results, contrast=c("stimulation", "iFNY", "c-baseline"), 
 caco.res   <- as.data.frame(caco.res)
 ```
 
-
 # Alternative DE ranking
 ```{r}
 a <- c("C_B1_T1", "C_B1_T2", "C_B2_T1", "C_B2_T2", "Cs_B1_T1", "Cs_B1_T2", "Cs_B2_T1", "Cs_B2_T2")
@@ -175,4 +174,21 @@ rownames(maker.peaks)    <- maker.peaks$peak
 
 ```
 
+# Peak based analysis for jurkat
+```{r}
+J   <- read.bedfile("data/merged_peaks/ced_regions/J_x3_ced_regions_bmerged.narrowPeak", chr.prefix = "chr")
+Js  <- read.bedfile("data/merged_peaks/ced_regions/Js_x3_ced_regions_bmerged.narrowPeak", chr.prefix = "chr")
+
+overlaps <- findOverlaps(J$genomicRanges, Js$genomicRanges)
+
+Js.unique    <- Js$data[-overlaps@to,]
+Js.unique.gr <- Js$genomicRanges[-overlaps@to,]
+
+# Find the genes which have an peak upstream of the TSS
+genes.ucsc             <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+closest.gene           <- matchGenes(Js.unique.gr, genes.ucsc, type="fiveprime", skipExons = T, promoterDist = 1000)
+rownames(closest.gene) <- names(Js.unique.gr)
+
+
+```
 

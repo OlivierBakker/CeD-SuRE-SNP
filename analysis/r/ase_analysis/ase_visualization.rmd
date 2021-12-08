@@ -10,28 +10,6 @@ library(ggrepel)
 
 source("../sure-snp_functions.r")
 
-read.ase.from.excel <- function(path, sheet) {
-  cur         <- read_xlsx(path, sheet=sheet)
-  
-  # Filter duplicates
-  #cur         <- cur[!duplicated(cur[,2]), 1:16]
-  
-  # Filter SNPs not in a peak
-  cur         <- cur[!is.na(cur$name),]
-  
-  # Filter non-called SNPs
-  cur         <- cur[!is.na(cur$P),]
-    
-  # Filter non-tested SNPs
-  cur         <- cur[cur$P != 1,]
-
-  cur         <- as.data.frame(cur, stringsAsFactors=F)
-  
-  rownames(cur) <- cur[,2]
-  return(cur)
-
-}
-
 K562          <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="K562")
 Caco2         <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Caco2")
 Caco2Stim     <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Caco2Stim")

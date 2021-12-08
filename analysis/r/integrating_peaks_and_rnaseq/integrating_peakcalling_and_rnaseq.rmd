@@ -1,5 +1,5 @@
 ```{r}
-setwd("integrating_peaks_and_rnaseq")
+if(basename(getwd()) == "r"){setwd("integrating_peaks_and_rnaseq")} else {setwd("../integrating_peaks_and_rnaseq")}
 source("../sure-snp_functions.r")
 library(GenomicRanges)
 library(DESeq2)
@@ -79,7 +79,7 @@ dev.off()
 # Link DE genes to SuRE-activity
 ```{r}
 find.overlaps <- function(de.genes) {
-  de.genes.tss      <- get.tss.from.ensembl(ensembl, de.genes, tss.window = 1000)
+  de.genes.tss      <- get.tss.from.ensembl(ensembl, de.genes, tss.window = 5000)
   overlap.gr        <- findOverlaps(peaks, de.genes.tss)
   
   overlap           <- cbind(names(peaks[overlap.gr@from]), names(de.genes.tss[overlap.gr@to]))
@@ -143,7 +143,7 @@ p2 <- make.plot("Upregulated")
 
 grid.arrange(grobs=list(p1, p2), ncol=2)
 
-pdf(width=6, height=4, file="output/plots/peak_acitivity_de_genes_1kb_upstream.pdf")
+pdf(width=6, height=4, file="output/plots/peak_acitivity_de_genes_5kb_upstream.pdf")
 p2
 dev.off()
 

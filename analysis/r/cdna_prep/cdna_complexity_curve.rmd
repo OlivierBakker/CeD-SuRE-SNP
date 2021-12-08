@@ -1,0 +1,52 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("cdna_prep")} else {setwd("../cdna_prep")}
+source("../sure-snp_functions.r")
+
+
+windows <- read.table("data/sure_snp_cdna_barcode_downsample_windows.tsv", stringsAsFactors = F, row.names = 1)
+counts  <- read.table("data/sure_snp_cdna_barcode_downsample_counts.tsv", stringsAsFactors = F, row.names=1)
+
+sure.palette$celltype_stim_alt["G"]  <- "darkgoldenrod2"
+sure.palette$celltype_stim_alt["Gs"] <- "cornsilk2"
+sure.palette$celltype_stim_alt["T"]  <- "darkorchid4"
+sure.palette$celltype_stim_alt["Ts"] <- "darkorchid1"
+
+
+sure.palette$celltype_stim_alt2["GM12878"] <- "grey"
+sure.palette$celltype_stim_alt2["GM12878 Stim"] <- "grey"
+sure.palette$celltype_stim_alt2["THP-1"] <- "grey"
+sure.palette$celltype_stim_alt2["THP-1 Stim"] <- "grey"
+
+```
+
+```{r}
+df.plot <- data.frame(windows=as.numeric(unlist(windows[,3:12])),
+                      celltype=rep(windows[,1], 10),
+                      name=rep(rownames(windows), 10),
+                      counts=as.numeric(unlist(counts)))
+
+
+p1 <- ggplot(df.plot, mapping=aes(x=windows, y=counts, group=name, col=celltype)) + 
+  geom_line(alpha=0.5) +
+  geom_point(alpha=0.5, size=0.5) +
+  scale_color_manual(values=sure.palette$celltype_stim_alt) +
+  xlab("Number of seqeunced barcodes") +
+  ylab("Number of unique barcodes")
+p1 <- theme.plain(p1) 
+
+
+p2 <- ggplot(df.plot, mapping=aes(x=windows, y=1 - (counts/windows), group=name, col=celltype)) + 
+  geom_line(alpha=0.5) +
+  geom_point(alpha=0.5, size=0.5) +
+  scale_color_manual(values=sure.palette$celltype_stim_alt) +
+  xlab("Number of seqeunced barcodes") +
+  ylab("1 - % unique barcodes in bin") +
+  ylim(c(0,1))
+p2 <- theme.plain(p2) 
+
+pdf(width=8, height=8, paper="a4", file="output/plots/cdna_saturation_curves.pdf")
+grid.arrange(grobs=list(p1, p2), ncol=1)
+dev.off()
+
+```
+

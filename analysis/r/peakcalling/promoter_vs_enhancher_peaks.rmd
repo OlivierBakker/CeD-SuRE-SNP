@@ -1,0 +1,176 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
+source("../sure-snp_functions.r")
+
+library(DESeq2)
+library(GenomicRanges)
+library(biomaRt)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(bumphunter)
+
+count.matrix           <- fread("data/SuRE-SNP_CeD_x3_filtered.countMatrix", data.table = F)
+rownames(count.matrix) <- count.matrix[,1]
+count.matrix           <- count.matrix[,-1]
+meta.data              <- read.table("data/SuRE-SNP_CeD_x3_filtered.samplesheet", stringsAsFactors = F, header=T)
+row.names(meta.data)   <- meta.data$id
+
+meta.data$ct_caco      <- as.factor(meta.data$ct_caco)
+meta.data$ct_jurkat    <- as.factor(meta.data$ct_jurkat)
+meta.data$ct_k562      <- as.factor(meta.data$ct_k562)
+
+# Normalize count matrix
+deseq.full             <- DESeqDataSetFromMatrix(countData = count.matrix,
+                                     colData = meta.data[colnames(count.matrix),],
+                                     design = ~celltype)
+results                <- DESeq(deseq.full)
+pca.obj                <- varianceStabilizingTransformation(results)
+norm.count.matrix      <- assay(pca.obj)
+
+# Cleanup
+rm(deseq.full, results, pca.obj)
+```
+
+# Find the closest gene to marker peaks
+```{r}
+# Convert marker peaks to genomic range
+markers.as.range       <- get.as.grange(rownames(count.matrix), return.as.grange=T, chr.prefix="chr")
+
+# Find the genes which have an peak upstream of the TSS
+genes.ucsc             <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+closest.gene           <- matchGenes(markers.as.range, genes.ucsc, type="fiveprime", skipExons = T, promoterDist = 1000)
+rownames(closest.gene) <- names(markers.as.range)
+
+# Genes upstream of Tss
+closest.gene           <- closest.gene[closest.gene$distance < 5000 & closest.gene$region %in% c("upstream", "promoter", "overlaps 5'"), c("name", "description", "distance", "geneL", "region")]
+
+# Add the specificity of the peak as a marker
+closest.gene$peak               <- rownames(closest.gene)
+
+
+promoter.peaks       <- unique(rownames(closest.gene[closest.gene$region %in% c("promoter", "overlaps 5'"),]))
+proximal.enhanchers  <- unique(rownames(closest.gene[closest.gene$region %in% c("upstream"),]))
+distal.enhanchers    <- setdiff(rownames(norm.count.matrix), c(promoter.peaks, proximal.enhanchers))
+
+closest.gene           <- matchGenes(markers.as.range, genes.ucsc, type="fiveprime", skipExons = T, promoterDist = 1000)
+rownames(closest.gene) <- names(markers.as.range)
+closest.gene$peak               <- rownames(closest.gene)
+
+
+pdf(width=9, height=3, file="output/plots/distance_to_closest_gene_per_peak.pdf", paper="a4")
+par(mfrow=c(1,3))
+
+hist(closest.gene[closest.gene$peak %in% promoter.peaks,"distance"],
+     breaks=10,
+     xlab="Distance to TSS (bases)",
+     main="Promoter peaks")
+
+hist(closest.gene[closest.gene$peak %in% proximal.enhanchers,"distance"],
+     breaks=10,
+     xlab="Distance to TSS (bases)",
+     main="Proximal enhancher peaks")
+
+hist(closest.gene[closest.gene$peak %in% distal.enhanchers,"distance"],
+     breaks=10,
+     xlab="Distance to TSS (bases)",
+     main="Distal enhancher peaks")
+dev.off()
+```
+
+# Correlation between promoter and enhancher peaks
+```{r}
+cor.pro      <- cor(norm.count.matrix[promoter.peaks,])
+cor.enh.prox <- cor(norm.count.matrix[proximal.enhanchers,])
+cor.enh.dist <- cor(norm.count.matrix[distal.enhanchers,])
+
+pdf(file="output/plots/correlation_heatmap_of_vst_normalized_peaks_promoter_and_enhancer.pdf", width=6, height=5, paper="a4")
+simple.hm(cor.pro,
+          range="absolute",
+          annotation_row=meta.data[,c("celltype", "simple_stimulation")],
+          annotation_colors=sure.palette,
+          min.value = 0.5,
+          fontsize=8,
+          cellwidth = 8.5,
+          cellheight = 8.5,
+          border_color=NA,
+          treeheight_row=20,
+          treeheight_col=20, 
+          cluster_rows=F,
+          cluster_cols=F,
+          main="Promoter (1kb upstream or overlapping 5')")
+
+simple.hm(cor.enh.prox,
+          range="absolute",
+          annotation_row=meta.data[,c("celltype", "simple_stimulation")],
+          annotation_colors=sure.palette,
+          min.value = 0.5,
+          fontsize=8,
+          cellwidth = 8.5,
+          cellheight = 8.5,
+          border_color=NA,
+          treeheight_row=20,
+          treeheight_col=20, 
+          cluster_rows=F,
+          cluster_cols=F,
+          main="Proximal enhancer (5kb upstream)")
+
+simple.hm(cor.enh.dist,
+          range="absolute",
+          annotation_row=meta.data[,c("celltype", "simple_stimulation")],
+          annotation_colors=sure.palette,
+          min.value = 0.5,
+          fontsize=8,
+          cellwidth = 8.5,
+          cellheight = 8.5,
+          border_color=NA,
+          treeheight_row=20,
+          treeheight_col=20,
+          cluster_rows=F,
+          cluster_cols=F,
+          main="Distal enhancer (>5kb upstream)")
+
+dev.off()
+```
+
+```{r}
+count.matrix.tmerged <- read.table("output/SuRE_CeD_consensus_peaks_x3_count_matrix_technicals_merged.tsv", sep="\t")
+
+# Normalizing using VST
+meta.data.tmerged           <- data.frame(matrix(unlist(strsplit(colnames(count.matrix.tmerged), split="_")),
+                                      ncol=2,
+                                      byrow=T),
+                            row.names=colnames(count.matrix.tmerged))
+colnames(meta.data.tmerged) <- c("celltype", "stimulation")
+deseq.full.tmerged          <- DESeqDataSetFromMatrix(countData = count.matrix.tmerged,
+                                     colData = meta.data.tmerged[colnames(count.matrix.tmerged),],
+                                     design = ~stimulation)
+
+results.tmerged        <- DESeq(deseq.full.tmerged)
+pca.obj.tmerged        <- varianceStabilizingTransformation(results.tmerged)
+x.tmerged              <- assay(pca.obj.tmerged)
+
+df.plot <- data.frame(x=as.numeric(x.tmerged),
+                      peak=rep(rownames(x.tmerged), 10),
+                      ct_id=as.character(sapply(colnames(x.tmerged), rep, 873)))
+
+df.plot$celltype <- gsub("(.*)\\_.*", "\\1", df.plot$ct_id)
+df.plot$type[df.plot$peak %in% promoter.peaks]      <- "promoter"
+df.plot$type[df.plot$peak %in% distal.enhanchers]   <- "distal enhancer"
+df.plot$type[df.plot$peak %in% proximal.enhanchers] <- "proximal enhancer"
+df.plot$type <- factor(df.plot$type, levels=c("distal enhancer", "proximal enhancer", "promoter"))
+
+pdf(file="output/plots/sure_activity_promoter_and_enhancer.pdf", width=8, height=4, paper="a4")
+p <- ggplot(df.plot, mapping=aes(y=x, x=type, fill=celltype)) +
+  geom_hline(yintercept = mean(df.plot[df.plot$type=="distal enhancer", 1]), col="grey", lty=2) +
+  geom_violin(col=NA, alpha=0.5,position="dodge") +
+  geom_boxplot(alpha=1, width=0.2, position=position_dodge(width = 0.9), col="black") +
+  scale_fill_manual(values=sure.palette$celltype_stim_alt) +
+  ylab("SuRE activity in peaks") +
+  xlab("Peak type") +
+  geom_signif(comparisons = list(c("distal enhancer", "promoter"),
+                                 c("proximal enhancer", "promoter")), tip_length = 0.01, step_increase = 0.1)
+
+theme.plain(p)
+dev.off()
+```
+
+

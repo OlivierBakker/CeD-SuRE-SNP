@@ -1,0 +1,55 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
+source("../sure-snp_functions.r")
+
+library(DESeq2)
+library(GenomicRanges)
+library(biomaRt)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(bumphunter)
+
+
+read.as.grange <- function(file) {
+  data <- read.table(file, stringsAsFactors = F)
+  tmp <- GRanges(seqnames=paste0("chr", data[,1]), ranges=IRanges(start=data[,2], end=data[,3]))
+  names(tmp) <-paste0(data[,1], ":", paste0(data[,2], "-", data[,3]))
+  return(tmp)
+  
+}
+
+caco2       <- read.as.grange("data/merged_peaks/ced_regions/C_x3_ced_regions_bmerged.narrowPeak")
+caco2stim   <- read.as.grange("data/merged_peaks/ced_regions/Cs_x3_ced_regions_bmerged.narrowPeak")
+k562        <- read.as.grange("data/merged_peaks/ced_regions/K_x3_ced_regions_bmerged.narrowPeak")
+jurkat      <- read.as.grange("data/merged_peaks/ced_regions/J_x3_ced_regions_bmerged.narrowPeak")
+jurkatStim  <- read.as.grange("data/merged_peaks/ced_regions/Js_x3_ced_regions_bmerged.narrowPeak")
+ced.regions <- read.as.grange("../data/CeDRegionV4.bed")
+
+```
+
+# Select genes downstream of peaks
+```{r}
+# Find the genes which have an peak upstream of the TSS
+genes.ucsc             <- annotateTranscripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
+
+get.upstream.genes <- function(cur.data, window=1000) {
+  closest.gene           <- matchGenes(cur.data, genes.ucsc, type="fiveprime", skipExons = T, promoterDist = 1000)
+  rownames(closest.gene) <- names(cur.data)
+  closest.gene           <- closest.gene[closest.gene$distance < window & closest.gene$region %in% c("upstream", "promoter", "overlaps 5'"), c("name", "description", "distance", "geneL", "region")]
+  return(unique(closest.gene$name))
+}
+
+
+caco2.genes      <- get.upstream.genes(caco2)
+caco2stim.genes  <- get.upstream.genes(caco2stim)
+k562.genes       <- get.upstream.genes(k562)
+jurkat.genes     <- get.upstream.genes(jurkat)
+jurkatstim.genes <- get.upstream.genes(jurkatStim)
+
+ced.overlap      <- findOverlaps(ced.regions, genes.ucsc)
+background.genes <- unique(as.data.frame(genes.ucsc[ced.overlap@to])$Gene)
+
+cat(unique(caco2.genes), sep="\n")
+cat(unique(caco2stim.genes), sep="\n")
+
+```
+

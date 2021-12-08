@@ -1,0 +1,140 @@
+```{r}
+if(basename(getwd()) == "r"){setwd("peakcalling")} else {setwd("../peakcalling")}
+source("../sure-snp_functions.r")
+
+```
+
+# Barplot of signal to noise ratio 
+```{r}
+df.plot <- data.frame(celltype=c("Jurkat", "Jurkat Stim", "Caco-2", "Caco-2 Stim", "K562", "GM12878", "GM12878 Stim", "THP-1", "THP-1 Stim"),
+                      ratio=c(1.99, 2.43, 3.58, 3.53, 4.53, 1.97, 2.12, 1.67, 1.79),
+                      true=c(0.63, 0.17, 1.48, 1.64, 3.44, 0.49, 0.46, 0.40, 0.34),
+                      perm=c(0.31, 0.07, 0.41, 0.47, 0.75, 0.24, 0.22, 0.23, 0.18),
+                      npeak=c(28, 74, 302, 327, 717, 361, 400, 654, 584),
+                      signif=c("*", "*", "*", "*", "*", "*", "*", "*", "*"))
+rownames(df.plot) <- df.plot$celltype
+
+df.plot$celltype <- factor(df.plot$celltype, levels=c("K562", "Caco-2", "Caco-2 Stim", "Jurkat", "Jurkat Stim", "GM12878", "GM12878 Stim", "THP-1", "THP-1 Stim"))
+
+sure.palette$celltype_stim_alt2["GM12878"] <- "grey"
+sure.palette$celltype_stim_alt2["GM12878 Stim"] <- "grey"
+sure.palette$celltype_stim_alt2["THP-1"] <- "grey"
+sure.palette$celltype_stim_alt2["THP-1 Stim"] <- "grey"
+
+
+p1 <- theme.plain(ggplot(df.plot, mapping=aes(x=celltype, y=npeak, fill=celltype)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=sure.palette$celltype_stim_alt2) +
+  ylab("Number of peaks") +
+  xlab(""))
+
+p2 <- theme.plain(ggplot(df.plot, mapping=aes(x=celltype, y=true, fill=celltype)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=sure.palette$celltype_stim_alt2) +
+  ylab("Mean peak ratio (cDNA / iPCR)") +
+  xlab("") +
+  geom_hline(yintercept=1, lwd=1, col="black", lty=2))
+
+p3 <- theme.plain(ggplot(df.plot, mapping=aes(x=celltype, y=ratio, fill=celltype)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=sure.palette$celltype_stim_alt2) +
+  geom_text(aes(label=signif), nudge_y=0.5) +
+  ylab("Signal to noise ratio") +
+  xlab("") +
+  geom_hline(yintercept=1, lwd=1, col="black", lty=2))
+
+
+#plots <- list(theme.plain(p1), theme.plain(p2), theme.plain(p3))
+#grid.arrange(grobs=plots, ncol=1)
+
+gA <- ggplotGrob(p1 + theme(legend.position = "none"))
+gB <- ggplotGrob(p2 + theme(legend.position = "none"))
+gC <- ggplotGrob(p3 + theme(legend.position = "none"))
+
+pdf(width=8, height=8, file="output/plots/singal_to_noise_ratio_peaks.pdf", paper="a4")
+grid::grid.newpage()
+grid::grid.draw(rbind(gA, gB, gC))
+dev.off()
+
+```
+
+
+# Raw data, didnt save it as a file, so this is the log output
+```{text}
+Jurkat:
+True activity: 0.6317450744977539
+Running 100 permutations
+Mean permuted activity: 0.3171405686080114
+Ratio: 1.9920033481386499
+P-value: 0.02970297029702973
+
+Jurkat Stim:
+True activity: 0.17067168095635324
+Running 100 permutations
+Mean permuted activity: 0.0701094104889239
+Ratio: 2.4343619460802124
+P-value: 0.00990099009900991
+
+Caco-2:
+True activity: 1.4824410514473443
+Running 100 permutations
+Mean permuted activity: 0.41458880429771916
+Ratio: 3.5756900236572546
+P-value: 0.00990099009900991
+
+Caco-2 stim:
+True activity: 1.6432230073271827
+Running 100 permutations
+Mean permuted activity: 0.4659319964845083
+Ratio: 3.5267442882768796
+P-value: 0.00990099009900991
+
+K562:
+True activity: 3.44009838322253
+Running 100 permutations
+Mean permuted activity: 0.7573052426052861
+Ratio: 4.542551919207482
+P-value: 0.00990099009900991
+
+GM12878:
+True activity: 0.4916890762988052
+Running 100 permutations
+Mean permuted activity: 0.24998188213947065
+Ratio: 1.9668988491913209
+P-value: 0.00990099009900991
+
+GM12878 Stim:
+True activity: 0.4691170167428193
+Running 100 permutations
+Mean permuted activity: 0.22099763079543253
+Ratio: 2.1227241896410174
+P-value: 0.00990099009900991
+
+THP-1:
+True activity: 0.4006961631781182
+Running 100 permutations
+Mean permuted activity: 0.2396919124084497
+Ratio: 1.6717133221220555
+P-value: 0.00990099009900991
+
+THP-1 Stim:
+True activity: 0.33690542535424467
+Running 100 permutations
+Mean permuted activity: 0.18819179028282373
+Ratio: 1.790223818201245
+P-value: 0.00990099009900991
+
+
+   327 Cs_x3_ced_regions_bmerged.narrowPeak
+   302 C_x3_ced_regions_bmerged.narrowPeak
+   400 Gs_x3_ced_regions_bmerged.narrowPeak
+   361 G_x3_ced_regions_bmerged.narrowPeak
+    74 Js_x3_ced_regions_bmerged.narrowPeak
+    28 J_x3_ced_regions_bmerged.narrowPeak
+   717 K_x3_ced_regions_bmerged.narrowPeak
+   584 Ts_x3_ced_regions_bmerged.narrowPeak
+   654 T_x3_ced_regions_bmerged.narrowPeak
+
+
+```
+

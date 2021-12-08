@@ -5,6 +5,7 @@ library(ggsignif)
 library(gridExtra)
 library(pheatmap)
 library(RColorBrewer)
+library(readxl)
 
 # Function definitions
 #----------------------------------------------------------------------------------------
@@ -129,11 +130,11 @@ make.ase.qqman.compatible <- function(data) {
 }
 
 #----------------------------------------------------------------------------------------
-read.bedfile <- function(path) {
+read.bedfile <- function(path, chr.prefix="") {
   peakset     <- read.table(path)[,1:3]
 
   # Convert to genomic ranges object
-  peakset.gr     <- GRanges(seqnames=peakset[,1],
+  peakset.gr     <- GRanges(seqnames=paste0(chr.prefix, peakset[,1]),
                               ranges=IRanges(start=as.numeric(peakset[,2]),
                                              end=as.numeric(peakset[,3])))
   
@@ -141,6 +142,28 @@ read.bedfile <- function(path) {
   return(list(data=peakset, genomicRanges=peakset.gr))
 }
 
+#----------------------------------------------------------------------------------------
+read.ase.from.excel <- function(path, sheet) {
+  cur         <- read_xlsx(path, sheet=sheet)
+  
+  # Filter duplicates
+  #cur         <- cur[!duplicated(cur[,2]), 1:16]
+  
+  # Filter SNPs not in a peak
+  cur         <- cur[!is.na(cur$name),]
+  
+  # Filter non-called SNPs
+  cur         <- cur[!is.na(cur$P),]
+  
+  # Filter non-tested SNPs
+  cur         <- cur[cur$P != 1,]
+  
+  cur         <- as.data.frame(cur, stringsAsFactors=F)
+  
+  rownames(cur) <- cur[,2]
+  return(cur)
+  
+}
 
 ## ------------------------------------------------------------------------
 # Simple plotting theme for ggplot using arial family font

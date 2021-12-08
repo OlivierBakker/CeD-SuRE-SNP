@@ -36,7 +36,7 @@ public class MakeBarcodeComplexityCurveParameters {
 
     private int nDownSampleIntervals;
     private int nIterations;
-    private int intervalMax;
+    private int intervalMax = 0;
 
     private static final Options OPTIONS;
 
@@ -69,7 +69,7 @@ public class MakeBarcodeComplexityCurveParameters {
         option = Option.builder("m")
                 .longOpt("max-records")
                 .hasArg(true)
-                .desc("Ammount of reacords to read")
+                .desc("Amount of records to read")
                 .build();
         OPTIONS.addOption(option);
 
@@ -133,7 +133,7 @@ public class MakeBarcodeComplexityCurveParameters {
         adapterMaxMismatch = 3;
 
         // How may intervals to divide the total readcount by
-        nDownSampleIntervals = 20;
+        nDownSampleIntervals = 10;
 
         // How many times to repeat and average the values
         nIterations = 1;
@@ -141,9 +141,6 @@ public class MakeBarcodeComplexityCurveParameters {
         // Input files
         if (cmd.hasOption('m')) {
             intervalMax = Integer.parseInt(cmd.getOptionValue('m').trim());
-        } else {
-            intervalMax = 1000000;
-            LOGGER.warn("Intitialzing intervalMax at " + intervalMax);
         }
     }
 
