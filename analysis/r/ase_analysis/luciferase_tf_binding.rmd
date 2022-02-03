@@ -114,7 +114,7 @@ regions.of.interest        <- data.frame(chrs=c("chr9", "chr3", "chr22", "chr6",
                                          froms=c(272295, 46465326, 21926426, 33029797, 46368431, 21921656, 75052881),
                                          tos=c(272355, 46465386, 21926486, 33029857, 46368491, 21921716, 75052941),
                                          variant=c("rs785847", "rs71327063", "rs140496", "rs55950816", "rs2888524", "rs140490", "rs11072504"),
-                                         celltype=c("K","K","C","C","Cs","C","C"),
+                                         celltype=c("K","Cs","C","Cs","Cs","C","C"),
                                          stringsAsFactors = F)
 
 
@@ -260,7 +260,7 @@ ht         <- HighlightTrack(trackList = cur.tracks,
                      fill=NA,
                      col="darkgrey")
 
-pdf(height=8, width=8, file=paste0("output/plots/",variant ,"_locus", region,"_tfbs_overview.pdf"), useDingbats=F)
+pdf(height=5.5, width=8, file=paste0("output/plots/",variant ,"_locus", region,"_tfbs_overview.pdf"), useDingbats=F, paper="a4")
 plotTracks(ht,
                chromosome = chr,
                from=from,
@@ -269,7 +269,7 @@ plotTracks(ht,
 dev.off()
 
 # Activity track
-pdf(height=2, width=8, file=paste0("output/plots/",variant ,"_locus", region,"_activity_tracks.pdf"), useDingbats=F)
+pdf(height=1.5, width=8, file=paste0("output/plots/",variant ,"_locus", region,"_activity_tracks.pdf"), useDingbats=F, paper="a4")
 
 
 get.data <- function(celltype) {
@@ -327,7 +327,7 @@ make.track <- function(df.plot, celltype, ylim) {
                                       stacking="squish",
                                       fill="#D4D4D4",
                                       col=NA)
-  ht         <- HighlightTrack(trackList = c(track.k, track.c, track.cs, knownGenes),
+  ht         <- HighlightTrack(trackList = c(track.k, track.c, track.cs),
                        start = c(snppos),
                        width = 0,
                        chromosome = chr,

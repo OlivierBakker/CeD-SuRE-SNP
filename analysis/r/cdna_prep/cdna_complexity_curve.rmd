@@ -32,20 +32,24 @@ p1 <- ggplot(df.plot, mapping=aes(x=windows, y=counts, group=name, col=celltype)
   scale_color_manual(values=sure.palette$celltype_stim_alt) +
   xlab("Number of seqeunced barcodes") +
   ylab("Number of unique barcodes")
-p1 <- theme.plain(p1) 
-
+p1 <- theme.plain(p1, base_size=10) 
 
 p2 <- ggplot(df.plot, mapping=aes(x=windows, y=1 - (counts/windows), group=name, col=celltype)) + 
   geom_line(alpha=0.5) +
   geom_point(alpha=0.5, size=0.5) +
   scale_color_manual(values=sure.palette$celltype_stim_alt) +
   xlab("Number of seqeunced barcodes") +
-  ylab("1 - % unique barcodes in bin") +
+  ylab("1 - % unique barcodes") +
   ylim(c(0,1))
-p2 <- theme.plain(p2) 
+p2 <- theme.plain(p2, base_size=10) 
 
-pdf(width=8, height=8, paper="a4", file="output/plots/cdna_saturation_curves.pdf")
-grid.arrange(grobs=list(p1, p2), ncol=1)
+
+gA <- ggplotGrob(p1 + theme(legend.position = "none"))
+gB <- ggplotGrob(p2 + theme(legend.position = "none"))
+
+pdf(width=8, height=4, paper="a4", file="output/plots/cdna_saturation_curves.pdf")
+grid::grid.newpage()
+grid::grid.draw(rbind(gA, gB))
 dev.off()
 
 ```

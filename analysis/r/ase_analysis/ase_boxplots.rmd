@@ -84,25 +84,57 @@ get.snp.data <- function(x, snp, celltype, strand="both") {
 
   return(cur.x)
 }
+
+
+K562          <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="K562")
+Caco2         <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Caco2")
+Caco2Stim     <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Caco2Stim")
+Jurkat        <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="Jurkat")
+JurkatStim    <- read.ase.from.excel("../../output_tables/output/SuRE_CeD_all_1000G_EUR_maf05_25kb_ld08.xlsx", sheet="JurkatStim")
+
+df.plot <- data.frame(pvals = c(K562$P,
+                                Caco2$P,
+                                Caco2Stim$P,
+                                Jurkat$P,
+                                JurkatStim$P),
+                      pvals.ponce = c(K562$PONCE_P,
+                                Caco2$PONCE_P,
+                                Caco2Stim$PONCE_P,
+                                Jurkat$PONCE_P,
+                                JurkatStim$PONCE_P),
+                      celltype = c(rep("k562", nrow(K562)),
+                                   rep("caco-2", nrow(Caco2)),
+                                   rep("caco-2-stim", nrow(Caco2Stim)),
+                                   rep("jurkat", nrow(Jurkat)),
+                                   rep("jurkat-stim", nrow(JurkatStim))),
+                      snps = c(K562$variant_id,
+                               Caco2$variant_id,
+                               Caco2Stim$variant_id,
+                               Jurkat$variant_id,
+                               JurkatStim$variant_id),
+                      stringsAsFactors = F
+                      )
 ```
 
 # Statistics on per SNP coverage
 ```{r}
-snps <- unique(sure.data$V2)
+peak.snps  <- unique(df.plot$snps)
+all.snps   <- unique(sure.data$V2)
 
 # Average coverage
-nrow(sure.data) / length(snps)
+nrow(sure.data) / length(all.snps)
+nrow(sure.data[ V2 %in% peak.snps]) / length(peak.snps)
 
 # Non zeroes
-total <- rowSums(sure.data[,9:28])
+total.all   <- rowSums(sure.data[,9:28])
+total.peaks <- rowSums(sure.data[V2 %in% peak.snps, 9:28])
 
-sum(total > 0) / length(snps)
+sum(total.all > 0) / length(all.snps)
+sum(total.peaks > 0) / length(peak.snps)
 ```
 
-
-# Hybrid luciferase and SuRE plot
+# Hybrid luciferase and SuRE plot per strand
 ```{r}
-
 for (cur.snp in names(luciferase)) {
   
   caco      <- get.snp.data(sure.data, cur.snp, "caco-2", strand="both")[,c(6, 7, 8, 29, 30, 31)]
@@ -169,9 +201,6 @@ for (cur.snp in names(luciferase)) {
 
   p2 <- theme.plain(p2) + scale_x_discrete(labels = NULL, breaks = NULL) + theme(legend.position = "none")
   
-  #grid.arrange(grobs=list(p1, p2), nrow=2)  
-  
-  
   pdf(width=7, height=4.5, file=paste0("output/plots/ase_plots_with_luciferase/", cur.snp, ".pdf"), paper="a4", onefile=F, useDingbats = F)
   gA <- ggplotGrob(p2)
   gB <- ggplotGrob(p1)
@@ -179,14 +208,86 @@ for (cur.snp in names(luciferase)) {
   grid::grid.draw(rbind(gA, gB))
   dev.off()
 }
-
-
-
-
-
-
 ```
 
+# Hybrid luciferase and SuRE plot
+```{r}
+
+for (cur.snp in names(luciferase)) {
+  
+  caco      <- get.snp.data(sure.data, cur.snp, "caco-2", strand="both")[,c(6, 7, 8, 29, 30, 31)]
+  caco.stim <- get.snp.data(sure.data, cur.snp, "caco-2-stim", strand="both")[,c(6, 7, 8, 29, 30, 31)]
+  k562      <- get.snp.data(sure.data, cur.snp, "k562", strand="both")[,c(6, 7, 8, 29, 30, 31)]
+
+  df.plot   <- rbind(caco, caco.stim, k562)
+  df.plot   <- cbind(c(rep("Caco-2", nrow(caco)),
+                     rep("Caco-2 Stim", nrow(caco.stim)),
+                     rep("K562", nrow(k562))),
+                   df.plot)
+  
+  colnames(df.plot)[1:4] <- c("celltype", "allele", "strand", "ipcr")
+  
+  alleles      <- unique(as.character(df.plot$allele))
+  allele.order <- c(alleles[1], alleles[2])
+  levels       <- c(paste0("K562 ", allele.order), paste0("Caco-2 ", allele.order), paste0("Caco-2 Stim ", allele.order))
+  df.plot$x    <- factor(paste0(df.plot$celltype, " ", df.plot$allele), levels=levels)
+                    
+  p1 <- ggplot(data=df.plot, mapping=aes(x=x, y=norm, fill=celltype, col=celltype)) +
+  geom_hline(yintercept=0, col="#dedede", lty=2) +
+  geom_violin(position=position_dodge(), col="white", alpha=0.2) +
+  geom_quasirandom(position=position_dodge(), alpha=0.5, size=0.75, type=16) +
+  geom_boxplot(width=0.2, position=position_dodge(width=0.9), col="black", alpha=0.8, outlier.shape = NA) +
+  scale_fill_manual(values=sure.palette$celltype_stim_alt2) +
+  scale_color_manual(values=sure.palette$celltype_stim_alt2) +
+  ylab("Normalized SuRE activity") +
+  xlab("") +
+  scale_x_discrete(labels=rep(allele.order, 3)) +
+  geom_signif(mapping=aes(x=as.character(df.plot$x), y=df.plot$norm),
+        comparisons = list(c(levels[1], levels[2]),
+                           c(levels[3], levels[4]),
+                           c(levels[5], levels[6])),
+        inherit.aes = F,
+        tip_length=0) +
+    ylim(c(min(df.plot$norm)-1, max(df.plot$norm)+1))
+  
+  p1 <- theme.plain(p1) + theme(legend.position = "none")
+  gB <- ggplotGrob(p1)
+
+  allele.order    <- c(paste0(alleles[1], " -"), paste0(alleles[2], " -"), paste0(alleles[1], " +"), paste0(alleles[2], " +"))
+  levels          <- c(paste0("K562 ", allele.order), paste0("Caco-2 ", allele.order), paste0("Caco-2 Stim ", allele.order))
+  df.plot$x       <- factor(paste0(df.plot$celltype, " ", df.plot$allele, " ", df.plot$strand), levels=levels)
+  
+  df.plot2        <- luciferase[[cur.snp]]
+
+  df.plot2$allele <- gsub(".*\\_(.*)", "\\1", df.plot2$ori_SNP)
+  df.plot2$strand <- gsub("(.*)\\_.*", "\\1", df.plot2$ori_SNP)
+  df.plot2$strand <- gsub("plus", "+", df.plot2$strand)
+  df.plot2$strand <- gsub("minus", "-", df.plot2$strand)
+
+  df.plot2$x     <- factor(paste0(df.plot2$ctype, " ", df.plot2$allele, " ", df.plot2$strand), levels=levels)
+  df.plot2$ymin  <- df.plot2$LucRen - df.plot2$stDev
+  df.plot2$ymax  <- df.plot2$LucRen + df.plot2$stDev
+  
+  
+  p2 <- ggplot(data=df.plot2, mapping=aes(x=x, y=log10(LucRen), fill=ctype, ymin=log10(ymin), ymax=log10(ymax))) +
+        geom_hline(yintercept=0, col="#dedede", lty=2) +
+        geom_bar(stat="identity") +
+        geom_errorbar(width=.2,
+                 position=position_dodge(.9)) +
+        scale_fill_manual(values=sure.palette$celltype_stim_alt2) +
+        scale_x_discrete(labels=rep(allele.order, 3)) +
+        xlab("") +
+        ylab("Log10(Luciferase / Renilla)") 
+
+  p2 <- theme.plain(p2) + theme(legend.position = "none")
+  
+  pdf(width=8, height=2.5, file=paste0("output/plots/ase_plots_with_luciferase/", cur.snp, ".pdf"), onefile=F, useDingbats = F)
+  gA <- ggplotGrob(p2)
+  grid::grid.newpage()
+  grid::grid.draw(cbind(gB, gA))
+  dev.off()
+}
+```
 
 
 
