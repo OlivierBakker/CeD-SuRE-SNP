@@ -5,7 +5,6 @@ library(ggsignif)
 library(gridExtra)
 library(pheatmap)
 library(RColorBrewer)
-library(readxl)
 
 # Function definitions
 #----------------------------------------------------------------------------------------
@@ -130,11 +129,11 @@ make.ase.qqman.compatible <- function(data) {
 }
 
 #----------------------------------------------------------------------------------------
-read.bedfile <- function(path, chr.prefix="") {
+read.bedfile <- function(path) {
   peakset     <- read.table(path)[,1:3]
 
   # Convert to genomic ranges object
-  peakset.gr     <- GRanges(seqnames=paste0(chr.prefix, peakset[,1]),
+  peakset.gr     <- GRanges(seqnames=peakset[,1],
                               ranges=IRanges(start=as.numeric(peakset[,2]),
                                              end=as.numeric(peakset[,3])))
   
@@ -142,28 +141,6 @@ read.bedfile <- function(path, chr.prefix="") {
   return(list(data=peakset, genomicRanges=peakset.gr))
 }
 
-#----------------------------------------------------------------------------------------
-read.ase.from.excel <- function(path, sheet) {
-  cur         <- read_xlsx(path, sheet=sheet)
-  
-  # Filter duplicates
-  #cur         <- cur[!duplicated(cur[,2]), 1:16]
-  
-  # Filter SNPs not in a peak
-  cur         <- cur[!is.na(cur$name),]
-  
-  # Filter non-called SNPs
-  cur         <- cur[!is.na(cur$P),]
-  
-  # Filter non-tested SNPs
-  cur         <- cur[cur$P != 1,]
-  
-  cur         <- as.data.frame(cur, stringsAsFactors=F)
-  
-  rownames(cur) <- cur[,2]
-  return(cur)
-  
-}
 
 ## ------------------------------------------------------------------------
 # Simple plotting theme for ggplot using arial family font
@@ -257,15 +234,15 @@ simple.hm <- function(data, cellwidth=12, cellheight=12, limit=NULL, range="symm
   
   if (range == "symmetric") {
     break.list <- seq(-max(abs(data)), max(abs(data)), by=max(abs(data))/100)
-    if (is.null(palette)) {palette="RdBu"}
+    if (is.null(palette())) {palette="RdBu"}
     cols       <- colorRampPalette(rev(brewer.pal(n=7, name =palette)))(length(break.list))
   } else if (range == "absolute") {
-    if (is.null(palette)) {palette="Reds"}
+    if (is.null(palette())) {palette="Reds"}
     break.list <- seq(min.value, max(abs(data)), by=max(abs(data))/100)
-    cols       <- colorRampPalette(c("#FFFFFF",brewer.pal(n=7, name =palette)))(length(break.list))
+    cols       <- colorRampPalette(brewer.pal(n=7, name =palette))(length(break.list))
   } else if (range == "auto") {
     break.list <- seq(-min(data), max(data), by=max(abs(data))/100)
-    if (is.null(palette)) {palette="RdBu"}
+    if (is.null(palette())) {palette="RdBu"}
     cols       <- colorRampPalette(rev(brewer.pal(n=7, name =palette)))(length(break.list))
   } else  {
     cat("[ERROR] range must be symmetric, auto, or aboslute\n")
@@ -592,11 +569,6 @@ sure.palette <- list(celltype_stim=c(`k562`="#FE0000",
                                      `Cs`="#7EC1EE",
                                      `J`="#007D5A",
                                      `Js`="#00D69A"),
-                     celltype_stim_alt2=c(`K562`="#FE0000", 
-                                         `Caco-2`="#0000CE",
-                                         `Caco-2 Stim`="#7EC1EE",
-                                         `Jurkat`="#007D5A",
-                                         `Jurkat Stim`="#00D69A"),
                      celltype=c(`k562`="#FE0000", 
                                 `caco-2`="#0000CE",
                                 `jurkat`="#007D5A"),
@@ -649,5 +621,3 @@ convert.pvalue.to.dits <- function(x) {
     return("*")
   }
 }
-
-

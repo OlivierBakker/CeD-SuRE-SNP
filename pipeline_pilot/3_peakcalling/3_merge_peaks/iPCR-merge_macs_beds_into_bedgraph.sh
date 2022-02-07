@@ -18,10 +18,8 @@ SCALE=$(awk -v total="${TOTAL}" 'BEGIN{print 1000000/total}')
 
 echo "[INFO] Scaling by ${SCALE}"
 
-#-g /apps/data/ftp.broadinstitute.org/bundle/2.8/b37/human_g1k_v37.fasta.fai \
-
 bedtools genomecov \
--g ../../0_data/human_g1k_v37.fasta.fai \
+-g /apps/data/ftp.broadinstitute.org/bundle/2.8/b37/human_g1k_v37.fasta.fai \
 -i ${OUTPUT}.tmp.bed \
 -scale ${SCALE} \
 -bg > ${OUTPUT}.bdg

@@ -19,4 +19,4 @@ SAMPLES_NAME="${SAMPLES_NAME:1}"
 sbatch --out=logs/${SAMPLES_NAME}.out --err=logs/${SAMPLES_NAME}.err iPCR-prepare_macs.sh "${SAMPLES}"
 #bash iPCR-prepare_macs.sh "${SAMPLES}"
 
-done < combos_gmt.txt
+done < combos_jurkat.txt

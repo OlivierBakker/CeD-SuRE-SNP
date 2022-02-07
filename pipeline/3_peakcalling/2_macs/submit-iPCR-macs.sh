@@ -23,5 +23,5 @@ SAMPLES_NAME="${SAMPLES_NAME:1}"
 sbatch --out=logs/${SAMPLES_NAME}.out --err=logs/${SAMPLES_NAME}.err iPCR-macs.sh "${SAMPLES_NAME}"
 
 
-done < combos_jurkat.txt
+done < combos_gmt.txt
 

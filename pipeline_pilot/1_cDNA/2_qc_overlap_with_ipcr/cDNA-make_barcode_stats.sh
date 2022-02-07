@@ -1,30 +1,21 @@
 #!/bin/bash
 #SBATCH --time=05:59:00
-#SBATCH --mem=64G
+#SBATCH --mem=65G
 
 set -e
 
 ml Java
 
 OUTPUT=$2
-IPCR_TOOLS="../../0_tools/IPCRTools-1.0-SNAPSHOT-all.jar"
+IPCR_TOOLS="../../../pipeline/0_tools/IPCRTools-1.0-SNAPSHOT-all.jar"
 SAMPLE=$1
-
-INPUT_FILES=""
-#for file in ../../2_make_ipcr_files/2_merge_with_barcodes/output/collapsed/*.ipcr.bgz;
-
-for file in ../../2_make_ipcr_files/2_merge_with_barcodes/output/collapsed_v3/*.ipcr.bgz;
-do
-INPUT_FILES="$INPUT_FILES -i $file"
-done
-
 
 # Generate the input CLA
 CMD="java -Xmx64G -jar ${IPCR_TOOLS} \
 -T MakeBarcodeStats \
--b ../1_make_bacode_counts/output_full_experiment/${SAMPLE}/${SAMPLE}.barcode.counts.gz \
+-b ../1_make_bacode_counts/output/${SAMPLE}/${SAMPLE}.barcode.counts.gz \
 -o output/${SAMPLE} \
-$INPUT_FILES"
+-i ../../2_make_ipcr_files/1_merge_with_barcodes/output/collapsed/sure_pilot_B.ipcr.bgz"
 
 echo $CMD
 eval $CMD

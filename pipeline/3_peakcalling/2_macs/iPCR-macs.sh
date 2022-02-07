@@ -4,8 +4,12 @@
 
 set -e
 
-ml Python/3.6.3-foss-2015b
-source macs2_venv/bin/activate
+#ml Python/3.6.3-foss-2015b
+#ml Python/3.9.1-GCCcore-7.3.0-bare
+#source macs2_venv/bin/activate
+
+ml Anaconda3
+source activate cutadaptenv
 
 
 OUTDIR1=output/narrow/genome_wide
@@ -40,8 +44,8 @@ CMD2="macs2 callpeak \
 -g 14e6"
 
 
-echo $CMD1
-eval $CMD1
+#echo $CMD1
+#eval $CMD1
 
 
 echo $CMD2
@@ -51,4 +55,4 @@ eval $CMD2
 # gzip change outdir accordingly
 
 gzip ${OUTDIR2}/*${1}_treat_pileup.bdg ${OUTDIR2}/*${1}_control_lambda.bdg
-gzip ${OUTDIR1}/WG_filtered500_${1}_treat_pileup.bdg ${OUTDIR1}/WG_filtered500_${1}_control_lambda.bdg
+#gzip ${OUTDIR1}/WG_filtered500_${1}_treat_pileup.bdg ${OUTDIR1}/WG_filtered500_${1}_control_lambda.bdg

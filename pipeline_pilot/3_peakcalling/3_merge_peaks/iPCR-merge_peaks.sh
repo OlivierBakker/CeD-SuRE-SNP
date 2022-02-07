@@ -2,7 +2,7 @@
 
 
 # CeD regions
-PREFIX="../2_macs/output/narrow/ced_regions/CeD_filtered500_"
+PREFIX="../2_macs/output/narrow/"
 
 while read curcombo;
 do
@@ -19,7 +19,7 @@ done
 CMD="java -jar ../../0_tools/IPCRTools-1.0-SNAPSHOT-all.jar \
 -T OverlapPeaks \
 ${INPUTS} \
--o output/jurkat_filtered/ced_regions/${OUTPUT} \
+-o output/ced_regions/${OUTPUT} \
 --score-filter 3 \
 --discard-unique \
 --trim-pattern CeD_filtered500_"
@@ -29,7 +29,7 @@ eval $CMD
 
 echo "----------------------------------------------------------------------"
 
-done < combos_gmt.txt
+done < combos.txt
 
 
 #-------------------------------------------------------------------------#
@@ -56,8 +56,8 @@ ${INPUTS} \
 --discard-unique \
 --trim-pattern WG_filtered500_"
 
-#echo $CMD
-#eval $CMD
+echo $CMD
+eval $CMD
 
 echo "----------------------------------------------------------------------" 
 

@@ -3,11 +3,8 @@
 #SBATCH --mem=64G
 #SBATCH --ntasks=22
 
-
-# Switched to Conda env when porting to gearshift
 ml pigz
-#ml Python/3.6.3-foss-2015b
-ml Anaconda3
+ml Python/3.6.3-foss-2015b
 
 set -e
 
@@ -16,10 +13,7 @@ INPUT=$1
 OUTPUT=$2
 
 # Use the latest cutadapt
-#CUTADAPT=~/.local/bin/cutadapt
-source activate cutadaptenv
-CUTADAPT=cutadapt
-
+CUTADAPT=~/.local/bin/cutadapt
 
 base="$(basename $INPUT)"
 echo "[INFO] Proccesing $base $INPUT"
