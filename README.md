@@ -2,7 +2,7 @@
 Pipeline and scripts for the survey of regulatory elements and snps on coeliac disease
 
 
-# Repo structure
+## Repo structure
 The repo is sub-divided into two parts `analysis` representing the downstream analysis of the SuRE data and `pipeline` respresenting the pipeline used to convert the SuRE seqeuncing data to a usable format.
 
 ## Main folders
@@ -16,5 +16,5 @@ The repo is sub-divided into two parts `analysis` representing the downstream an
 
 For more details on `pipeline` and `analysis`, please see the respective folders README. Also see the wiki for a detailled walkthrough of the analysis steps. 
 
-# On pipeline maintance
+## On pipeline maintance
 I will likely not be maintaing this pipeline into the far future. That being said, I'll try to update the documentation the best I can and keep an eye on any issues raised here: https://github.com/OlivierBakker/CeD-SuRE-SNP/issues
